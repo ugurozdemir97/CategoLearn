@@ -6,8 +6,7 @@ export default StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingVertical: 40,
-        backgroundColor: "#081125"
+        backgroundColor: "#0c1323"
     },
 
     paddingContainer: {
@@ -45,11 +44,11 @@ export default StyleSheet.create({
     // List items
     item: {
         padding: 15,
-        backgroundColor: "#1e1e1e",
+        backgroundColor: "#121f3d",
         marginVertical: 5,
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: "#333"
+        borderRadius: 15,
+        borderWidth: 0.8,
+        borderColor: "#42acf3"
     },
 
     // Floating buttons
@@ -125,7 +124,6 @@ export default StyleSheet.create({
     buttonContainer: {
         position: "absolute",
         right: 20,
-        bottom: 20,
         flexDirection: "column",
         alignItems: "center",
         rowGap: 10
@@ -148,6 +146,43 @@ export default StyleSheet.create({
         position: "absolute",
         left: 20,
         top: 40,
-    }
+    },
+
+header: {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: 50,
+  backgroundColor: "#111",   // dark background
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 10,
+  zIndex: 10,
+},
+
+footer: {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: 60,
+  backgroundColor: "#111",   // dark background
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-around",
+  borderTopWidth: 1,
+  borderTopColor: "#333",    // subtle divider
+  zIndex: 10,
+},
+
+footerButton: {
+  color: "#fff",             // light icons/text
+},
+
+headerButton: {
+  color: "#fff",             // light icons/text
+},
 
 });

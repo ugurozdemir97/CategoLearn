@@ -22,6 +22,9 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ugur97.CategoLearn"
-    }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }
