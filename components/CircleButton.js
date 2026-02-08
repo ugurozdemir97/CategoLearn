@@ -1,13 +1,21 @@
 import { TouchableOpacity } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
+import { colors } from "../styles/colors.js";
 
-// Circular button component that can display different icons based on the "icon" prop
-export default function CircleButton({ icon, onPress, isGoBack = false }) {
+// Reusable circular button
+export default function CircleButton({ icon, onPress }) {
+
+    const iconName = {
+        plus: "plus",
+        folder: "folder",
+        file: "file-text-o",
+        pencil: "pencil",
+    } [icon] || "plus";
 
     return (
-        <TouchableOpacity style={[styles.circleButton, isGoBack && styles.goBackButton]} onPress={onPress}>
-            <FontAwesome name={icon} size={isGoBack ? 16 : 20} color="white"/>
+        <TouchableOpacity style={[ styles.circleButton, styles.centered, {backgroundColor: colors.accent, borderColor: colors.accentLight} ]} onPress={onPress} >
+            <FontAwesome name={iconName} size={24} color={colors.textPrimary}/>
         </TouchableOpacity>
     );
 }

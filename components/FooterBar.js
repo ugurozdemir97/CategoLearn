@@ -1,51 +1,53 @@
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";   // ✅ NEW
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import styles from "../styles/styles.js";
+import { colors } from "../styles/colors.js";
 
-export default function FooterBar({ selectedCount, hasClipboard, onAction }) {
-  const insets = useSafeAreaInsets();
+// Footer is for search, settings, deleted items, and paste items when clipboard has content. 
+// When items are selected, it switches to actions like delete, edit, cut, copy, and color.
+export default function FooterBar({ selectedCount, hasClipboard, onAction, onLayout }) {
 
-  return (
-    <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
-      {selectedCount > 0 ? (
-        <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
-          <TouchableOpacity onPress={() => onAction("delete")}>
-            <FontAwesome name="trash" size={22} color="#fff" />
-          </TouchableOpacity>
-          {selectedCount === 1 && (
-            <TouchableOpacity onPress={() => onAction("edit")}>
-              <FontAwesome name="pencil" size={22} color="#fff" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => onAction("cut")}>
-            <FontAwesome name="scissors" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onAction("copy")}>
-            <FontAwesome name="copy" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onAction("color")}>
-            <FontAwesome name="paint-brush" size={22} color="#fff" />
-          </TouchableOpacity>
+    // Safe area insets for preventing overlap with navigation buttons/status bar
+    const insets = useSafeAreaInsets();
+
+    // Reusable icon button component
+    const IconButton = ({ name, action, label, color = colors.textPrimary }) => (
+        <TouchableOpacity onPress={() => onAction(action)} style={{ alignItems: "center", gap: 4 }}>
+            <FontAwesome name={name} size={22} color={color} />
+            <Text style={{ fontSize: 12, color }}>{label}</Text>
+        </TouchableOpacity>
+    );
+
+    return (
+        <View style={[styles.headerAndFooter,styles.footer, { paddingTop: insets.bottom, height: insets.bottom + 70, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
+
+            {/* Delete - Cut - Copy - Color - Edit */}
+            {selectedCount > 0 ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
+                    <IconButton name="trash" action="delete" color={colors.danger} label="Delete"/>
+                    <IconButton name="scissors" action="cut" label="Cut"/>
+                    <IconButton name="copy" action="copy" label="Copy"/>
+                    <IconButton name="paint-brush" action="color" label="Color"/>
+                    {selectedCount === 1 && (
+                        <IconButton name="pencil" action="edit" label="Edit"/>
+                    )}
+                </View>
+            ) : (  
+
+                // Search - Settings - Deleted Items - (Paste)
+                <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
+                    <IconButton name="search" action="search" label="Search"/>
+                    <IconButton name="cog" action="settings" label="Settings"/>
+                    <IconButton name="trash-o" action="deleted" label="Deleted"/>
+                    {hasClipboard && (
+                        <>
+                            <IconButton name="times-circle" action="clearClipboard" label="Clear"/>
+                            <IconButton name="clipboard" action="paste" label="Paste"/>
+                        </>
+                    )}
+                </View>
+            )}
         </View>
-      ) : (
-        <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
-          <TouchableOpacity onPress={() => onAction("search")}>
-            <FontAwesome name="search" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onAction("settings")}>
-            <FontAwesome name="cog" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onAction("deleted")}>
-            <FontAwesome name="trash-o" size={22} color="#fff" />
-          </TouchableOpacity>
-          {hasClipboard && (
-            <TouchableOpacity onPress={() => onAction("paste")}>
-              <FontAwesome name="clipboard" size={22} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </View>
-  );
+    );
 }

@@ -1,0 +1,39 @@
+import { useState, useCallback } from "react";
+
+// Select and Unselect items
+export function useSelection() {
+
+    // Store selected items
+    const [selectedItems, setSelectedItems] = useState([]);
+
+    // If true, we can select other items just by tapping on them once
+    const secondarySelect = selectedItems.length > 0;
+
+    // Select if not selected, unselect if already selected
+    const toggleSelection = useCallback((item) => {
+        setSelectedItems((prev) => {
+            const exists = prev.some((i) => i.id === item.id);
+            if (exists) {return prev.filter((i) => i.id !== item.id)}
+            return [...prev, item];
+        });
+    }, []);
+
+    // Check if item is selected
+    const isSelected = useCallback(
+        (item) => selectedItems.some((i) => i.id === item.id),
+        [selectedItems]
+    );
+
+    // Unselect all
+    const clear = useCallback(() => {
+        setSelectedItems([]);
+    }, []);
+
+    // Select all
+    const selectAll = useCallback((items) => {
+        setSelectedItems([...items]);
+    }, []);
+
+    return { selectedItems, secondarySelect, toggleSelection, isSelected, clear, selectAll };
+
+}

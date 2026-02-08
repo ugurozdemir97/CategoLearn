@@ -2,187 +2,97 @@ import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
 
-    // General containers
+    // CONTAINERS
+
     container: {
         flex: 1,
-        paddingHorizontal: 20,
-        backgroundColor: "#0c1323"
-    },
-
-    paddingContainer: {
-        paddingHorizontal: 50
+        paddingHorizontal: 20
     },
 
     centered: {
-        flex: 1,
         justifyContent: "center",
         alignItems: "center"
     },
 
-    title: {
-        fontSize: 20,
-        marginBottom: 20,
-        textAlign: "center",
-        color: "rgb(152, 245, 255)"
-    },
+    // HEADER & FOOTER
 
-    noItem: {
-        fontSize: 18,
-        textAlign: "center",
-        color: "rgb(193, 249, 255)"
-    },
-
-    bold: {
-        fontWeight: "bold"
-    },
-
-    itemText: {
-        fontSize: 16,
-        color: "#ffffff"
-    },
-
-    // List items
-    item: {
-        padding: 15,
-        backgroundColor: "#121f3d",
-        marginVertical: 5,
-        borderRadius: 15,
-        borderWidth: 0.8,
-        borderColor: "#42acf3"
-    },
-
-    // Floating buttons
-    plusButton: {
+    headerAndFooter: {
         position: "absolute",
-        right: 20,
-        bottom: 20,
-        backgroundColor: "#007AFF",
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 5
-    },
-    plusText: {
-        color: "white",
-        fontSize: 30,
-        fontWeight: "bold"
-    },
-    folderButton: {
-        position: "absolute",
-        right: 20,
-        bottom: 100,
-        backgroundColor: "#007AFF",
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 5
-    },
-
-    // Modal
-    modalOverlay: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.7)"
-    },
-    modalContent: {
-        width: "80%",
-        backgroundColor: "#1e1e1e",
-        padding: 20,
-        borderRadius: 10,
-        elevation: 10
-    },
-    modalTitle: {
-        fontSize: 20,
-        marginBottom: 10,
-        textAlign: "center",
-        color: "#ffffff"
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: "#444",
-        padding: 10,
-        marginBottom: 15,
-        borderRadius: 5,
-        color: "#ffffff",
-        backgroundColor: "#2a2a2a"
-    },
-    modalButtons: {
+        left: 0,
+        right: 0,
         flexDirection: "row",
-        justifyContent: "space-between"
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        zIndex: 10
     },
 
-    // Card detail fields
-    field: {
-        marginBottom: 15
+    header: {top: 0},
+    footer: {bottom: 0},
+
+    // ALIGNMENT
+
+    rowSpaceBetween: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
+
+
+    // TEXT
+
+    title: {fontSize: 22, fontWeight: "bold"},
+    midText: {fontSize: 19, fontWeight: "bold"},
+    smallText: {fontSize: 15},
+    centeredText: {textAlign: "center"},
+
+    // BUTTONS
 
     buttonContainer: {
         position: "absolute",
         right: 20,
         flexDirection: "column",
         alignItems: "center",
-        rowGap: 10
+        rowGap: 12
     },
 
     circleButton: {
-        backgroundColor: "#007AFF",
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 5
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2
     },
 
-    goBackButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        position: "absolute",
-        left: 20,
-        top: 40,
+    item: {
+        padding: 16,
+        marginVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1
     },
 
-header: {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: 50,
-  backgroundColor: "#111",   // dark background
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingHorizontal: 10,
-  zIndex: 10,
-},
+    // MODALS
 
-footer: {
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  height: 60,
-  backgroundColor: "#111",   // dark background
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-around",
-  borderTopWidth: 1,
-  borderTopColor: "#333",    // subtle divider
-  zIndex: 10,
-},
+    modalContent: {
+        width: "90%",
+        padding: 15,
+        borderRadius: 16
+    },
 
-footerButton: {
-  color: "#fff",             // light icons/text
-},
+    input: {
+        paddingHorizontal: 14,
+        marginTop: 15,
+        borderRadius: 10
+    },
 
-headerButton: {
-  color: "#fff",             // light icons/text
-},
+    // Card detail fields
+    field: {
+        marginBottom: 12,
+        paddingVertical: 8,
+    },
+
+    fieldContext: {
+        fontSize: 15,
+        lineHeight: 22,
+    },
 
 });

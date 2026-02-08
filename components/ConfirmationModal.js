@@ -1,22 +1,31 @@
-import { Modal, View, Text, Button } from "react-native";
+import { Modal, View, Text, TouchableOpacity } from "react-native";
 import styles from "../styles/styles.js";
+import { colors } from "../styles/colors.js";
 
-export default function ConfirmationModal({ visible, onCancel, onConfirm, message = "Are you sure?", confirmText = "Delete"}) {
-  
+// A simple confirmation modal with customizable message and actions
+export default function ConfirmationModal({ visible, onCancel, onConfirm, message, confirmText = "Confirm", confirmColor = colors.danger}) {
+    
     return (
-        <Modal
-            animationType="fade"
-            transparent={true}
-            visible={visible}
-            onRequestClose={onCancel}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { width: "80%" }]}>
-                <Text style={styles.modalTitle}>{message}</Text>
-                <View style={styles.modalButtons}>
-                    <Button title="Cancel" onPress={onCancel} />
-                    <Button title={confirmText} color="red" onPress={onConfirm} />
-                </View>
+        <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onCancel}>
+            <View style={[styles.centered, {flex: 1, backgroundColor: "rgba(0, 0, 0, 0.3)"}]}>
+                <View style={[styles.modalContent, {backgroundColor: colors.bgModal}]}>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textPrimary}]}>{message}</Text>
+
+                    <View style={[styles.rowSpaceBetween, { marginTop: 15, gap: 10 }]}>
+                        <TouchableOpacity
+                            onPress={onCancel}
+                            style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: colors.bgSecondary, alignItems: "center"}}
+                        >
+                            <Text style={[styles.midText,{ color: colors.textPrimary}]}>Cancel</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={onConfirm}
+                            style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: confirmColor, alignItems: "center"}}
+                        >
+                            <Text style={[styles.midText,{ color: colors.textPrimary}]}>{confirmText}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </Modal>

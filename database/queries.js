@@ -29,6 +29,33 @@ export async function getFolders(parentId) {
   return rows;
 }
 
+export async function copyFolderRecursive(oldFolderId, newParentId, idMap = {}) {
+    // Get old folder
+    const oldFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [oldFolderId]);
+
+    // Insert new folder
+    const newFolderId = await addFolder(newParentId, oldFolder.name, oldFolder.color, oldFolder.is_root);
+    idMap[oldFolderId] = newFolderId;
+
+    // Copy cards
+    const childCards = await getCards(oldFolderId);
+    for (const c of childCards) {
+        const newCardId = await addCard(newFolderId, c.title);
+        const oldFields = await getFields(c.id);
+        for (const f of oldFields) {
+            await addField(newCardId, f.field_name, f.context);
+        }
+    }
+
+    // Copy subfolders
+    const childFolders = await getFolders(oldFolderId);
+    for (const folder of childFolders) {
+        await copyFolderRecursive(folder.id, newFolderId, idMap);
+    }
+
+    return newFolderId;
+}
+
 // Edit folder
 export async function updateFolder(id, name, color = null) {
   return db.runAsync(
@@ -39,6 +66,17 @@ export async function updateFolder(id, name, color = null) {
   );
 }
 
+export async function isDescendant(sourceId, targetId) {
+    if (sourceId === targetId) return true;
+    const children = await getFolders(sourceId);
+    for (const child of children) {
+        if (child.id === targetId || await isDescendant(child.id, targetId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Delete folder
 export async function deleteFolder(id) {
   return db.runAsync("DELETE FROM folders WHERE id = ?", [id]);
@@ -46,12 +84,27 @@ export async function deleteFolder(id) {
 
 // Move folder (cut/paste)
 export async function moveFolder(id, newParentId) {
-  return db.runAsync(
-    `UPDATE folders
-     SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [newParentId, id]
-  );
+    if (newParentId === null) {
+        // Move to root: mark as subject
+        return db.runAsync(
+            `UPDATE folders
+             SET parent_id = NULL,
+                 is_root = 1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [id]
+        );
+    } else {
+        // Move under another folder: mark as category
+        return db.runAsync(
+            `UPDATE folders
+             SET parent_id = ?,
+                 is_root = 0,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [newParentId, id]
+        );
+    }
 }
 
 // ---------- CARDS ----------

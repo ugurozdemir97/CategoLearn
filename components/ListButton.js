@@ -1,48 +1,45 @@
 import { TouchableOpacity, Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
+import { colors } from "../styles/colors.js";
 
-export default function ListButton({
-  label,
-  icon,
-  isSelected,
-  selectionMode,
-  onPress,
-  onLongPress,
-  isCut = false,       // ✅ new prop
-  isCopied = false,    // ✅ new prop
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.item,
-        {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: isSelected ? "#333" : "transparent",
-          opacity: isCut ? 0.5 : 1,                        // ghost if cut
-          backgroundColor: isCopied ? "#444" : (isSelected ? "#333" : "transparent"), // highlight if copied
-        },
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-        {icon && (
-          <FontAwesome
-            name={icon}
-            size={20}
-            color={isSelected ? "#fff" : "#82c6f0"}
-            style={{ marginRight: 15 }}
-          />
-        )}
-        <Text style={[styles.itemText, { color: isSelected ? "#fff" : "#eee" }]}>
-          {label}
-        </Text>
-      </View>
+// Items (Subjects, Folders, etc.) 
+export default function ListButton({ label, icon, onPress, onLongPress, isSelected, secondarySelect, status = {}}) {
 
-      {isSelected && <FontAwesome name="check-circle" size={20} color="#82c6f0" />}
-    </TouchableOpacity>
-  );
+    const iconName = icon === "folder" ? "folder" : "file-text-o";
+
+    // Apply styles based on status (is Cut or Copied)
+    const dynamicStyle = {
+        opacity: status.isCut ? 0.5 : 1,
+        backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
+    };
+
+    return (
+        <TouchableOpacity
+            style={[ styles.item, styles.rowSpaceBetween, isSelected && styles.itemSelected, dynamicStyle]}
+            onPress={onPress}
+            onLongPress={onLongPress}
+        >
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                <FontAwesome name={iconName} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
+                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
+                    {label}
+                </Text>
+            </View>
+
+            {/* Right side: status icons (cut/copy) and selection checkmark */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {status.isCut && (
+                    <FontAwesome name="scissors" size={18} color={colors.accentLight} />
+                )}
+                {status.isCopied && (
+                    <FontAwesome name="copy" size={18} color={colors.accentLight} />
+                )}
+                {secondarySelect && isSelected && (
+                    <FontAwesome name="check-circle" size={20} color={colors.accentLight} />
+                )}
+            </View>
+
+        </TouchableOpacity>
+    );
 }

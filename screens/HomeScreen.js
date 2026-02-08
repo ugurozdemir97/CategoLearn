@@ -7,68 +7,82 @@ import ConfirmationModal from "../components/ConfirmationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 import styles from "../styles/styles.js";
-import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
+import { colors } from "../styles/colors.js";
+import { useClipboard } from "../context/ClipboardContext.js";
+import { useSelection } from "../hooks/useSelection.js";
+import { validateWithAlert } from "../utils/validation.js";
+import { addFolder, getFolders, updateFolder, deleteFolder, moveFolder, copyFolderRecursive, isDescendant } from "../database/queries.js";
 
 export default function HomeScreen({ navigation }) {
   const [subjects, setSubjects] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newSubject, setNewSubject] = useState("");
-
-  const [selectedItems, setSelectedItems] = useState([]);
-  const selectionMode = selectedItems.length > 0;
-
-  const [footerHeight, setFooterHeight] = useState(60);
-  const [headerHeight, setHeaderHeight] = useState(50);
-
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
 
-  const [clipboard, setClipboard] = useState([]);
-  const [cutItems, setCutItems] = useState([]);   // ✅ track cut items
-  const [copiedItems, setCopiedItems] = useState([]); // ✅ track copied items
+  const [footerHeight, setFooterHeight] = useState(70);
+  const [headerHeight, setHeaderHeight] = useState(50);
 
-  // Load subjects (root folders)
+  // Use shared hooks
+  const { selectedItems, selectAll, secondarySelect, toggleSelection, clear: clearSelection, isSelected } = useSelection();
+  const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clear: clearClipboard, getItemStatus } = useClipboard();
+
   useEffect(() => {
-    loadSubjects();
-    return () => {
-      // ✅ clear clipboard when leaving screen
-      setClipboard([]);
-      setCutItems([]);
-      setCopiedItems([]);
-    };
-  }, []);
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadSubjects();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const loadSubjects = async () => {
     const result = await getFolders();
     setSubjects(result.filter((f) => f.is_root === 1));
   };
 
+  const handleSort = (mode) => {
+  let sorted = [...subjects];
+
+  switch (mode) {
+    case "Order by creation date":
+      // Assuming your DB rows have a created_at field
+      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      break;
+
+    case "Order by edit time":
+      // Assuming your DB rows have an updated_at field
+      sorted.sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+      break;
+
+    case "Order alphabetically":
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+
+    case "Order by color": 
+      sorted.sort((a, b) => (a.color || "").localeCompare(b.color || ""));
+      break;
+  }
+
+  setSubjects(sorted);
+};
+
   // Handle create/edit
-  const handleSubject = async (_, mode) => {
-    const trimmed = newSubject.trim();
+const handleSubject = async (cardData, mode) => {
+  const trimmed = validateWithAlert(cardData.name, "Subject");
+  if (!trimmed) return;
 
-    if (!trimmed) {
-      Alert.alert("Invalid Name", "Subject name cannot be empty.");
-      return;
-    }
-    if (trimmed.length > 60) {
-      Alert.alert("Too Long", "Subject name cannot exceed 60 characters.");
-      return;
-    }
+  if (mode === "create") {
+    await addFolder(null, trimmed, null, 1);
+  } else if (mode === "edit" && editTarget) {
+    await updateFolder(editTarget.id, trimmed, editTarget.color);
+  }
 
-    if (mode === "create") {
-      await addFolder(null, trimmed, null, 1);
-    } else if (mode === "edit" && editTarget) {
-      await updateFolder(editTarget.id, trimmed, editTarget.color);
-    }
+  setEditTarget(null);
+  clearSelection();
+  setModalVisible(false);
+  await loadSubjects();
+};
 
-    setNewSubject("");
-    setEditTarget(null);
-    setSelectedItems([]);
-    setModalVisible(false);
-    await loadSubjects();
-  };
 
   // Delete selected
   const handleDeleteSelected = () => {
@@ -88,7 +102,7 @@ export default function HomeScreen({ navigation }) {
       }
       await loadSubjects();
     }
-    setSelectedItems([]);
+    clearSelection();
     setDeleteTarget(null);
     setConfirmVisible(false);
   };
@@ -105,137 +119,173 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Cut / Copy / Paste
+  // Cut / Copy handlers using global clipboard
   const handleCutSelected = () => {
-    setClipboard([...selectedItems]);
-    setCutItems(selectedItems.map((i) => i.id));   // ✅ mark cut items
-    setCopiedItems([]);                            // ✅ clear copied state
-    setSelectedItems([]);
+    cut(selectedItems.map((item) => ({ ...item, type: "Subject" })));
+    clearSelection();
   };
 
   const handleCopySelected = () => {
-    setClipboard([...selectedItems]);
-    setCopiedItems(selectedItems.map((i) => i.id)); // ✅ mark copied items
-    setCutItems([]);                                // ✅ clear cut state
-    setSelectedItems([]);
+    copy(selectedItems.map((item) => ({ ...item, type: "Subject" })));
+    clearSelection();
   };
 
-  const handlePaste = async () => {
-    if (clipboard.length > 0) {
-      // If cut → delete originals then re-add
-      if (cutItems.length > 0) {
-        for (const item of clipboard) {
-          await deleteFolder(item.id);
-          await addFolder(null, item.name, item.color, 1);
-        }
-      }
-      // If copy → just add duplicates
-      else if (copiedItems.length > 0) {
-        for (const item of clipboard) {
-          await addFolder(null, item.name, item.color, 1);
-        }
-      }
+  // No paste in HomeScreen - subjects can't be pasted here
+const handlePaste = async () => {
+    if (clipboard.length === 0) return;
 
-      setClipboard([]);
-      setCutItems([]);
-      setCopiedItems([]);
-      await loadSubjects();
+    for (const item of clipboard) {
+
+        if (await isDescendant(item.id, node.id)) {
+            Alert.alert("Not Allowed", "You cannot paste a folder into its own descendant.");
+            continue;
+        }
+
+        if (isCut) {
+            // Move subject/category to root
+            if (item.type === "Subject" || item.type === "Category") {
+                await moveFolder(item.id, null); // move to root
+            } else {
+                Alert.alert("Not Allowed", "You can only paste folders at Home.");
+            }
+        } else if (isCopy) {
+            // Deep copy subject/category into root
+            if (item.type === "Subject" || item.type === "Category") {
+                await copyFolderRecursive(item.id, null);
+            } else {
+                Alert.alert("Not Allowed", "You can only paste folders at Home.");
+            }
+        }
+    }
+
+    clearClipboard();
+    await loadSubjects();
+};
+                                           
+  const handleAction = (action) => {
+    switch (action) {
+      case "delete":
+        handleDeleteSelected();
+        break;
+      case "edit":
+        handleEditSelected();
+        break;
+      case "cut":
+        handleCutSelected();
+        break;
+      case "copy":
+        handleCopySelected();
+        break;
+      case "clearClipboard":
+        clearClipboard();
+        break;
+      case "paste":
+        handlePaste();
+        break;
+      case "search":
+        console.log("Search pressed");
+        break;
+      case "settings":
+        console.log("Settings pressed");
+        break;
+      case "deleted":
+        console.log("Deleted items pressed");
+        break;
+      case "color":
+        console.log("Color pressed");
+        break;
+      default:
+        break;
     }
   };
 
   return (
-    <View style={styles.container}>
-      <HeaderBar
-        selectedCount={selectedItems.length}
-        onSort={(type) => console.log("Sort by", type)}
-        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-      />
+    <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
 
-      {subjects.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.noItem}>What Do You Want To Learn About?</Text>
+        {/* HeaderBar */}
+        <HeaderBar
+            selectedCount={selectedItems.length}
+            totalCount={subjects.length}
+            onSort={handleSort}
+            onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+            onCancelSelection={() => clearSelection()}
+            onSelectAll={() => selectAll(subjects)}
+        />
+
+        {/* Subjects */}
+        {subjects.length === 0 ? (
+            <View style={[styles.container, styles.centered]}>
+                <Text style={[styles.midText, {color: colors.textSecondary}]}>What Do You Want To Learn About?</Text>
+            </View>
+        ) : (
+            <>
+                <Text style={[styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
+                    Subjects
+                </Text>
+
+                <FlatList
+                    data={subjects}
+                    keyExtractor={(item) => item.id.toString()}
+                    style={{ marginTop: 10 }}
+                    renderItem={({ item }) => (
+                        <ListButton
+                            label={item.name}
+                            icon="folder"
+                            isSelected={isSelected(item)}
+                            secondarySelect={secondarySelect}
+                            onPress={() => {
+                                if (secondarySelect) {
+                                    toggleSelection(item);                         // Toggle selection if in secondary select mode
+                                } else {
+                                    navigation.navigate("Folder", { node: item }); // Navigate to Folder screen on press
+                                }
+                            }}
+                            onLongPress={() => toggleSelection(item)}
+                            status={getItemStatus(item.id, "Subject")}
+
+                        />
+                    )}
+                />
+            </>
+        )}
+
+        {/* Create Subjects Button */}
+        <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+            <CircleButton icon="plus" onPress={() => setModalVisible(true)} />
         </View>
-      ) : (
-        <>
-          <Text style={[styles.title, styles.bold, { marginTop: headerHeight + 20 }]}>
-            Subjects
-          </Text>
-          <FlatList
-            data={subjects}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <ListButton
-                label={item.name}
-                icon="folder"
-                isSelected={selectedItems.includes(item)}
-                selectionMode={selectionMode}
-                onPress={() => {
-                  if (selectionMode) {
-                    if (selectedItems.includes(item)) {
-                      setSelectedItems(selectedItems.filter((i) => i !== item));
-                    } else {
-                      setSelectedItems([...selectedItems, item]);
-                    }
-                  } else {
-                    navigation.navigate("Folder", { node: item });
-                  }
-                }}
-                onLongPress={() => {
-                  if (selectedItems.includes(item)) {
-                    setSelectedItems(selectedItems.filter((i) => i !== item));
-                  } else {
-                    setSelectedItems([...selectedItems, item]);
-                  }
-                }}
-                style={{
-                  opacity: cutItems.includes(item.id) ? 0.5 : 1, // ✅ half transparent if cut
-                  backgroundColor: copiedItems.includes(item.id) ? "#444" : "transparent", // ✅ highlight if copied
-                }}
-              />
-            )}
-          />
-        </>
-      )}
 
-      <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-        <CircleButton icon="plus" onPress={() => setModalVisible(true)} />
+        {/* Footer */}
+        <FooterBar
+            selectedCount={selectedItems.length}
+            hasClipboard={hasClipboard}
+            onAction={handleAction}
+            onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+        />
+
+        <CreateModal
+            visible={modalVisible}
+            onClose={() => {
+                setModalVisible(false);
+                setEditTarget(null);
+            }}
+            onCreate={handleSubject}
+            title={editTarget ? "Edit Subject" : "Create Subject"}
+            placeholder="Enter Subject Name"
+            value={newSubject}
+            setValue={setNewSubject}
+            mode={editTarget ? "edit" : "create"}
+        />
+
+        {/* Confirmation Modal for Deletion */}
+        <ConfirmationModal
+            visible={confirmVisible}
+            onCancel={() => setConfirmVisible(false)}
+            onConfirm={confirmDelete}
+            message={deleteTarget?.message || ""}
+            confirmText="Delete"
+            confirmColor={colors.danger}
+        />
+
       </View>
-
-      <FooterBar
-        selectedCount={selectedItems.length}
-        hasClipboard={clipboard.length > 0}
-        onAction={(action) => {
-          if (action === "delete") handleDeleteSelected();
-          if (action === "edit") handleEditSelected();
-          if (action === "cut") handleCutSelected();
-          if (action === "copy") handleCopySelected();
-          if (action === "paste") handlePaste();
-        }}
-        onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
-      />
-
-      <CreateModal
-        visible={modalVisible}
-        onClose={() => {
-          setModalVisible(false);
-          setEditTarget(null);
-        }}
-        onCreate={handleSubject}
-        title={editTarget ? "Edit Subject" : "Create Subject"}
-        placeholder="Enter Subject Name"
-        value={newSubject}
-        setValue={setNewSubject}
-        mode={editTarget ? "edit" : "create"}
-      />
-
-      <ConfirmationModal
-        visible={confirmVisible}
-        onCancel={() => setConfirmVisible(false)}
-        onConfirm={confirmDelete}
-        message={deleteTarget?.message || ""}
-        confirmText="Delete"
-        confirmColor="red"
-      />
-    </View>
-  );
+    );
 }

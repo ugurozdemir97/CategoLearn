@@ -2,9 +2,9 @@ import db from "./db";
 
 export async function setupDatabase() {
   // Drop old tables if you want a clean reset
-   //await db.execAsync("DROP TABLE IF EXISTS fields");
-   //await db.execAsync("DROP TABLE IF EXISTS cards");
-   //await db.execAsync("DROP TABLE IF EXISTS folders");
+//await db.execAsync("DROP TABLE IF EXISTS fields");
+//await db.execAsync("DROP TABLE IF EXISTS cards");
+//await db.execAsync("DROP TABLE IF EXISTS folders");
 
   // Folders table (subjects + categories unified)
   await db.execAsync(`
