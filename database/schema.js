@@ -26,7 +26,7 @@ export async function setupDatabase() {
     CREATE TABLE IF NOT EXISTS cards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       folder_id INTEGER NOT NULL,
-      title TEXT NOT NULL CHECK(length(title) <= 60),
+      name TEXT NOT NULL CHECK(length(name) <= 60),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(folder_id) REFERENCES folders(id) ON DELETE CASCADE
@@ -38,7 +38,7 @@ export async function setupDatabase() {
     CREATE TABLE IF NOT EXISTS fields (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       card_id INTEGER NOT NULL,
-      field_name TEXT CHECK(length(field_name) <= 60),
+      name TEXT CHECK(length(name) <= 60),
       context TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

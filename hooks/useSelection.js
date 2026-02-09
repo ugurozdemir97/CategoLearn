@@ -25,7 +25,7 @@ export function useSelection() {
     );
 
     // Unselect all
-    const clear = useCallback(() => {
+    const clearSelection = useCallback(() => {
         setSelectedItems([]);
     }, []);
 
@@ -34,6 +34,6 @@ export function useSelection() {
         setSelectedItems([...items]);
     }, []);
 
-    return { selectedItems, secondarySelect, toggleSelection, isSelected, clear, selectAll };
+    return { selectedItems, secondarySelect, toggleSelection, isSelected, clearSelection, selectAll };
 
 }

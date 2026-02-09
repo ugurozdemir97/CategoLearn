@@ -10,6 +10,8 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
+import { handleSort } from "../utils/handleSort.js";
+import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 import { getFields, addField, updateField, deleteField, updateCard } from "../database/queries.js";
 
 export default function CardDetailScreen({ route }) {
@@ -21,52 +23,24 @@ export default function CardDetailScreen({ route }) {
     const [expanded, setExpanded] = useState({});
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [confirmVisible, setConfirmVisible] = useState(false);
-    const [cardTitle, setCardTitle] = useState(card.title || card.name);
+    const [editTarget, setEditTarget] = useState(null);
+    const [cardTitle, setCardTitle] = useState(card.name);
 
     // Selection hook for fields
-    const {
-        selectedItems,
-        secondarySelect,
-        toggleSelection,
-        clear: clearSelection,
-        selectAll,
-        isSelected,
-    } = useSelection();
-
-    // Clipboard
-    const {
-        clipboard,
-        hasClipboard,
-        isCut,
-        isCopy,
-        cut,
-        copy,
-        clear: clearClipboard,
-        getItemStatus,
-    } = useClipboard();
+    const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
+    const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
     useEffect(() => {
         loadFields();
     }, []);
 
-    const loadFields = async () => {
-        const result = await getFields(card.id);
-        setFields(result);
-    };
+const loadFields = async () => {
+    const result = await getFields(card.id);
+    setFields(result.map(f => ({ ...f, type: "Field" })));
+};
 
     const toggleExpand = (id) => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    // Delete selected
-    const handleDeleteSelected = () => {
-        if (selectedItems.length === 0) return;
-        const message =
-            selectedItems.length === 1
-                ? `Are you sure you want to delete "${selectedItems[0].field_name}"?`
-                : `Are you sure you want to delete these ${selectedItems.length} fields?`;
-        setDeleteTarget({ items: [...selectedItems], message });
-        setConfirmVisible(true);
     };
 
     const confirmDelete = async () => {
@@ -83,95 +57,36 @@ export default function CardDetailScreen({ route }) {
         setConfirmVisible(false);
     };
 
-    // Edit selected
-    const handleEditSelected = () => {
-        if (selectedItems.length === 1) {
-            setModalVisible(true);
-        } else {
-            Alert.alert("Edit Error", "You can only edit one field at a time.");
-        }
-    };
+    // Footer action handlers for delete, edit, cut, copy, paste
+    // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
+    const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "fields");
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setCardTitle);
+    const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
+    const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
+    const handlePasteWrapper = () =>          handlePaste(clipboard, isCut, isCopy, card, clearClipboard, loadFields);
 
-    // Cut / Copy
-    const handleCutSelected = () => {
-        cut(selectedItems.map((f) => ({ ...f, type: "Field" })));
-        clearSelection();
-    };
-
-    const handleCopySelected = () => {
-        copy(selectedItems.map((f) => ({ ...f, type: "Field" })));
-        clearSelection();
-    };
-
-    // Paste
-const handlePaste = async () => {
-    if (clipboard.length === 0) return;
-    const fieldsToPaste = clipboard.filter((item) => item.type === "Field");
-    if (fieldsToPaste.length === 0) {
-        Alert.alert("Cannot Paste", "You can only paste fields here.");
-        return;
-    }
-
-    if (isCut) {
-        for (const f of fieldsToPaste) {
-            if (f.id) {
-                await deleteField(f.id); // remove from old card
-            }
-            await addField(card.id, f.field_name, f.context); // add to current card
-        }
-    } else if (isCopy) {
-        for (const f of fieldsToPaste) {
-            await addField(card.id, f.field_name, f.context);
-        }
-    }
-
-    clearClipboard();
-    await loadFields();
-};
-
+    // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
         switch (action) {
-            case "delete":
-                handleDeleteSelected();
-                break;
-            case "edit":
-                handleEditSelected();
-                break;
-            case "cut":
-                handleCutSelected();
-                break;
-            case "copy":
-                handleCopySelected();
-                break;
-            case "paste":
-                handlePaste();
-                break;
-            case "clearClipboard":
-                clearClipboard();
-                break;
-            case "search":
-                console.log("Search pressed");
-                break;
-            case "settings":
-                console.log("Settings pressed");
-                break;
-            case "deleted":
-                console.log("Deleted items pressed");
-                break;
-            case "color":
-                console.log("Color pressed");
-                break;
-            default:
-                break;
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "edit": handleEditSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
+            case "clearClipboard": clearClipboard(); break;
+            default: break;
         }
     };
-        return (
+
+    return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
             {/* Header */}
             <HeaderBar
                 selectedCount={selectedItems.length}
                 totalCount={fields.length}
-                onSort={(mode) => console.log("Sort mode:", mode)}
+                onSort={handleSort}
+                items={fields}
+                setItems={setFields}
                 onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(fields)}
@@ -208,7 +123,7 @@ const handlePaste = async () => {
                     }
                     renderItem={({ item }) => (
                         <ListField
-                            label={item.field_name}
+                            label={item.name}
                             context={item.context}
                             isSelected={isSelected(item)}
                             secondarySelect={secondarySelect}
@@ -264,9 +179,9 @@ const handlePaste = async () => {
                     // Update or add fields
                     for (const f of updatedCard.fields) {
                         if (f.id) {
-                            await updateField(f.id, f.field_name, f.context);
+                            await updateField(f.id, f.name, f.context);
                         } else {
-                            await addField(card.id, f.field_name, f.context);
+                            await addField(card.id, f.name, f.context);
                         }
                     }
 

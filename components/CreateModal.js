@@ -33,7 +33,7 @@ export default function CreateModal({
     }, [visible]);
 
     const addField = () => {
-        setLocalFields([...localFields, { field_name: "", context: "" }]);
+        setLocalFields([...localFields, { name: "", context: "" }]);
     };
 
     const updateField = (index, key, val) => {
@@ -145,8 +145,8 @@ export default function CreateModal({
                                                 style={[styles.input, { flex: 1, marginBottom: 8, marginRight: 10 }]}
                                                 placeholder="Field Name"
                                                 placeholderTextColor={colors.textSecondary}
-                                                value={field.field_name}
-                                                onChangeText={(text) => updateField(index, "field_name", text)}
+                                                value={field.name}
+                                                onChangeText={(text) => updateField(index, "name", text)}
                                             />
                                             <TouchableOpacity onPress={() => requestDeleteField(index)} style={{ padding: 8 }}>
                                                 <FontAwesome name="trash" size={18} color={colors.danger} />

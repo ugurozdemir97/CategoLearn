@@ -1,34 +1,46 @@
 import db from "./db";
 
-// ---------- FOLDERS (subjects + categories) ----------
+// ---------- FOLDERS (Subjects + Categories) ---------- //
+
+// Get folders
+export async function getFolders(parentId) {
+    let sql, params;
+
+    // If parentId is null, we want to fetch root folders (subjects) otherwise fetch categories under the given parent
+    if (parentId == null) {
+        sql = "SELECT * FROM folders WHERE parent_id IS NULL ORDER BY name";
+        params = [];
+    } else {
+        sql = "SELECT * FROM folders WHERE parent_id = ? ORDER BY name";
+        params = [parentId];
+    }
+
+    const rows = await db.getAllAsync(sql, params);
+    return rows;
+}
 
 // Create folder (subject if is_root=1, category if is_root=0)
 export async function addFolder(parentId, name, color = null, isRoot = 0) {
-  const result = await db.runAsync(
-    `INSERT INTO folders (parent_id, name, color, is_root, created_at, updated_at)
-     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [parentId, name, color, isRoot]
-  );
-  console.log("Inserted folder rowid:", result.lastInsertRowId);
-  return result.lastInsertRowId;
+    const result = await db.runAsync(
+        `INSERT INTO folders (parent_id, name, color, is_root, created_at, updated_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [parentId, name, color, isRoot]
+    );
+
+    return result.lastInsertRowId;
 }
 
-// Get folders under a parent
-export async function getFolders(parentId) {
-  let sql, params;
-  if (parentId == null) {
-    sql = "SELECT * FROM folders WHERE parent_id IS NULL ORDER BY name";
-    params = [];
-  } else {
-    sql = "SELECT * FROM folders WHERE parent_id = ? ORDER BY name";
-    params = [parentId];
-  }
-
-  const rows = await db.getAllAsync(sql, params);
-  console.log("Fetched folders:", rows);
-  return rows;
+// Edit folder
+export async function updateFolder(id, name, color = null) {
+    return db.runAsync(
+        `UPDATE folders
+         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [name, color, id]
+    );
 }
 
+// Copy folder recursively (with cards + fields)
 export async function copyFolderRecursive(oldFolderId, newParentId, idMap = {}) {
     // Get old folder
     const oldFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [oldFolderId]);
@@ -40,10 +52,10 @@ export async function copyFolderRecursive(oldFolderId, newParentId, idMap = {}) 
     // Copy cards
     const childCards = await getCards(oldFolderId);
     for (const c of childCards) {
-        const newCardId = await addCard(newFolderId, c.title);
+        const newCardId = await addCard(newFolderId, c.name);
         const oldFields = await getFields(c.id);
         for (const f of oldFields) {
-            await addField(newCardId, f.field_name, f.context);
+            await addField(newCardId, f.name, f.context);
         }
     }
 
@@ -56,16 +68,7 @@ export async function copyFolderRecursive(oldFolderId, newParentId, idMap = {}) 
     return newFolderId;
 }
 
-// Edit folder
-export async function updateFolder(id, name, color = null) {
-  return db.runAsync(
-    `UPDATE folders
-     SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [name, color, id]
-  );
-}
-
+// Check if a folder is a descendant of another
 export async function isDescendant(sourceId, targetId) {
     if (sourceId === targetId) return true;
     const children = await getFolders(sourceId);
@@ -79,7 +82,7 @@ export async function isDescendant(sourceId, targetId) {
 
 // Delete folder
 export async function deleteFolder(id) {
-  return db.runAsync("DELETE FROM folders WHERE id = ?", [id]);
+    return db.runAsync("DELETE FROM folders WHERE id = ?", [id]);
 }
 
 // Move folder (cut/paste)
@@ -107,80 +110,86 @@ export async function moveFolder(id, newParentId) {
     }
 }
 
-// ---------- CARDS ----------
+// ---------- CARDS ---------- //
 
-export async function addCard(folderId, title) {
-  const result = await db.runAsync(
-    `INSERT INTO cards (folder_id, title, created_at, updated_at)
-     VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [folderId, title]
-  );
-  console.log("Inserted card rowid:", result.lastInsertRowId);
-  return result.lastInsertRowId;
+export async function addCard(folderId, name) {
+    const result = await db.runAsync(
+        `INSERT INTO cards (folder_id, name, created_at, updated_at)
+         VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [folderId, name]
+    );
+    return result.lastInsertRowId;
 }
 
 export async function getCards(folderId) {
-  const rows = await db.getAllAsync(
-    "SELECT * FROM cards WHERE folder_id = ? ORDER BY title",
-    [folderId]
-  );
-  console.log("Fetched cards:", rows);
-  return rows;
+    const rows = await db.getAllAsync(
+        "SELECT * FROM cards WHERE folder_id = ? ORDER BY name",
+        [folderId]
+    );
+    return rows;
 }
 
-export async function updateCard(id, title) {
-  return db.runAsync(
-    `UPDATE cards
-     SET title = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [title, id]
-  );
+export async function updateCard(id, name) {
+    return db.runAsync(
+        `UPDATE cards
+         SET name = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [name, id]
+    );
 }
 
 export async function deleteCard(id) {
-  return db.runAsync("DELETE FROM cards WHERE id = ?", [id]);
+    return db.runAsync("DELETE FROM cards WHERE id = ?", [id]);
 }
 
 export async function moveCard(id, newFolderId) {
-  return db.runAsync(
-    `UPDATE cards
-     SET folder_id = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [newFolderId, id]
-  );
+    return db.runAsync(
+        `UPDATE cards
+         SET folder_id = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [newFolderId, id]
+    );
 }
 
-// ---------- FIELDS ----------
+// ---------- FIELDS ---------- //
 
-export async function addField(cardId, fieldName, context) {
-  console.log("Here")
-  const result = await db.runAsync(
-    `INSERT INTO fields (card_id, field_name, context, created_at, updated_at)
-     VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [cardId, fieldName, context]
-  );
-  console.log("Inserted field rowid:", result.lastInsertRowId);
-  return result.lastInsertRowId;
+export async function addField(cardId, name, context) {
+    const result = await db.runAsync(
+        `INSERT INTO fields (card_id, name, context, created_at, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [cardId, name, context]
+    );
+    return result.lastInsertRowId;
 }
 
 export async function getFields(cardId) {
-  const rows = await db.getAllAsync(
-    "SELECT * FROM fields WHERE card_id = ? ORDER BY id",
-    [cardId]
-  );
-  console.log("Fetched fields:", rows);
-  return rows;
+    const rows = await db.getAllAsync(
+        "SELECT * FROM fields WHERE card_id = ? ORDER BY id",
+        [cardId]
+    );
+    return rows;
 }
 
-export async function updateField(id, fieldName, context) {
-  return db.runAsync(
-    `UPDATE fields
-     SET field_name = ?, context = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [fieldName, context, id]
-  );
+export async function updateField(id, name, context) {
+    return db.runAsync(
+        `UPDATE fields
+         SET name = ?, context = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [name, context, id]
+    );
 }
 
 export async function deleteField(id) {
-  return db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
+    return db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
+}
+
+// ---------- FIELDS ---------- //
+
+export async function moveField(id, newCardId) {
+    return db.runAsync(
+        `UPDATE fields
+         SET card_id = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [newCardId, id]
+    );
 }

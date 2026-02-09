@@ -1,291 +1,205 @@
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, Alert } from "react-native";
+
+// Components
 import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
+
+// Styles and Colors
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
+
+// Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 import { validateWithAlert } from "../utils/validation.js";
-import { addFolder, getFolders, updateFolder, deleteFolder, moveFolder, copyFolderRecursive, isDescendant } from "../database/queries.js";
 
+// Utils
+import { handleSort } from "../utils/handleSort.js";
+import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
+
+// Database queries
+import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
+
+// HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
-  const [subjects, setSubjects] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newSubject, setNewSubject] = useState("");
-  const [editTarget, setEditTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [confirmVisible, setConfirmVisible] = useState(false);
+    const [subjects, setSubjects] = useState([]);                   // All the subjects (root folders) we have
+    const [newSubjectName, setNewSubjectName] = useState("");       // Name of the subject being created/edited
+    const [editTarget, setEditTarget] = useState(null);             // The subject being edited (null if creating new)
+    const [deleteTarget, setDeleteTarget] = useState(null);         // The subject(s) being deleted
+    const [modalVisible, setModalVisible] = useState(false);        // Show or Hide modal for creating/editing subjects
+    const [confirmVisible, setConfirmVisible] = useState(false);    // Show or Hide confirmation modal for deletions
 
-  const [footerHeight, setFooterHeight] = useState(70);
-  const [headerHeight, setHeaderHeight] = useState(50);
+    const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on header/footer size
+    const [headerHeight, setHeaderHeight] = useState(50);
 
-  // Use shared hooks
-  const { selectedItems, selectAll, secondarySelect, toggleSelection, clear: clearSelection, isSelected } = useSelection();
-  const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clear: clearClipboard, getItemStatus } = useClipboard();
+    // Handle selection and clipboard using custom hooks/context
+    const { selectedItems, selectAll, secondarySelect, toggleSelection, clearSelection, isSelected } = useSelection();
+    const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      loadSubjects();
-    });
-    return unsubscribe;
-  }, [navigation]);
+    // Call loadSubjects when we are in this screen
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("focus", () => {loadSubjects()});
+        return unsubscribe;
+    }, [navigation]);
 
-  const loadSubjects = async () => {
-    const result = await getFolders();
-    setSubjects(result.filter((f) => f.is_root === 1));
-  };
+    // Load all root folders (subjects) from the database
+    const loadSubjects = async () => {
+        const result = await getFolders();
+        setSubjects(
+            result
+                .filter((f) => f.is_root === 1)                              // Bring only root folders
+                .map((f) => ({ ...f, type: "Subject", name: f.name }))       // Add type for sorting
+        );
+    };
 
-  const handleSort = (mode) => {
-  let sorted = [...subjects];
+    // Handle Create or Edit
+    const handleSubject = async (cardData, mode) => {
 
-  switch (mode) {
-    case "Order by creation date":
-      // Assuming your DB rows have a created_at field
-      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      break;
+        const trimmed = validateWithAlert(cardData.name, "Subject");  // I will change this later, I don't want alerts
+        if (!trimmed) return;
 
-    case "Order by edit time":
-      // Assuming your DB rows have an updated_at field
-      sorted.sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
-      break;
-
-    case "Order alphabetically":
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-      break;
-
-    case "Order by color": 
-      sorted.sort((a, b) => (a.color || "").localeCompare(b.color || ""));
-      break;
-  }
-
-  setSubjects(sorted);
-};
-
-  // Handle create/edit
-const handleSubject = async (cardData, mode) => {
-  const trimmed = validateWithAlert(cardData.name, "Subject");
-  if (!trimmed) return;
-
-  if (mode === "create") {
-    await addFolder(null, trimmed, null, 1);
-  } else if (mode === "edit" && editTarget) {
-    await updateFolder(editTarget.id, trimmed, editTarget.color);
-  }
-
-  setEditTarget(null);
-  clearSelection();
-  setModalVisible(false);
-  await loadSubjects();
-};
-
-
-  // Delete selected
-  const handleDeleteSelected = () => {
-    if (selectedItems.length === 0) return;
-    const message =
-      selectedItems.length === 1
-        ? `Are you sure you want to delete "${selectedItems[0].name}"?`
-        : `Are you sure you want to delete these ${selectedItems.length} subjects?`;
-    setDeleteTarget({ items: [...selectedItems], message });
-    setConfirmVisible(true);
-  };
-
-  const confirmDelete = async () => {
-    if (deleteTarget?.items) {
-      for (const item of deleteTarget.items) {
-        await deleteFolder(item.id);
-      }
-      await loadSubjects();
-    }
-    clearSelection();
-    setDeleteTarget(null);
-    setConfirmVisible(false);
-  };
-
-  // Edit selected
-  const handleEditSelected = () => {
-    if (selectedItems.length === 1) {
-      const item = selectedItems[0];
-      setNewSubject(item.name);
-      setEditTarget(item);
-      setModalVisible(true);
-    } else {
-      Alert.alert("Edit Error", "You can only edit one subject at a time.");
-    }
-  };
-
-  // Cut / Copy handlers using global clipboard
-  const handleCutSelected = () => {
-    cut(selectedItems.map((item) => ({ ...item, type: "Subject" })));
-    clearSelection();
-  };
-
-  const handleCopySelected = () => {
-    copy(selectedItems.map((item) => ({ ...item, type: "Subject" })));
-    clearSelection();
-  };
-
-  // No paste in HomeScreen - subjects can't be pasted here
-const handlePaste = async () => {
-    if (clipboard.length === 0) return;
-
-    for (const item of clipboard) {
-
-        if (await isDescendant(item.id, node.id)) {
-            Alert.alert("Not Allowed", "You cannot paste a folder into its own descendant.");
-            continue;
+        // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
+        if (mode === "create") {
+            await addFolder(null, trimmed, null, 1);
+        } else if (mode === "edit" && editTarget) {
+            await updateFolder(editTarget.id, trimmed, editTarget.color);
         }
 
-        if (isCut) {
-            // Move subject/category to root
-            if (item.type === "Subject" || item.type === "Category") {
-                await moveFolder(item.id, null); // move to root
-            } else {
-                Alert.alert("Not Allowed", "You can only paste folders at Home.");
-            }
-        } else if (isCopy) {
-            // Deep copy subject/category into root
-            if (item.type === "Subject" || item.type === "Category") {
-                await copyFolderRecursive(item.id, null);
-            } else {
-                Alert.alert("Not Allowed", "You can only paste folders at Home.");
-            }
+        // After creating/editing, reset states and reload subjects
+        setEditTarget(null);
+        clearSelection();
+        setModalVisible(false);
+        await loadSubjects();
+    };
+
+    // Delete selected subjects after confirmation
+    const confirmDelete = async () => {
+        if (deleteTarget?.items) {
+            for (const item of deleteTarget.items) await deleteFolder(item.id);
         }
-    }
 
-    clearClipboard();
-    await loadSubjects();
-};
-                                           
-  const handleAction = (action) => {
-    switch (action) {
-      case "delete":
-        handleDeleteSelected();
-        break;
-      case "edit":
-        handleEditSelected();
-        break;
-      case "cut":
-        handleCutSelected();
-        break;
-      case "copy":
-        handleCopySelected();
-        break;
-      case "clearClipboard":
-        clearClipboard();
-        break;
-      case "paste":
-        handlePaste();
-        break;
-      case "search":
-        console.log("Search pressed");
-        break;
-      case "settings":
-        console.log("Settings pressed");
-        break;
-      case "deleted":
-        console.log("Deleted items pressed");
-        break;
-      case "color":
-        console.log("Color pressed");
-        break;
-      default:
-        break;
-    }
-  };
+        // After deletion, reset states
+        setDeleteTarget(null);
+        clearSelection();
+        setConfirmVisible(false);
+        await loadSubjects();
+    };
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
+    // Footer action handlers for delete, edit, cut, copy, paste
+    // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
+    const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "subjects");
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setNewSubjectName);
+    const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
+    const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
+    const handlePasteWrapper = () =>          handlePaste(clipboard, isCut, isCopy, null, clearClipboard, loadSubjects);
 
-        {/* HeaderBar */}
-        <HeaderBar
-            selectedCount={selectedItems.length}
-            totalCount={subjects.length}
-            onSort={handleSort}
-            onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-            onCancelSelection={() => clearSelection()}
-            onSelectAll={() => selectAll(subjects)}
-        />
+    // Call the right handler based on action from FooterBar
+    const handleAction = (action) => {
+        switch (action) {
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "edit": handleEditSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
+            case "clearClipboard": clearClipboard(); break;
+            default: break;
+        }
+    };
 
-        {/* Subjects */}
-        {subjects.length === 0 ? (
-            <View style={[styles.container, styles.centered]}>
-                <Text style={[styles.midText, {color: colors.textSecondary}]}>What Do You Want To Learn About?</Text>
+    return (
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
+
+            {/* HeaderBar */}
+            <HeaderBar
+                selectedCount={selectedItems.length}
+                totalCount={subjects.length}
+                onSort={handleSort}
+                items={subjects}
+                setItems={setSubjects}
+                onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+                onCancelSelection={() => clearSelection()}
+                onSelectAll={() => selectAll(subjects)}
+            />
+
+            {/* Subjects */}
+            {subjects.length === 0 ? (
+                <View style={[styles.container, styles.centered]}>
+                    <Text style={[styles.midText, {color: colors.textSecondary}]}>What Do You Want To Learn About?</Text>
+                </View>
+            ) : (
+                <>
+                    <Text style={[styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
+                        Subjects
+                    </Text>
+
+                    <FlatList
+                        data={subjects}
+                        keyExtractor={(item) => item.id.toString()}
+                        style={{ marginTop: 10 }}
+                        renderItem={({ item }) => (
+                            <ListButton
+                                label={item.name}
+                                icon="folder"
+                                isSelected={isSelected(item)}
+                                secondarySelect={secondarySelect}
+                                onPress={() => {
+                                    if (secondarySelect) {
+                                        toggleSelection(item);                         // Toggle selection if in secondary select mode
+                                    } else {
+                                        navigation.navigate("Folder", { node: item }); // Navigate to Folder screen on press
+                                    }
+                                }}
+                                onLongPress={() => toggleSelection(item)}
+                                status={getItemStatus(item.id, "Subject")}
+
+                            />
+                        )}
+                    />
+                </>
+            )}
+
+            {/* Create Subjects Button */}
+            <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+                <CircleButton icon="plus" onPress={() => setModalVisible(true)} />
             </View>
-        ) : (
-            <>
-                <Text style={[styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
-                    Subjects
-                </Text>
 
-                <FlatList
-                    data={subjects}
-                    keyExtractor={(item) => item.id.toString()}
-                    style={{ marginTop: 10 }}
-                    renderItem={({ item }) => (
-                        <ListButton
-                            label={item.name}
-                            icon="folder"
-                            isSelected={isSelected(item)}
-                            secondarySelect={secondarySelect}
-                            onPress={() => {
-                                if (secondarySelect) {
-                                    toggleSelection(item);                         // Toggle selection if in secondary select mode
-                                } else {
-                                    navigation.navigate("Folder", { node: item }); // Navigate to Folder screen on press
-                                }
-                            }}
-                            onLongPress={() => toggleSelection(item)}
-                            status={getItemStatus(item.id, "Subject")}
+            {/* Footer */}
+            <FooterBar
+                selectedCount={selectedItems.length}
+                hasClipboard={hasClipboard}
+                onAction={handleAction}
+                onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+            />
 
-                        />
-                    )}
-                />
-            </>
-        )}
+            <CreateModal
+                visible={modalVisible}
+                onClose={() => {
+                    setModalVisible(false);
+                    setEditTarget(null);
+                }}
+                onCreate={handleSubject}
+                title={editTarget ? "Edit Subject" : "Create Subject"}
+                placeholder="Enter Subject Name"
+                value={newSubjectName}
+                setValue={setNewSubjectName}
+                mode={editTarget ? "edit" : "create"}
+            />
 
-        {/* Create Subjects Button */}
-        <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-            <CircleButton icon="plus" onPress={() => setModalVisible(true)} />
+            {/* Confirmation Modal for Deletion */}
+            <ConfirmationModal
+                visible={confirmVisible}
+                onCancel={() => setConfirmVisible(false)}
+                onConfirm={confirmDelete}
+                message={deleteTarget?.message || ""}
+                confirmText="Delete"
+                confirmColor={colors.danger}
+            />
+
         </View>
-
-        {/* Footer */}
-        <FooterBar
-            selectedCount={selectedItems.length}
-            hasClipboard={hasClipboard}
-            onAction={handleAction}
-            onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
-        />
-
-        <CreateModal
-            visible={modalVisible}
-            onClose={() => {
-                setModalVisible(false);
-                setEditTarget(null);
-            }}
-            onCreate={handleSubject}
-            title={editTarget ? "Edit Subject" : "Create Subject"}
-            placeholder="Enter Subject Name"
-            value={newSubject}
-            setValue={setNewSubject}
-            mode={editTarget ? "edit" : "create"}
-        />
-
-        {/* Confirmation Modal for Deletion */}
-        <ConfirmationModal
-            visible={confirmVisible}
-            onCancel={() => setConfirmVisible(false)}
-            onConfirm={confirmDelete}
-            message={deleteTarget?.message || ""}
-            confirmText="Delete"
-            confirmColor={colors.danger}
-        />
-
-      </View>
     );
 }

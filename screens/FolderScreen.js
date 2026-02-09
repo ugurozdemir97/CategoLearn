@@ -1,263 +1,194 @@
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, Alert } from "react-native";
+
+// Components
 import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
+
+// Styles and Colors
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
+
+// Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 import { validateWithAlert } from "../utils/validation.js";
-import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, isDescendant, deleteCard, moveFolder, moveCard, addField, getFields, copyFolderRecursive, deleteField} from "../database/queries.js";
+
+// Utils
+import { handleSort } from "../utils/handleSort.js";
+import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
+
+// Database queries
+import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, getFields, deleteField } from "../database/queries.js";
 
 export default function FolderScreen({ route, navigation }) {
-  const { node } = route.params;
-  const [children, setChildren] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [createType, setCreateType] = useState(null);
-  const [fields, setFields] = useState([]);
+    const { node } = route.params;
+    const [children, setChildren] = useState([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [newName, setNewName] = useState("");
+    const [createType, setCreateType] = useState(null);
+    const [fields, setFields] = useState([]);
 
-  const [footerHeight, setFooterHeight] = useState(60);
-  const [headerHeight, setHeaderHeight] = useState(50);
+    const [footerHeight, setFooterHeight] = useState(60);
+    const [headerHeight, setHeaderHeight] = useState(50);
 
-  const [editTarget, setEditTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [confirmVisible, setConfirmVisible] = useState(false);
+    const [editTarget, setEditTarget] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [confirmVisible, setConfirmVisible] = useState(false);
 
-  // Use shared hooks
-  const { selectedItems, secondarySelect, toggleSelection, clear: clearSelection, isSelected, selectAll } = useSelection();
-  const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clear: clearClipboard, getItemStatus } = useClipboard();
+    // Use shared hooks
+    const { selectedItems, secondarySelect, toggleSelection, clearSelection, isSelected, selectAll } = useSelection();
+    const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      loadChildren();
-    });
-    return unsubscribe;
-  }, [navigation]);
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("focus", () => {loadChildren()});
+        return unsubscribe;
+    }, [navigation]);
 
-  const loadChildren = async () => {
-    const folders = await getFolders(node.id);
-    const cards = await getCards(node.id);
+    const loadChildren = async () => {
+        const folders = await getFolders(node.id);
+        const cards = await getCards(node.id);
 
-    setChildren([
-      ...folders.map((f) => ({ ...f, type: "Category", displayName: f.name })),
-      ...cards.map((c) => ({ ...c, type: "Card", displayName: c.title })),
-    ]);
-  };
+        setChildren([
+            ...folders.map((f) => ({ ...f, type: "Category", name: f.name })),
+            ...cards.map((c) => ({ ...c, type: "Card", name: c.name })),
+        ]);
+    };
 
-  const handleItem = async (cardData, mode) => {
-    const trimmed = validateWithAlert(cardData.name, cardData.type);
-    if (!trimmed) return;
+    const handleItem = async (cardData, mode) => {
+        const trimmed = validateWithAlert(cardData.name, cardData.type);
+        if (!trimmed) return;
 
-    if (mode === "create") {
-      if (cardData.type === "Category") {
-        await addFolder(node.id, trimmed, null, 0);
-      } else if (cardData.type === "Card") {
-        const cardId = await addCard(node.id, trimmed);
-        for (const f of cardData.fields) {
-          await addField(cardId, f.field_name, f.context);
-        }
-      }
-    } else if (mode === "edit" && editTarget) {
-      if (editTarget.type === "Category") {
-        await updateFolder(editTarget.id, trimmed, editTarget.color);
-      } else {
-        await updateCard(editTarget.id, trimmed);
-        const oldFields = await getFields(editTarget.id);
-        for (const of of oldFields) {
-          await deleteField(of.id);
-        }
-        for (const f of cardData.fields) {
-          await addField(editTarget.id, f.field_name, f.context);
-        }
-      }
-    }
-
-    setNewName("");
-    setFields([]);
-    setEditTarget(null);
-    clearSelection();
-    setModalVisible(false);
-    await loadChildren();
-  };
-
-  const handleDeleteSelected = () => {
-    if (selectedItems.length === 0) return;
-    const message =
-      selectedItems.length === 1
-        ? `Are you sure you want to delete "${selectedItems[0].displayName}"?`
-        : `Are you sure you want to delete these ${selectedItems.length} items?`;
-    setDeleteTarget({ items: [...selectedItems], message });
-    setConfirmVisible(true);
-  };
-
-  const confirmDelete = async () => {
-    if (deleteTarget?.items) {
-      for (const item of deleteTarget.items) {
-        if (item.type === "Category") await deleteFolder(item.id);
-        else await deleteCard(item.id);
-      }
-      await loadChildren();
-    }
-    clearSelection();
-    setDeleteTarget(null);
-    setConfirmVisible(false);
-  };
-
-  const handleEditSelected = () => {
-    if (selectedItems.length === 1) {
-      const item = selectedItems[0];
-      setNewName(item.displayName);
-      setCreateType(item.type);
-      setEditTarget(item);
-      setModalVisible(true);
-    } else {
-      Alert.alert("Edit Error", "You can only edit one item at a time.");
-    }
-  };
-
-  // Cut / Copy using global clipboard
-  const handleCutSelected = () => {
-    cut(selectedItems);
-    clearSelection();
-  };
-
-  const handleCopySelected = () => {
-    copy(selectedItems);
-    clearSelection();
-  };
-
-  // Paste with optimization: use moveFolder/moveCard for cut operations
-const handlePaste = async () => {
-    if (clipboard.length === 0) return;
-
-    for (const item of clipboard) {
-
-        if (await isDescendant(item.id, node.id)) {
-            Alert.alert("Not Allowed", "You cannot paste a folder into its own descendant.");
-            continue;
-        }
-
-        if (isCut) {
-            // Move folder or card
-            if (item.type === "Category" || item.type === "Subject") {
-                await moveFolder(item.id, node.id);
-            } else if (item.type === "Card") {
-                await moveCard(item.id, node.id);
-            } else {
-                Alert.alert("Not Allowed", "You can paste fields only inside cards.");
-            }
-        } else if (isCopy) {
-            // Duplicate folder (deep copy)
-            if (item.type === "Category" || item.type === "Subject") {
-                await copyFolderRecursive(item.id, node.id);
-            }
-            // Duplicate card
-            else if (item.type === "Card") {
-                const newCardId = await addCard(node.id, item.displayName || item.title);
-                const oldFields = await getFields(item.id);
-                for (const f of oldFields) {
-                    await addField(newCardId, f.field_name, f.context);
+        if (mode === "create") {
+            if (cardData.type === "Category") {
+                await addFolder(node.id, trimmed, null, 0);
+            } else if (cardData.type === "Card") {
+                const cardId = await addCard(node.id, trimmed);
+                for (const f of cardData.fields) {
+                    await addField(cardId, f.name, f.context);
                 }
             }
-            // Duplicate field (only allowed inside cards)
-            else if (item.type === "Field") {
-                Alert.alert("Not Allowed", "You can paste fields only inside cards.");
+        } else if (mode === "edit" && editTarget) {
+            if (editTarget.type === "Category") {
+                await updateFolder(editTarget.id, trimmed, editTarget.color);
+            } else {
+                await updateCard(editTarget.id, trimmed);
+                const oldFields = await getFields(editTarget.id);
+                for (const of of oldFields) {
+                    await deleteField(of.id);
+                }
+                for (const f of cardData.fields) {
+                    await addField(editTarget.id, f.name, f.context);
+                }
             }
         }
-    }
 
-    clearClipboard();
-    await loadChildren();
-};
+        setNewName("");
+        setFields([]);
+        setEditTarget(null);
+        clearSelection();
+        setModalVisible(false);
+        await loadChildren();
+    };
 
-  const handleAction = (action) => {
-  switch (action) {
-    case "delete":
-      handleDeleteSelected();
-      break;
-    case "edit":
-      handleEditSelected();
-      break;
-    case "cut":
-      handleCutSelected();
-      break;
-    case "copy":
-      handleCopySelected();
-      break;
-    case "paste":
-      handlePaste();
-      break;
-    case "clearClipboard":
-      clearClipboard();   // ✅ new feature
-      break;
-    case "search":
-      console.log("Search pressed");
-      break;
-    case "settings":
-      console.log("Settings pressed");
-      break;
-    case "deleted":
-      console.log("Deleted items pressed");
-      break;
-    case "color":
-      console.log("Color pressed");
-      break;
-    default:
-      break;
-  }
-};
+    const confirmDelete = async () => {
+        if (deleteTarget?.items) {
+            for (const item of deleteTarget.items) {
+                if (item.type === "Category") await deleteFolder(item.id);
+                else await deleteCard(item.id);
+            }
+            await loadChildren();
+        }
+        clearSelection();
+        setDeleteTarget(null);
+        setConfirmVisible(false);
+    };
+
+    // Footer action handlers for delete, edit, cut, copy, paste
+    // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
+    const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "items");
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setNewName);
+    const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
+    const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
+    const handlePasteWrapper = () =>          handlePaste(clipboard, isCut, isCopy, node, clearClipboard, loadChildren);
+
+    // Call the right handler based on action from FooterBar
+    const handleAction = (action) => {
+        switch (action) {
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "edit": handleEditSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
+            case "clearClipboard": clearClipboard(); break;
+            default: break;
+        }
+    };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
 
+            {/* HeaderBar */}
             <HeaderBar
                 selectedCount={selectedItems.length}
                 totalCount={children.length}
-                onSort={(mode) => console.log("Sort mode:", mode)}
+                onSort={handleSort}
+                items={children}
+                setItems={setChildren}
                 onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(children)}
             />
 
-            <Text style={[styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>{node.name}</Text>
+            <Text
+                style={[
+                    styles.title,
+                    styles.centeredText,
+                    { marginTop: headerHeight + 20, color: colors.textPrimary }
+                ]}
+            >
+                {node.name}
+            </Text>
 
             {children.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
-                    <Text style={[styles.midText, {color: colors.textSecondary}]}>No Items Yet</Text>
+                    <Text style={[styles.midText, { color: colors.textSecondary }]}>
+                        No Items Yet
+                    </Text>
                 </View>
-            ) : (
+                ) : (
                 <FlatList
                     data={children}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <ListButton
-                          label={item.displayName}
-                          icon={item.type === "Category" ? "folder" : "file"}
-                          isSelected={isSelected(item)}
-                          secondarySelect={secondarySelect}
-                          onPress={() => {
-                              if (secondarySelect) {
-                                  toggleSelection(item);
-                              } else {
-                                  if (item.type === "Category") {
-                                      navigation.push("Folder", { node: item });
-                                  } else {
-                                      navigation.navigate("CardDetail", { card: item });
-                                  }
-                              }
-                          }}
-                          onLongPress={() => toggleSelection(item)}
-                          status={getItemStatus(item.id, item.type)}
-                      />
+                            label={item.name}
+                            icon={item.type === "Category" ? "folder" : "file"}
+                            isSelected={isSelected(item)}
+                            secondarySelect={secondarySelect}
+                            onPress={() => {
+                                if (secondarySelect) {
+                                    toggleSelection(item);                         // Toggle selection if in secondary select mode
+                                } else {
+                                    if (item.type === "Category") {
+                                        navigation.push("Folder", { node: item }); // Navigate to Folder screen on press
+                                    } else {
+                                        navigation.navigate("CardDetail", { card: item }); // Navigate to CardDetail screen on press
+                                    }
+                                }
+                            }}
+                            onLongPress={() => toggleSelection(item)}
+                            status={getItemStatus(item.id, item.type)}
+                        />
                     )}
                 />
             )}
 
+            {/* Create Buttons */}
             <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
                 <CircleButton
                     icon="folder"
@@ -275,6 +206,7 @@ const handlePaste = async () => {
                 />
             </View>
 
+            {/* Footer */}
             <FooterBar
                 selectedCount={selectedItems.length}
                 hasClipboard={hasClipboard}
@@ -299,6 +231,7 @@ const handlePaste = async () => {
                 mode={editTarget ? "edit" : "create"}
             />
 
+            {/* Confirmation Modal */}
             <ConfirmationModal
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}

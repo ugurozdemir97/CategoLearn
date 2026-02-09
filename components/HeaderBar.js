@@ -13,7 +13,7 @@ const sortModes = [
 ];
 
 // HeaderBar component with sort button and selection info
-export default function HeaderBar({ selectedCount, totalCount = 0, onSort, onLayout, onCancelSelection, onSelectAll}) {
+export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items, setItems, onLayout, onCancelSelection, onSelectAll}) {
 
     // Safe area insets for preventing overlap with navigation buttons/status bar
     const insets = useSafeAreaInsets();
@@ -23,7 +23,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, onLay
     const cycleSort = () => {
         const nextIndex = (sortIndex + 1) % sortModes.length;
         setSortIndex(nextIndex);
-        onSort(sortModes[nextIndex]); 
+        onSort(items, setItems, sortModes[nextIndex]); 
     };
 
     return (

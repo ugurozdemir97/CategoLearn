@@ -1,11 +1,5 @@
 import { Alert } from "react-native";
 
-/**
- * Validate a name input
- * @param {string} name - The name to validate
- * @param {number} maxLength - Maximum allowed length (default: 60)
- * @returns {{ valid: boolean, error?: string }}
- */
 export function validateName(name, maxLength = 60) {
     const trimmed = name?.trim() || "";
 
@@ -20,13 +14,6 @@ export function validateName(name, maxLength = 60) {
     return { valid: true, trimmed };
 }
 
-/**
- * Validate and show alert if invalid
- * @param {string} name - The name to validate
- * @param {string} type - Type of item (for alert title)
- * @param {number} maxLength - Maximum allowed length
- * @returns {string|null} - Trimmed name if valid, null if invalid
- */
 export function validateWithAlert(name, type = "Item", maxLength = 60) {
     const result = validateName(name, maxLength);
 
