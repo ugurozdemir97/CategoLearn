@@ -1,0 +1,16 @@
+# Clean ListField and CreateModal components
+# Change Scheme logic (same name and same type objects can't exist under the same parent)
+# Handle Copy, Cut, Paste logic according to the second point
+# Fields have required titles and optional contexts
+# Get rid of Alerts and change them
+# Add field adding / editing
+# Clean unnecessary styles and colors
+
+--------------------------------------------------------------------------------------------
+
+## In The Future
+
+# Add Settings Screen for changing theme and maybe language
+# Add Search Function
+# Add deleted items screen and a function to restore them, if their parent exist restore in the correct place, if not, restore them in an empty subject folder
+# Add synchronising using Google account

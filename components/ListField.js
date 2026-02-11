@@ -10,7 +10,6 @@ export default function ListField({
     onPress,
     onLongPress,
     isSelected,
-    secondarySelect,
     status = {},
     expanded = false,
 }) {
@@ -49,26 +48,16 @@ export default function ListField({
                     {status.isCopied && (
                         <FontAwesome name="copy" size={16} color={colors.accentLight} />
                     )}
-                    {secondarySelect ? (
-                        isSelected && (
-                            <FontAwesome
-                                name="check-circle"
-                                size={18}
-                                color={colors.accentLight}
-                            />
-                        )
-                    ) : (
-                        <FontAwesome
-                            name={expanded ? "chevron-up" : "chevron-down"}
-                            size={18}
-                            color={colors.textSecondary}
-                        />
+                    {isSelected ? (
+                        <FontAwesome name="check-circle" size={18} color={colors.accentLight}/>
+                    ): (
+                        <FontAwesome name={expanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary}/>
                     )}
                 </View>
             </TouchableOpacity>
 
             {/* Expanded context */}
-            {expanded && !secondarySelect && (
+            {expanded && (
                 <View style={[styles.field, { paddingLeft: 20, paddingRight: 16 }]}>
                     <Text style={styles.fieldContext}>{context}</Text>
                 </View>

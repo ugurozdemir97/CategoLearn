@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Alert } from "react-native";
+import { View, Text, FlatList } from "react-native";
 
 // Components
 import CircleButton from "../components/CircleButton.js";
@@ -25,96 +25,100 @@ import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopy
 // Database queries
 import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, getFields, deleteField } from "../database/queries.js";
 
+// FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
-    const { node } = route.params;
-    const [children, setChildren] = useState([]);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [newName, setNewName] = useState("");
-    const [createType, setCreateType] = useState(null);
-    const [fields, setFields] = useState([]);
+    const { folder } = route.params;                              // Folder is the parent folder of the contents we see here
+    const [items, setItems] = useState([]);                       // Items are the subfolders and cards inside this folder
+    const [newName, setNewName] = useState("");                   // Name of the card/folder being created or edited
+    const [editTarget, setEditTarget] = useState(null);           // The item being edited (null if creating new)
+    const [deleteTarget, setDeleteTarget] = useState(null);       // The item(s) being deleted
+    const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing items
+    const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
+    const [createType, setCreateType] = useState(null);           // Whether we are creating/editing a card or folder
+    const [fields, setFields] = useState([]);                     // The fields of the card being created/edited
 
-    const [footerHeight, setFooterHeight] = useState(60);
+    const [footerHeight, setFooterHeight] = useState(60);         // These are used to adjust placing of elements based on header/footer size
     const [headerHeight, setHeaderHeight] = useState(50);
 
-    const [editTarget, setEditTarget] = useState(null);
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [confirmVisible, setConfirmVisible] = useState(false);
+    // Handle selection and clipboard using custom hooks/context
+    const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
+    const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
-    // Use shared hooks
-    const { selectedItems, secondarySelect, toggleSelection, clearSelection, isSelected, selectAll } = useSelection();
-    const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus } = useClipboard();
-
+    // Call loadItems when we are in this screen
     useEffect(() => {
-        const unsubscribe = navigation.addListener("focus", () => {loadChildren()});
+        const unsubscribe = navigation.addListener("focus", () => {loadItems()});
         return unsubscribe;
     }, [navigation]);
 
-    const loadChildren = async () => {
-        const folders = await getFolders(node.id);
-        const cards = await getCards(node.id);
+    // Load all subfolders and cards inside this folder from the database
+    const loadItems = async () => {
+        const folders = await getFolders(folder.id);
+        const cards = await getCards(folder.id);
 
-        setChildren([
+        // First folders, then cards
+        setItems([
             ...folders.map((f) => ({ ...f, type: "Category", name: f.name })),
             ...cards.map((c) => ({ ...c, type: "Card", name: c.name })),
         ]);
     };
 
-    const handleItem = async (cardData, mode) => {
-        const trimmed = validateWithAlert(cardData.name, cardData.type);
+    // Handle Create or Edit for both cards and folders
+    const handleItem = async (itemData, mode) => {
+
+        // I will change this later, I don't want alerts
+        const trimmed = validateWithAlert(itemData.name, itemData.type);
         if (!trimmed) return;
 
+        // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
         if (mode === "create") {
-            if (cardData.type === "Category") {
-                await addFolder(node.id, trimmed, null, 0);
-            } else if (cardData.type === "Card") {
-                const cardId = await addCard(node.id, trimmed);
-                for (const f of cardData.fields) {
-                    await addField(cardId, f.name, f.context);
-                }
+            if (itemData.type === "Category") {
+                await addFolder(folder.id, trimmed, null, 0);
+            } else if (itemData.type === "Card") {
+                const cardId =                   await addCard(folder.id, trimmed);
+                for (const f of itemData.fields) await addField(cardId, f.name, f.context);
             }
         } else if (mode === "edit" && editTarget) {
             if (editTarget.type === "Category") {
                 await updateFolder(editTarget.id, trimmed, editTarget.color);
             } else {
+                // Update card name, delete old fields and add new fields
                 await updateCard(editTarget.id, trimmed);
-                const oldFields = await getFields(editTarget.id);
-                for (const of of oldFields) {
-                    await deleteField(of.id);
-                }
-                for (const f of cardData.fields) {
-                    await addField(editTarget.id, f.name, f.context);
-                }
+                const oldFields =                await getFields(editTarget.id);
+                for (const of of oldFields)      await deleteField(of.id);
+                for (const f of itemData.fields) await addField(editTarget.id, f.name, f.context);
             }
         }
 
-        setNewName("");
-        setFields([]);
+        // After creating/editing, reset states and reload items
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
-        await loadChildren();
+        await loadItems();
     };
 
+    // Delete selected subjects (and everything inside them) after confirmation
     const confirmDelete = async () => {
         if (deleteTarget?.items) {
             for (const item of deleteTarget.items) {
                 if (item.type === "Category") await deleteFolder(item.id);
-                else await deleteCard(item.id);
+                else                          await deleteCard(item.id);
             }
-            await loadChildren();
         }
-        clearSelection();
+
+        // After deletion, reset states
         setDeleteTarget(null);
+        clearSelection();
         setConfirmVisible(false);
+        await loadItems();
     };
 
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "items");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setNewName);
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = () =>          handlePaste(clipboard, isCut, isCopy, node, clearClipboard, loadChildren);
+    const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, folder, clearClipboard, loadItems);
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -135,54 +139,51 @@ export default function FolderScreen({ route, navigation }) {
             {/* HeaderBar */}
             <HeaderBar
                 selectedCount={selectedItems.length}
-                totalCount={children.length}
+                totalCount={items.length}
                 onSort={handleSort}
-                items={children}
-                setItems={setChildren}
+                items={items}
+                setItems={setItems}
                 onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
-                onSelectAll={() => selectAll(children)}
+                onSelectAll={() => selectAll(items)}
             />
-
-            <Text
-                style={[
-                    styles.title,
-                    styles.centeredText,
-                    { marginTop: headerHeight + 20, color: colors.textPrimary }
-                ]}
-            >
-                {node.name}
+        
+            {/* Category Title */}
+            <Text style={[ styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
+                {folder.name}
             </Text>
 
-            {children.length === 0 ? (
+            {/* Items */}
+            {items.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, { color: colors.textSecondary }]}>
-                        No Items Yet
+                        No Items Yet. You Can Create Cards or Folders to Organize Your Learning!
                     </Text>
                 </View>
-                ) : (
+            ) : (
+
                 <FlatList
-                    data={children}
+                    data={items}
                     keyExtractor={(item) => item.id.toString()}
+                    style={{ marginTop: 10 }}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}
-                            icon={item.type === "Category" ? "folder" : "file"}
+                            icon={item.type === "Category" ? "folder" : "file-text-o"}
                             isSelected={isSelected(item)}
-                            secondarySelect={secondarySelect}
-                            onPress={() => {
-                                if (secondarySelect) {
-                                    toggleSelection(item);                         // Toggle selection if in secondary select mode
-                                } else {
-                                    if (item.type === "Category") {
-                                        navigation.push("Folder", { node: item }); // Navigate to Folder screen on press
-                                    } else {
-                                        navigation.navigate("CardDetail", { card: item }); // Navigate to CardDetail screen on press
-                                    }
-                                }
-                            }}
                             onLongPress={() => toggleSelection(item)}
                             status={getItemStatus(item.id, item.type)}
+                            onPress={() => {
+
+                                // Toggle selection if in secondary select mode
+                                // Navigate to Folder or CardDetail screen on press
+                                if (secondarySelect) toggleSelection(item);                         
+                                else {
+                                    if (item.type === "Category") navigation.push("Folder", { folder: item }); 
+                                    else                          navigation.navigate("CardDetail", { card: item }); 
+                                }
+                            }}
+
                         />
                     )}
                 />
@@ -190,45 +191,32 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Create Buttons */}
             <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-                <CircleButton
-                    icon="folder"
-                    onPress={() => {
-                        setCreateType("Category");
-                        setModalVisible(true);
-                    }}
-                />
-                <CircleButton
-                    icon="file"
-                    onPress={() => {
-                        setCreateType("Card");
-                        setModalVisible(true);
-                    }}
-                />
+                <CircleButton icon="folder" onPress={() => {setCreateType("Category"); setModalVisible(true)}}/>
+                <CircleButton icon="file"   onPress={() => {setCreateType("Card"); setModalVisible(true)}}/>
             </View>
 
             {/* Footer */}
             <FooterBar
                 selectedCount={selectedItems.length}
-                hasClipboard={hasClipboard}
+                hasClipboard={clipboard.length > 0}
                 onAction={handleAction}
                 onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
             />
 
             <CreateModal
                 visible={modalVisible}
-                onClose={() => {
-                    setModalVisible(false);
-                    setEditTarget(null);
-                }}
                 onCreate={handleItem}
                 title={editTarget ? `Edit ${createType}` : `Create ${createType}`}
                 placeholder={`Enter ${createType} Name`}
                 value={newName}
-                setValue={setNewName}
+                mode={editTarget ? "edit" : "create"}
                 isCard={createType === "Card"}
                 fields={fields}
                 setFields={setFields}
-                mode={editTarget ? "edit" : "create"}
+                onClose={() => {
+                    setModalVisible(false);
+                    setEditTarget(null);
+                }}
             />
 
             {/* Confirmation Modal */}

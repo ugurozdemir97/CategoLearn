@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -28,28 +28,30 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
 
     return (
         <View style={[styles.headerAndFooter, styles.header, { paddingTop: insets.top, height: insets.top + 50, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
+            
             {selectedCount > 0 ? (
                 <View style={[styles.rowSpaceBetween, { flex: 1 }]}>
 
                     {/* Selected Count */}
                     <Text style={[styles.smallText, { color: colors.textPrimary }]}>
-                      {selectedCount}/{totalCount} selected
+                       {selectedCount}/{totalCount} selected
                     </Text>
 
                     <View style={[styles.centered, {flexDirection: "row", gap: 15}]}>
 
-                      {/* Cancel Selection */}
-                      <TouchableOpacity onPress={onCancelSelection}>
-                          <FontAwesome name="times" size={23} color={colors.textPrimary} />
-                      </TouchableOpacity>
+                        {/* Cancel Selection */}
+                        <TouchableOpacity onPress={onCancelSelection}>
+                            <FontAwesome name="times" size={23} color={colors.textPrimary} />
+                        </TouchableOpacity>
 
-                      {/* Select All */}
-                      <TouchableOpacity onPress={onSelectAll}>
-                          <FontAwesome name="check-square" size={20} color={colors.textPrimary} />
-                      </TouchableOpacity>
+                        {/* Select All */}
+                        <TouchableOpacity onPress={onSelectAll}>
+                            <FontAwesome name="check-square" size={20} color={colors.textPrimary} />
+                        </TouchableOpacity>
                       
                     </View>
                 </View>
+
             ) : (
 
                 // Change Sort Mode

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Alert } from "react-native";
+import { View, Text, FlatList } from "react-native";
 
 // Components
 import CircleButton from "../components/CircleButton.js";
@@ -38,8 +38,8 @@ export default function HomeScreen({ navigation }) {
     const [headerHeight, setHeaderHeight] = useState(50);
 
     // Handle selection and clipboard using custom hooks/context
-    const { selectedItems, selectAll, secondarySelect, toggleSelection, clearSelection, isSelected } = useSelection();
-    const { clipboard, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus } = useClipboard();
+    const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
+    const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
     // Call loadSubjects when we are in this screen
     useEffect(() => {
@@ -58,9 +58,10 @@ export default function HomeScreen({ navigation }) {
     };
 
     // Handle Create or Edit
-    const handleSubject = async (cardData, mode) => {
+    const handleSubject = async (folderData, mode) => {
 
-        const trimmed = validateWithAlert(cardData.name, "Subject");  // I will change this later, I don't want alerts
+        // I will change this later, I don't want alerts
+        const trimmed = validateWithAlert(folderData.name, "Subject"); 
         if (!trimmed) return;
 
         // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
@@ -77,7 +78,7 @@ export default function HomeScreen({ navigation }) {
         await loadSubjects();
     };
 
-    // Delete selected subjects after confirmation
+    // Delete selected subjects (and everything inside them) after confirmation
     const confirmDelete = async () => {
         if (deleteTarget?.items) {
             for (const item of deleteTarget.items) await deleteFolder(item.id);
@@ -93,10 +94,10 @@ export default function HomeScreen({ navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "subjects");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setNewSubjectName);
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewSubjectName);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = () =>          handlePaste(clipboard, isCut, isCopy, null, clearClipboard, loadSubjects);
+    const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, null, clearClipboard, loadSubjects);
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -146,16 +147,16 @@ export default function HomeScreen({ navigation }) {
                                 label={item.name}
                                 icon="folder"
                                 isSelected={isSelected(item)}
-                                secondarySelect={secondarySelect}
-                                onPress={() => {
-                                    if (secondarySelect) {
-                                        toggleSelection(item);                         // Toggle selection if in secondary select mode
-                                    } else {
-                                        navigation.navigate("Folder", { node: item }); // Navigate to Folder screen on press
-                                    }
-                                }}
                                 onLongPress={() => toggleSelection(item)}
-                                status={getItemStatus(item.id, "Subject")}
+                                status={getItemStatus(item.id, "Subject")}  // Is the item currently cut or copied
+                                onPress={() => {
+
+                                    // Toggle selection if in secondary select mode
+                                    // Otherwise, navigate to Folder screen to see contents of the subject
+                                    if (secondarySelect) toggleSelection(item);                         
+                                    else navigation.navigate("Folder", { folder: item }); 
+
+                                }}
 
                             />
                         )}
@@ -171,23 +172,22 @@ export default function HomeScreen({ navigation }) {
             {/* Footer */}
             <FooterBar
                 selectedCount={selectedItems.length}
-                hasClipboard={hasClipboard}
+                hasClipboard={clipboard.length > 0}
                 onAction={handleAction}
                 onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
             />
 
             <CreateModal
                 visible={modalVisible}
-                onClose={() => {
-                    setModalVisible(false);
-                    setEditTarget(null);
-                }}
                 onCreate={handleSubject}
                 title={editTarget ? "Edit Subject" : "Create Subject"}
                 placeholder="Enter Subject Name"
                 value={newSubjectName}
-                setValue={setNewSubjectName}
                 mode={editTarget ? "edit" : "create"}
+                onClose={() => {
+                    setModalVisible(false);
+                    setEditTarget(null);
+                }}
             />
 
             {/* Confirmation Modal for Deletion */}

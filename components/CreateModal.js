@@ -4,27 +4,17 @@ import { FontAwesome } from "@expo/vector-icons";
 import ConfirmationModal from "./ConfirmationModal.js";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
-import { deleteField } from "../database/queries.js"; // ✅ import deleteField
+import { deleteField } from "../database/queries.js";
 
 // For creating/editing both cards and folders, with dynamic fields for cards
-export default function CreateModal({
-    visible,
-    onClose,
-    onCreate,
-    title,
-    placeholder,
-    value,
-    isCard = false,
-    fields = [],
-    setFields = () => {},
-    mode = "create",
-    card = null
-}) {
-    const [localTitle, setLocalTitle] = useState(value);
-    const [localFields, setLocalFields] = useState(fields);
-    const [confirmVisible, setConfirmVisible] = useState(false);
+export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, isCard = false, fields = [], setFields = () => {}, mode = "create", card = null}) {
+    
+    const [localTitle, setLocalTitle] = useState(value);            // Local state for title input
+    const [localFields, setLocalFields] = useState(fields);         // Local state for fields (cards only)
+    const [confirmVisible, setConfirmVisible] = useState(false);    // For confirming field deletion
     const [deleteIndex, setDeleteIndex] = useState(null);
 
+    // Place name and fields if editing a card when modal opens
     useEffect(() => {
         if (visible) {
             setLocalTitle(value || "");
@@ -32,9 +22,36 @@ export default function CreateModal({
         }
     }, [visible]);
 
-    const addField = () => {
-        setLocalFields([...localFields, { name: "", context: "" }]);
+    // Handle Create or Edit action
+    // You can create cards (with/without fields) or folders
+    // You can edit cards (with/without their fields) or folder names
+    const handleAction = () => {
+
+        // Add/Edit Cards
+        if (isCard) {
+
+            setFields(localFields);   // Parent's setFields function
+
+            const cardData = {
+                id: card?.id,
+                type: "Card",
+                name: localTitle,     // What we wrote in the input
+                fields: localFields,  // The fields we added/edited in the modal
+            };
+            onCreate(cardData, mode);
+        
+        // Add/Edit Folders (Subjects or Categories)
+        } else onCreate({ name: localTitle, type: "Category"}, mode);
+
+        // Clear local state and close modal
+        setLocalTitle("");
+        setLocalFields([]);
+        onClose();
     };
+
+    // FIELDS
+
+    const addField = () => setLocalFields([...localFields, { name: "", context: "" }]);
 
     const updateField = (index, key, val) => {
         const updated = [...localFields];
@@ -66,53 +83,13 @@ export default function CreateModal({
         setConfirmVisible(false);
     };
 
-    const handleAction = () => {
-        if (isCard) {
-            const cardData = {
-                id: card?.id,
-                name: localTitle,
-                type: "Card",
-                fields: localFields,
-            };
-            onCreate(cardData, mode);
-        } else {
-            onCreate({ name: localTitle, type: "Category", children: [] }, mode);
-        }
-
-        setFields(localFields);
-
-        if (mode === "create") {
-            setLocalTitle("");
-            setLocalFields([]);
-        }
-
-        onClose();
-    };
-
-    const ActionButton = ({ label, onPress, primary = false, danger = false }) => (
-        <TouchableOpacity
-            onPress={onPress}
-            style={{
-                flex: 1,
-                padding: 14,
-                borderRadius: 10,
-                backgroundColor: danger
-                    ? colors.danger
-                    : primary
-                    ? colors.accent
-                    : colors.bgSecondary,
-                marginHorizontal: 4,
-                alignItems: "center",
-            }}
-        >
-            <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>{label}</Text>
-        </TouchableOpacity>
-    );
-        return (
+    return (
         <>
             <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
                 <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.3)" }]}>
                     <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
+
+                        {/* Edit/Create Card/Folder */}
                         <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary }]}>
                             {title}
                         </Text>
@@ -187,8 +164,14 @@ export default function CreateModal({
 
                         {/* Action Buttons */}
                         <View style={[styles.rowSpaceBetween, { marginTop: 15, gap: 10 }]}>
-                            <ActionButton label="Cancel" onPress={onClose} />
-                            <ActionButton label={mode === "create" ? "Create" : "Save"} onPress={handleAction} primary />
+
+                            <TouchableOpacity onPress={onClose} style={[styles.normalButton, {backgroundColor: colors.bgSecondary}]}>
+                                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleAction} style={[styles.normalButton, {backgroundColor: colors.accent}]}>
+                                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>{mode === "create" ? "Create" : "Save"}</Text>
+                            </TouchableOpacity>
+
                         </View>
                     </View>
                 </View>

@@ -4,9 +4,7 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Items (Subjects, Folders, etc.) 
-export default function ListButton({ label, icon, onPress, onLongPress, isSelected, secondarySelect, status = {}}) {
-
-    const iconName = icon === "folder" ? "folder" : "file-text-o";
+export default function ListButton({ label, icon, onPress, onLongPress, isSelected, status = {}}) {
 
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
@@ -21,7 +19,7 @@ export default function ListButton({ label, icon, onPress, onLongPress, isSelect
             onLongPress={onLongPress}
         >
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                <FontAwesome name={iconName} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
+                <FontAwesome name={icon} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
                 <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}
                 </Text>
@@ -35,7 +33,7 @@ export default function ListButton({ label, icon, onPress, onLongPress, isSelect
                 {status.isCopied && (
                     <FontAwesome name="copy" size={18} color={colors.accentLight} />
                 )}
-                {secondarySelect && isSelected && (
+                {isSelected && (
                     <FontAwesome name="check-circle" size={20} color={colors.accentLight} />
                 )}
             </View>

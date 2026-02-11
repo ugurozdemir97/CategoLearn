@@ -40,12 +40,8 @@ export function ClipboardProvider({ children }) {
         setCopiedItemIds([]);
     };
 
-    const hasClipboard = clipboard.length > 0;     // If we have clipboard items, enable paste options in the UI
-    const isCut = clipboardMode === "cut";         // These are for the logic of pasting (move vs copy)
-    const isCopy = clipboardMode === "copy";
-
     return (
-        <ClipboardContext.Provider value={{ clipboard, clipboardMode, cutItemIds, copiedItemIds, hasClipboard, isCut, isCopy, cut, copy, clearClipboard, getItemStatus}}>
+        <ClipboardContext.Provider value={{ clipboard, clipboardMode, cutItemIds, copiedItemIds, cut, copy, clearClipboard, getItemStatus}}>
             {children}
         </ClipboardContext.Provider>
     );

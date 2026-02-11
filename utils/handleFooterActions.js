@@ -1,5 +1,5 @@
 import { Alert } from "react-native";
-import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addCard, getFields, addField } from "../database/queries.js";
+import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, copyCardRecursive } from "../database/queries.js";
 
 // Delete selected
 export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, itemLabel = "items") {
@@ -13,35 +13,38 @@ export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmV
 }
 
 // Edit selected
-export function handleEditSelected(selectedItems, setModalVisible, setEditTarget, setNewName, setCreateType) {
+export function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
-        setNewName(item.name);
-        setCreateType?.(item.type); // optional for FolderScreen
-        setEditTarget(item);
+        setNewName(item.name);           // Pre-fill modal input with current name
+        setCreateType?.(item.type);      // For folder screen, set the type (card or category) in the modal
+        setEditTarget(item);             // Store the item being edited   
         setModalVisible(true);
     } else {
         Alert.alert("Edit Error", "You can only edit one item at a time.");
     }
 }
 
-// Cut / Copy
+// Cut Selected
 export function handleCutSelected(selectedItems, cutFn, clearSelection) {
     cutFn(selectedItems.map((item) => ({ ...item, type: item.type })));
     clearSelection();
 }
 
+// Copy Selected
 export function handleCopySelected(selectedItems, copyFn, clearSelection) {
     copyFn(selectedItems.map((item) => ({ ...item, type: item.type })));
     clearSelection();
 }
 
 // Paste with unified rules
-export async function handlePaste(clipboard, isCut, isCopy, node, clearClipboard, loadFn) {
+export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn) {
+    
     if (clipboard.length === 0) return;
 
     for (const item of clipboard) {
 
+        // Prevent pasting a folder into its own children
         if ((item.type === "Category" || item.type === "Subject") && node?.id) {
             if (await isDescendant(item.id, node.id)) {
                 Alert.alert("Not Allowed", "You cannot paste a folder into its own descendant.");
@@ -55,11 +58,9 @@ export async function handlePaste(clipboard, isCut, isCopy, node, clearClipboard
                 Alert.alert("Not Allowed", "Fields can only be pasted inside cards.");
                 continue;
             }
-            if (isCut) {
-                await moveField(item.id, node.id); 
-            } else if (isCopy) {
-                await addField(node.id, item.name, item.context);
-            }
+
+            if (clipboardMode === "cut")       await moveField(item.id, node.id); 
+            else if (clipboardMode === "copy") await addField(node.id, item.name, item.context);
         }
 
         // Rule 2: Cards can only be pasted into Folders
@@ -68,15 +69,8 @@ export async function handlePaste(clipboard, isCut, isCopy, node, clearClipboard
                 Alert.alert("Not Allowed", "Cards can only be pasted inside folders.");
                 continue;
             }
-            if (isCut) {
-                await moveCard(item.id, node.id);
-            } else if (isCopy) {
-                const newCardId = await addCard(node.id, item.name);
-                const oldFields = await getFields(item.id);
-                for (const f of oldFields) {
-                    await addField(newCardId, f.name, f.context);
-                }
-            }
+            if (clipboardMode === "cut")       await moveCard(item.id, node.id);
+            else if (clipboardMode === "copy") await copyCardRecursive(item.id, node.id);
         }
 
         // Rule 3: Folders cannot be pasted into Cards
@@ -86,11 +80,11 @@ export async function handlePaste(clipboard, isCut, isCopy, node, clearClipboard
                 continue;
             }
             if (node === null) {
-                if (isCut) await moveFolder(item.id, null);
-                else if (isCopy) await copyFolderRecursive(item.id, null);
+                if (clipboardMode === "cut")       await moveFolder(item.id, null);
+                else if (clipboardMode === "copy") await copyFolderRecursive(item.id, null);
             } else {
-                if (isCut) await moveFolder(item.id, node.id);
-                else if (isCopy) await copyFolderRecursive(item.id, node.id);
+                if (clipboardMode === "cut")      await moveFolder(item.id, node.id);
+                else if (clipboardMode === "copy") await copyFolderRecursive(item.id, node.id);
             }
         }
     

@@ -70,6 +70,13 @@ export default StyleSheet.create({
         borderWidth: 1
     },
 
+    normalButton: {
+         flex: 1, 
+         padding: 14, 
+         borderRadius: 10, 
+         alignItems: "center"
+    },
+
     // MODALS
 
     modalContent: {
