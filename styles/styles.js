@@ -6,7 +6,7 @@ export default StyleSheet.create({
 
     container: {
         flex: 1,
-        paddingHorizontal: 20
+        paddingHorizontal: 15
     },
 
     centered: {
@@ -65,7 +65,7 @@ export default StyleSheet.create({
 
     item: {
         padding: 16,
-        marginVertical: 6,
+        marginTop: 10,
         borderRadius: 12,
         borderWidth: 1
     },
@@ -87,19 +87,29 @@ export default StyleSheet.create({
 
     input: {
         paddingHorizontal: 14,
-        marginTop: 15,
         borderRadius: 10
     },
 
+    fieldInput: {
+        height: 100,
+        textAlignVertical: "top"
+    },
+
+    dashedBorder: {
+        borderWidth: 1,
+        borderStyle: "dashed"
+    },
+
     // Card detail fields
-    field: {
-        marginBottom: 12,
-        paddingVertical: 8,
-    },
-
-    fieldContext: {
-        fontSize: 15,
-        lineHeight: 22,
-    },
-
+    contextArea: {
+        width: "92%",
+        paddingTop: 5,
+        paddingBottom: 15, 
+        paddingHorizontal: 15, 
+        borderBottomWidth: 1,
+        borderRightWidth: 1,
+        borderLeftWidth: 1,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 10,
+    }
 });

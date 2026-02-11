@@ -4,49 +4,33 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Fields inside cards
-export default function ListField({
-    label,
-    context,
-    onPress,
-    onLongPress,
-    isSelected,
-    status = {},
-    expanded = false,
-}) {
-    // Apply styles based on cut/copy status
+export default function ListField({ label, context, onPress, onLongPress, isSelected, status = {}, expanded = false}) {
+    
+    // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
         opacity: status.isCut ? 0.5 : 1,
         backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
     };
 
     return (
-        <View>
+        <View style={{alignItems: "center"}}>
             <TouchableOpacity
-                style={[
-                    styles.item,
-                    styles.rowSpaceBetween,
-                    isSelected && styles.itemSelected,
-                    dynamicStyle,
-                ]}
+                style={[ styles.item, styles.rowSpaceBetween, isSelected && styles.itemSelected, dynamicStyle]}
                 onPress={onPress}
                 onLongPress={onLongPress}
             >
                 {/* Left side: field name */}
-                <Text
-                    style={[styles.smallText, { flex: 1, color: colors.textSecondary }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                >
-                    {label || "(Untitled)"}
+                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
+                    {label}
                 </Text>
 
                 {/* Right side: status icons + expand/collapse */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     {status.isCut && (
-                        <FontAwesome name="scissors" size={16} color={colors.danger} />
+                        <FontAwesome name="scissors" size={18} color={colors.accentLight} />
                     )}
                     {status.isCopied && (
-                        <FontAwesome name="copy" size={16} color={colors.accentLight} />
+                        <FontAwesome name="copy" size={18} color={colors.accentLight} />
                     )}
                     {isSelected ? (
                         <FontAwesome name="check-circle" size={18} color={colors.accentLight}/>
@@ -58,8 +42,8 @@ export default function ListField({
 
             {/* Expanded context */}
             {expanded && (
-                <View style={[styles.field, { paddingLeft: 20, paddingRight: 16 }]}>
-                    <Text style={styles.fieldContext}>{context}</Text>
+                <View style={[styles.contextArea, { borderColor: colors.accentLight }]}>
+                    <Text style={[styles.smallText, { color: colors.textSecondary }]}>{context}</Text>
                 </View>
             )}
         </View>

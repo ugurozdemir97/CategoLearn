@@ -14,10 +14,8 @@ export const darkTheme = {
 
     danger: "#e12b2b",
     success: "#22c55e",
-    warning: "#f59e0b",
-
-    selected: "#2d3a52",
-    copied: "rgba(99, 102, 241, 0.15)",
+    warning: "#f59e0b"
+    
 };
 
 export const lightTheme = {
@@ -39,10 +37,8 @@ export const lightTheme = {
 
     danger: "#dc2626",
     success: "#16a34a",
-    warning: "#d97706",
-
-    selected: "#e5e7eb",
-    copied: "rgba(37, 99, 235, 0.15)",
+    warning: "#d97706"
+    
 };
 
 // We will add theme context later

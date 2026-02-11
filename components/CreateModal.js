@@ -90,7 +90,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                     <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
 
                         {/* Edit/Create Card/Folder */}
-                        <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary }]}>
+                        <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary, marginBottom: 10 }]}>
                             {title}
                         </Text>
 
@@ -106,64 +106,49 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
                         {/* Fields section for cards */}
                         {isCard && (
-                            <ScrollView style={{ maxHeight: 250, marginBottom: 15, width: "100%" }}>
+                            <ScrollView style={{ maxHeight: 500, width: "100%" }}>
+
                                 {localFields.map((field, index) => (
-                                    <View
-                                        key={index}
-                                        style={{
-                                            marginVertical: 8,
-                                            backgroundColor: colors.bgSecondary,
-                                            borderRadius: 10,
-                                            padding: 12,
-                                        }}
-                                    >
-                                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <View key={index} style={[styles.input, { backgroundColor: colors.bgSecondary, marginTop: 10, paddingHorizontal: 0}]}>
+                                        <View style={[styles.centered, { flexDirection: "row"}]}>
                                             <TextInput
-                                                style={[styles.input, { flex: 1, marginBottom: 8, marginRight: 10 }]}
+                                                style={[styles.input, styles.smallText, { color: colors.textSecondary, flex: 1}]}
                                                 placeholder="Field Name"
-                                                placeholderTextColor={colors.textSecondary}
+                                                placeholderTextColor={colors.textAccent}
                                                 value={field.name}
                                                 onChangeText={(text) => updateField(index, "name", text)}
+                                                maxLength={50}
                                             />
-                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={{ padding: 8 }}>
+                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={{marginRight: 14}}>
                                                 <FontAwesome name="trash" size={18} color={colors.danger} />
                                             </TouchableOpacity>
                                         </View>
 
+                                        <View style={styles.centered}>
+                                            <View style={[styles.dashedBorder, {borderColor: colors.accentLight, width: "92%"}]} />
+                                        </View>
+
                                         <TextInput
-                                            style={[styles.input, { height: 80, textAlignVertical: "top", marginBottom: 0 }]}
+                                            style={[styles.input, styles.fieldInput, styles.smallText, { color: colors.textSecondary, borderColor: colors.accentLight }]}
                                             placeholder="Context (optional)"
-                                            placeholderTextColor={colors.textSecondary}
-                                            multiline
+                                            placeholderTextColor={colors.textAccent}
                                             value={field.context}
                                             onChangeText={(text) => updateField(index, "context", text)}
+                                            multiline={true}
                                         />
                                     </View>
                                 ))}
 
                                 {/* Add Field Button */}
-                                <TouchableOpacity
-                                    onPress={addField}
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        padding: 12,
-                                        borderRadius: 10,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                        borderStyle: "dashed",
-                                        marginTop: 8,
-                                    }}
-                                >
+                                <TouchableOpacity onPress={addField} style={[styles.normalButton, styles.dashedBorder, styles.centered, { borderColor: "black", marginTop: 10, flexDirection: "row" }]}>
                                     <FontAwesome name="plus" size={14} color={colors.accentLight} style={{ marginRight: 8 }} />
-                                    <Text style={{ color: colors.accentLight, fontWeight: "500" }}>Add Field</Text>
+                                    <Text style={{ color: colors.accentLight, fontWeight: "bold" }}>Add Field</Text>
                                 </TouchableOpacity>
                             </ScrollView>
                         )}
 
                         {/* Action Buttons */}
-                        <View style={[styles.rowSpaceBetween, { marginTop: 15, gap: 10 }]}>
+                        <View style={[styles.rowSpaceBetween, { marginTop: 10, gap: 10 }]}>
 
                             <TouchableOpacity onPress={onClose} style={[styles.normalButton, {backgroundColor: colors.bgSecondary}]}>
                                 <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Cancel</Text>
