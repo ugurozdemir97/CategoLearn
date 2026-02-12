@@ -72,6 +72,7 @@ export default function HomeScreen({ navigation }) {
         }
 
         // After creating/editing, reset states and reload subjects
+        setNewSubjectName("");
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
@@ -103,7 +104,6 @@ export default function HomeScreen({ navigation }) {
     const handleAction = (action) => {
         switch (action) {
             case "delete": handleDeleteSelectedWrapper(); break;
-            case "edit": handleEditSelectedWrapper(); break;
             case "cut": handleCutSelectedWrapper(); break;
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
@@ -166,7 +166,10 @@ export default function HomeScreen({ navigation }) {
 
             {/* Create Subjects Button */}
             <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-                <CircleButton icon="plus" onPress={() => setModalVisible(true)} />
+                <CircleButton 
+                    icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                    onPress={() => {if (selectedItems.length === 1) handleEditSelectedWrapper(); else setModalVisible(true)}}
+                />
             </View>
 
             {/* Footer */}

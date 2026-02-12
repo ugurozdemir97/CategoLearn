@@ -29,9 +29,6 @@ export default function FooterBar({ selectedCount, hasClipboard, onAction, onLay
                     <IconButton name="scissors" action="cut" label="Cut"/>
                     <IconButton name="copy" action="copy" label="Copy"/>
                     <IconButton name="paint-brush" action="color" label="Color"/>
-                    {selectedCount === 1 && (
-                        <IconButton name="pencil" action="edit" label="Edit"/>
-                    )}
                 </View>
             ) : (  
 

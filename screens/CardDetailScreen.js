@@ -23,14 +23,15 @@ import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database queries
-import { getFields, addField, updateField, deleteField, updateCard } from "../database/queries.js";
+import { getFields, addField, updateField, deleteField } from "../database/queries.js";
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
     const { card } = route.params;                                // Card is the parent card of the fields we see here
     const [fields, setFields] = useState([]);                     // Fields are the fields inside this card
-    const [cardTitle, setCardTitle] = useState(card.name);        // Name of the card being edited
-    const [editTarget, setEditTarget] = useState(null);           // Edited card and its fields
+    const [fieldTitle, setFieldTitle] = useState("");             // Name of the field being edited
+    const [fieldContext, setFieldContext] = useState("");         // Context of the field being edited
+    const [editTarget, setEditTarget] = useState(null);           // Edited Field
     const [deleteTarget, setDeleteTarget] = useState(null);       // The field(s) being deleted. 
     const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing fields
     const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
@@ -56,29 +57,19 @@ export default function CardDetailScreen({ route, navigation }) {
     };
 
     // Handle creating or editing a card
-    const handleCard = async (editedCard) => {
+    const handleField = async (editedField, mode) => {
 
         // I will change this later, I don't want alerts
-        const trimmed = validateWithAlert(editedCard.name, editedCard.type);
+        const trimmed = validateWithAlert(editedField.name, editedField.type);
         if (!trimmed) return;
 
-        // Update card title
-        await updateCard(card.id, editedCard.name);
-        setCardTitle(editedCard.name);
-
-        // Find deleted fields by comparing old vs new
-        const oldFieldIds = fields.map((f) => f.id);                               // IDs of fields before editing
-        const newFieldIds = editedCard.fields.map((f) => f.id).filter(Boolean);    // IDs of fields after editing
-        const deletedIds = oldFieldIds.filter((id) => !newFieldIds.includes(id));  // These are the fields that were deleted in the edit
-        for (const id of deletedIds) await deleteField(id);                        // Delete fields that were removed in the edit
-
-        // Update or add fields
-        for (const f of editedCard.fields) {
-            if (f.id) await updateField(f.id, f.name, f.context);
-            else      await addField(card.id, f.name, f.context);
-        }
+        // Add or Update Field
+        if (mode === "create") await addField(card.id, editedField.name, editedField.context)
+        else                   await updateField(editTarget?.id, editedField.name, editedField.context);
 
         // Reset modal and reload fields
+        setFieldTitle("");
+        setFieldContext("");
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
@@ -104,7 +95,7 @@ export default function CardDetailScreen({ route, navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "fields");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setModalVisible, setEditTarget, setCardTitle);
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setFieldTitle, null, null, setFieldContext);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
     const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
@@ -113,7 +104,6 @@ export default function CardDetailScreen({ route, navigation }) {
     const handleAction = (action) => {
         switch (action) {
             case "delete": handleDeleteSelectedWrapper(); break;
-            case "edit": handleEditSelectedWrapper(); break;
             case "cut": handleCutSelectedWrapper(); break;
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
@@ -139,7 +129,7 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Card Title */}
             <Text style={[ styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
-                {cardTitle}
+                {card.name}
             </Text>
 
             {/* Fields */}
@@ -179,7 +169,10 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Edit Button */}
             <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-                <CircleButton icon="pencil" onPress={() => setModalVisible(true)} />
+                <CircleButton 
+                    icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                    onPress={() => {if (selectedItems.length === 1) handleEditSelectedWrapper(); else setModalVisible(true)}}
+                />
             </View>
 
             {/* Footer */}
@@ -193,14 +186,13 @@ export default function CardDetailScreen({ route, navigation }) {
             {/* Modal for editing card title + fields */}
             <CreateModal
                 visible={modalVisible}
-                onCreate={handleCard}
-                title="Edit Card"
-                placeholder="Card Title"
-                value={cardTitle}
-                mode="edit"
-                isCard={true}
-                fields={fields}
-                setFields={setFields}
+                onCreate={handleField}
+                title={editTarget ? "Edit Field" : "Create Field"}
+                placeholder="Field Title"
+                value={fieldTitle}
+                mode={editTarget ? "edit" : "create"}
+                isField={true}
+                context={fieldContext}
                 onClose={() => {
                     setModalVisible(false);
                     clearSelection();

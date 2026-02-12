@@ -90,6 +90,8 @@ export default function FolderScreen({ route, navigation }) {
         }
 
         // After creating/editing, reset states and reload items
+        setFields([]);
+        setNewName("");
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
@@ -115,7 +117,7 @@ export default function FolderScreen({ route, navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "items");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType);
+    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
     const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, folder, clearClipboard, loadItems);
@@ -124,7 +126,6 @@ export default function FolderScreen({ route, navigation }) {
     const handleAction = (action) => {
         switch (action) {
             case "delete": handleDeleteSelectedWrapper(); break;
-            case "edit": handleEditSelectedWrapper(); break;
             case "cut": handleCutSelectedWrapper(); break;
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
@@ -191,8 +192,18 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Create Buttons */}
             <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-                <CircleButton icon="folder" onPress={() => {setCreateType("Category"); setModalVisible(true)}}/>
-                <CircleButton icon="file"   onPress={() => {setCreateType("Card"); setModalVisible(true)}}/>
+                {selectedItems.length === 1 && selectedItems[0].type === "Category" ? (
+                    <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()}/>
+                ) : (
+                    <CircleButton icon="folder" onPress={() => { setCreateType("Category"); setModalVisible(true)}}/>
+                )}
+
+                {selectedItems.length === 1 && selectedItems[0].type === "Card" ? (
+                    <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()}/>
+                ) : (
+                    <CircleButton icon="file" onPress={() => {setCreateType("Card"); setModalVisible(true)}}/>
+                )}
+
             </View>
 
             {/* Footer */}
@@ -212,7 +223,6 @@ export default function FolderScreen({ route, navigation }) {
                 mode={editTarget ? "edit" : "create"}
                 isCard={createType === "Card"}
                 fields={fields}
-                setFields={setFields}
                 onClose={() => {
                     setModalVisible(false);
                     setEditTarget(null);

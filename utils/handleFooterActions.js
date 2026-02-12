@@ -1,5 +1,5 @@
 import { Alert } from "react-native";
-import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, copyCardRecursive } from "../database/queries.js";
+import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive } from "../database/queries.js";
 
 // Delete selected
 export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, itemLabel = "items") {
@@ -13,12 +13,17 @@ export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmV
 }
 
 // Edit selected
-export function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType) {
+export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields, setFieldContext) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
-        setNewName(item.name);           // Pre-fill modal input with current name
-        setCreateType?.(item.type);      // For folder screen, set the type (card or category) in the modal
-        setEditTarget(item);             // Store the item being edited   
+        setEditTarget(item);                    // Store the item being edited  
+        setNewName(item.name);                  // Pre-fill modal input with current name
+        setCreateType?.(item.type);             // For folder screen, set the type (card or category) in the modal
+        setFieldContext?.(item.context);        // Context of the field for the CardDetailScreen
+        if (item.type === "Card") {
+            setFields?.(await getFields(item.id));  // Set fields of the card for card editing
+        }
+
         setModalVisible(true);
     } else {
         Alert.alert("Edit Error", "You can only edit one item at a time.");

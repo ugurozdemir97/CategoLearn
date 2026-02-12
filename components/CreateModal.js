@@ -7,10 +7,11 @@ import { colors } from "../styles/colors.js";
 import { deleteField } from "../database/queries.js";
 
 // For creating/editing both cards and folders, with dynamic fields for cards
-export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, isCard = false, fields = [], setFields = () => {}, mode = "create", card = null}) {
+export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, isCard = false, isField = false, fields = [], context = "", mode = "create"}) {
     
     const [localTitle, setLocalTitle] = useState(value);            // Local state for title input
     const [localFields, setLocalFields] = useState(fields);         // Local state for fields (cards only)
+    const [localContext, setLocalContext] = useState(context);      // Local state for context (fields only)
     const [confirmVisible, setConfirmVisible] = useState(false);    // For confirming field deletion
     const [deleteIndex, setDeleteIndex] = useState(null);
 
@@ -19,6 +20,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         if (visible) {
             setLocalTitle(value || "");
             setLocalFields([...fields]);
+            setLocalContext(context || "");
         }
     }, [visible]);
 
@@ -30,35 +32,50 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         // Add/Edit Cards
         if (isCard) {
 
-            setFields(localFields);   // Parent's setFields function
-
             const cardData = {
-                id: card?.id,
                 type: "Card",
                 name: localTitle,     // What we wrote in the input
                 fields: localFields,  // The fields we added/edited in the modal
             };
             onCreate(cardData, mode);
         
+        // Add/Edit Fields
+        } else if (isField) {
+            const fieldData = {
+                type: "Field",
+                name: localTitle,      // What we wrote in the input
+                context: localContext, // The context we wrote in the context input
+            };
+            onCreate(fieldData, mode);
         // Add/Edit Folders (Subjects or Categories)
-        } else onCreate({ name: localTitle, type: "Category"}, mode);
+        } else {
+            const folderData = {
+                type: "Category",
+                name: localTitle
+            }
+            onCreate(folderData, mode);
+        }
+        
 
         // Clear local state and close modal
         setLocalTitle("");
         setLocalFields([]);
+        setLocalContext("");
         onClose();
     };
 
-    // FIELDS
-
+    // Card Creating Modal
+    // Add field area
     const addField = () => setLocalFields([...localFields, { name: "", context: "" }]);
 
+    // Update fields area in the modal
     const updateField = (index, key, val) => {
         const updated = [...localFields];
         updated[index][key] = val;
         setLocalFields(updated);
     };
 
+    // Open delete field confirmation modal
     const requestDeleteField = (index) => {
         setDeleteIndex(index);
         setConfirmVisible(true);
@@ -69,16 +86,16 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             const updated = [...localFields];
             const fieldToDelete = updated[deleteIndex];
 
-            // ✅ If field has an ID, delete from database
-            if (fieldToDelete?.id) {
-                await deleteField(fieldToDelete.id);
-            }
+            // If field has an ID (it is being edited), delete from database
+            if (fieldToDelete?.id) await deleteField(fieldToDelete.id);
 
             // Remove from local state
             updated.splice(deleteIndex, 1);
             setLocalFields(updated);
-            setFields(updated); // sync with parent
+
         }
+
+        // Reset Variables and Close Modal
         setDeleteIndex(null);
         setConfirmVisible(false);
     };
@@ -145,6 +162,17 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                     <Text style={{ color: colors.accentLight, fontWeight: "bold" }}>Add Field</Text>
                                 </TouchableOpacity>
                             </ScrollView>
+                        )}
+                        
+                        {isField && (
+                            <TextInput
+                                style={[styles.input, styles.fieldInput, styles.smallText, { color: colors.textSecondary, backgroundColor: colors.bgSecondary, marginTop: 10 }]}
+                                placeholder="Context (optional)"
+                                placeholderTextColor={colors.textAccent}
+                                value={localContext}
+                                onChangeText={setLocalContext}
+                                multiline={true}
+                            />
                         )}
 
                         {/* Action Buttons */}
