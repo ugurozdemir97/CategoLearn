@@ -1,6 +1,5 @@
-import { Alert } from "react-native";
-import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive } from "../database/queries.js";
-
+import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive, getFolders, getCards } from "../database/queries.js";
+    
 // Delete selected
 export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, itemLabel = "items") {
     if (selectedItems.length === 0) return;
@@ -25,8 +24,9 @@ export async function handleEditSelected(selectedItems, setEditTarget, setModalV
         }
 
         setModalVisible(true);
+
     } else {
-        Alert.alert("Edit Error", "You can only edit one item at a time.");
+        return [{ type: "Edit Error", message: "You can only edit one item at a time."}];
     }
 }
 
@@ -42,38 +42,43 @@ export function handleCopySelected(selectedItems, copyFn, clearSelection) {
     clearSelection();
 }
 
-// Paste with unified rules
 export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn) {
-    
-    if (clipboard.length === 0) return;
+    if (clipboard.length === 0) return [];
+
+    let errorMessages = new Map(); // Use this to show error messages with information modal in screens
 
     for (const item of clipboard) {
-
-        // Prevent pasting a folder into its own children
-        if ((item.type === "Category" || item.type === "Subject") && node?.id) {
-            if (await isDescendant(item.id, node.id)) {
-                Alert.alert("Not Allowed", "You cannot paste a folder into its own descendant.");
-                continue;
-            }
-        }
 
         // Rule 1: Fields can only be pasted into Cards
         if (item.type === "Field") {
             if (node?.type !== "Card") {
-                Alert.alert("Not Allowed", "Fields can only be pasted inside cards.");
+                errorMessages.set("Not Allowed", "Fields can only be pasted inside cards.");
                 continue;
             }
 
-            if (clipboardMode === "cut")       await moveField(item.id, node.id); 
+            const existingFields = await getFields(node.id);
+            if (existingFields.some(f => f.name === item.name)) {
+                errorMessages.set("Duplicate Name", `A field named "${item.name}" already exists in this card.`);
+                continue;
+            }
+
+            if (clipboardMode === "cut")       await moveField(item.id, node.id);
             else if (clipboardMode === "copy") await addField(node.id, item.name, item.context);
         }
 
         // Rule 2: Cards can only be pasted into Folders
         else if (item.type === "Card") {
             if (node?.type !== "Category" && node?.type !== "Subject") {
-                Alert.alert("Not Allowed", "Cards can only be pasted inside folders.");
+                errorMessages.set("Not Allowed", "Cards can only be pasted inside folders.");
                 continue;
             }
+
+            const existingCards = await getCards(node.id);
+            if (existingCards.some(c => c.name === item.name)) {
+                errorMessages.set("Duplicate Name", `A card named "${item.name}" already exists in this folder.`);
+                continue;
+            }
+
             if (clipboardMode === "cut")       await moveCard(item.id, node.id);
             else if (clipboardMode === "copy") await copyCardRecursive(item.id, node.id);
         }
@@ -81,20 +86,43 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
         // Rule 3: Folders cannot be pasted into Cards
         else if (item.type === "Category" || item.type === "Subject") {
             if (node?.type === "Card") {
-                Alert.alert("Not Allowed", "Folders cannot be pasted inside cards.");
+                errorMessages.set("Not Allowed", "Folders cannot be pasted inside cards.");
                 continue;
             }
+
             if (node === null) {
+                const rootFolders = await getFolders(null);
+                if (rootFolders.some(f => f.name === item.name)) {
+                    errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists at root.`);
+                    continue;
+                }
+
                 if (clipboardMode === "cut")       await moveFolder(item.id, null);
                 else if (clipboardMode === "copy") await copyFolderRecursive(item.id, null);
+
             } else {
-                if (clipboardMode === "cut")      await moveFolder(item.id, node.id);
+
+                // Prevent pasting a folder into its own children
+                if (await isDescendant(item.id, node.id)) {
+                    errorMessages.set("Not Allowed", "You cannot paste a folder into its own descendant.");
+                    continue;
+                }
+
+                const siblingFolders = await getFolders(node.id);
+                if (siblingFolders.some(f => f.name === item.name)) {
+                    errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists here.`);
+                    continue;
+                }
+
+                if (clipboardMode === "cut")       await moveFolder(item.id, node.id);
                 else if (clipboardMode === "copy") await copyFolderRecursive(item.id, node.id);
             }
         }
-    
     }
 
     clearClipboard();
     await loadFn();
+
+    return Array.from(errorMessages.entries()).map(([type, message]) => ({ type, message }));
+
 }

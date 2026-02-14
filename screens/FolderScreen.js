@@ -6,6 +6,7 @@ import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
+import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 
@@ -16,7 +17,6 @@ import { colors } from "../styles/colors.js";
 // Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
-import { validateWithAlert } from "../utils/validation.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -32,8 +32,10 @@ export default function FolderScreen({ route, navigation }) {
     const [newName, setNewName] = useState("");                   // Name of the card/folder being created or edited
     const [editTarget, setEditTarget] = useState(null);           // The item being edited (null if creating new)
     const [deleteTarget, setDeleteTarget] = useState(null);       // The item(s) being deleted
+    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
     const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing items
     const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
     const [createType, setCreateType] = useState(null);           // Whether we are creating/editing a card or folder
     const [fields, setFields] = useState([]);                     // The fields of the card being created/edited
 
@@ -65,24 +67,20 @@ export default function FolderScreen({ route, navigation }) {
     // Handle Create or Edit for both cards and folders
     const handleItem = async (itemData, mode) => {
 
-        // I will change this later, I don't want alerts
-        const trimmed = validateWithAlert(itemData.name, itemData.type);
-        if (!trimmed) return;
-
         // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
         if (mode === "create") {
             if (itemData.type === "Category") {
-                await addFolder(folder.id, trimmed, null, 0);
+                await addFolder(folder.id, itemData.name, null, 0);
             } else if (itemData.type === "Card") {
-                const cardId =                   await addCard(folder.id, trimmed);
+                const cardId =                   await addCard(folder.id, itemData.name);
                 for (const f of itemData.fields) await addField(cardId, f.name, f.context);
             }
         } else if (mode === "edit" && editTarget) {
             if (editTarget.type === "Category") {
-                await updateFolder(editTarget.id, trimmed, editTarget.color);
+                await updateFolder(editTarget.id, itemData.name, editTarget.color);
             } else {
                 // Update card name, delete old fields and add new fields
-                await updateCard(editTarget.id, trimmed);
+                await updateCard(editTarget.id, itemData.name);
                 const oldFields =                await getFields(editTarget.id);
                 for (const of of oldFields)      await deleteField(of.id);
                 for (const f of itemData.fields) await addField(editTarget.id, f.name, f.context);
@@ -117,10 +115,22 @@ export default function FolderScreen({ route, navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "items");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, folder, clearClipboard, loadItems);
+    const handlePasteWrapper = async () => {
+        const result = await handlePaste(clipboard, clipboardMode, folder, clearClipboard, loadItems);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    };
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    }  
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -132,6 +142,14 @@ export default function FolderScreen({ route, navigation }) {
             case "clearClipboard": clearClipboard(); break;
             default: break;
         }
+    };
+
+    // Show error messages
+    const handleCloseInfo = () => {
+        const remaining = [...errorMessages];
+        remaining.shift();
+        setErrorMessages(remaining);
+        if (remaining.length === 0) setInfoVisible(false);
     };
 
     return (
@@ -156,7 +174,7 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Items */}
             {items.length === 0 ? (
-                <View style={[styles.container, styles.centered]}>
+                <View style={[styles.container, styles.centered, {marginTop: -(headerHeight + 20)}]}>
                     <Text style={[styles.midText, { color: colors.textSecondary }]}>
                         No Items Yet. You Can Create Cards or Folders to Organize Your Learning!
                     </Text>
@@ -165,7 +183,7 @@ export default function FolderScreen({ route, navigation }) {
 
                 <FlatList
                     data={items}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                     style={{ marginTop: 10 }}
                     renderItem={({ item }) => (
                         <ListButton
@@ -223,6 +241,8 @@ export default function FolderScreen({ route, navigation }) {
                 mode={editTarget ? "edit" : "create"}
                 isCard={createType === "Card"}
                 fields={fields}
+                parentId={folder.id}
+                editTarget={editTarget}
                 onClose={() => {
                     setModalVisible(false);
                     setEditTarget(null);
@@ -234,9 +254,18 @@ export default function FolderScreen({ route, navigation }) {
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={confirmDelete}
+                title="Confirm Delete"
                 message={deleteTarget?.message || ""}
                 confirmText="Delete"
                 confirmColor={colors.danger}
+            />
+
+            {/* Information Modal For Errors */}
+            <InformationModal
+                visible={infoVisible}
+                onClose={handleCloseInfo}
+                title={errorMessages[0]?.type}
+                message={errorMessages[0]?.message}
             />
 
         </View>

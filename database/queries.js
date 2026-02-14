@@ -2,16 +2,15 @@ import db from "./db";
 
 // ---------- FOLDERS (Subjects + Categories) ---------- //
 
-// Create folder (subject if is_root=1, category if is_root=0)
-export async function addFolder(parentId, name, color = null, isRoot = 0) {
+// Create folder
+export async function addFolder(parentId, name, color = null) {
     const result = await db.runAsync(
-        `INSERT INTO folders (parent_id, name, color, is_root, created_at, updated_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [parentId, name, color, isRoot]
+        "INSERT INTO folders (parent_id, name, color) VALUES (?, ?, ?)",
+        [parentId, name, color]
     );
-
     return result.lastInsertRowId;
 }
+
 
 // Get folders
 export async function getFolders(parentId) {
@@ -78,8 +77,11 @@ export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
     // Get copied item
     const copiedItem = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [itemId]);
 
+    // Change the root if necessary
+    const isRoot = newParentId === null ? 1 : 0;
+
     // Create a new folder inside the target parent
-    const newFolderId = await addFolder(newParentId, copiedItem.name, copiedItem.color, copiedItem.is_root);
+    const newFolderId = await addFolder(newParentId, copiedItem.name, copiedItem.color);
     idMap[copiedItem.id] = newFolderId;
 
     // Copy cards with their fields
@@ -95,22 +97,22 @@ export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
 
 // Move folder (cut/paste)
 export async function moveFolder(id, newParentId) {
+
+    // Move to root (subject)
     if (newParentId === null) {
-        // Move to root: mark as subject
         return db.runAsync(
             `UPDATE folders
              SET parent_id = NULL,
-                 is_root = 1,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [id]
         );
+
+    // Move under another folder (category)
     } else {
-        // Move under another folder: mark as category
         return db.runAsync(
             `UPDATE folders
              SET parent_id = ?,
-                 is_root = 0,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [newParentId, id]

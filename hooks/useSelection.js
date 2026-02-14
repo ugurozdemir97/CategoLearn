@@ -12,15 +12,15 @@ export function useSelection() {
     // Select if not selected, unselect if already selected
     const toggleSelection = useCallback((item) => {
         setSelectedItems((prev) => {
-            const exists = prev.some((i) => i.id === item.id);
-            if (exists) {return prev.filter((i) => i.id !== item.id)}
+            const exists = prev.some((i) => i.id === item.id && i.type === item.type);
+            if (exists) return prev.filter((i) => !(i.id === item.id && i.type === item.type));
             return [...prev, item];
         });
     }, []);
 
     // Check if item is selected
     const isSelected = useCallback(
-        (item) => selectedItems.some((i) => i.id === item.id),
+        (item) => selectedItems.some((i) => i.id === item.id && i.type === item.type),
         [selectedItems]
     );
 

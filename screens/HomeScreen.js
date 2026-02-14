@@ -6,6 +6,7 @@ import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
+import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 
@@ -16,7 +17,6 @@ import { colors } from "../styles/colors.js";
 // Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
-import { validateWithAlert } from "../utils/validation.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -31,8 +31,10 @@ export default function HomeScreen({ navigation }) {
     const [newSubjectName, setNewSubjectName] = useState("");       // Name of the subject being created/edited
     const [editTarget, setEditTarget] = useState(null);             // The subject being edited (null if creating new)
     const [deleteTarget, setDeleteTarget] = useState(null);         // The subject(s) being deleted
+    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
     const [modalVisible, setModalVisible] = useState(false);        // Show or Hide modal for creating/editing subjects
     const [confirmVisible, setConfirmVisible] = useState(false);    // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
 
     const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on header/footer size
     const [headerHeight, setHeaderHeight] = useState(50);
@@ -49,26 +51,20 @@ export default function HomeScreen({ navigation }) {
 
     // Load all root folders (subjects) from the database
     const loadSubjects = async () => {
-        const result = await getFolders();
+        const result = await getFolders(null); // already fetches parent_id IS NULL
         setSubjects(
-            result
-                .filter((f) => f.is_root === 1)                              // Bring only root folders
-                .map((f) => ({ ...f, type: "Subject", name: f.name }))       // Add type for sorting
+            result.map((f) => ({ ...f, type: "Subject", name: f.name }))     // Bring only root folders, add type for sorting
         );
     };
 
     // Handle Create or Edit
     const handleSubject = async (folderData, mode) => {
 
-        // I will change this later, I don't want alerts
-        const trimmed = validateWithAlert(folderData.name, "Subject"); 
-        if (!trimmed) return;
-
         // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
         if (mode === "create") {
-            await addFolder(null, trimmed, null, 1);
+            await addFolder(null, folderData.name, null, 1);
         } else if (mode === "edit" && editTarget) {
-            await updateFolder(editTarget.id, trimmed, editTarget.color);
+            await updateFolder(editTarget.id, folderData.name, editTarget.color);
         }
 
         // After creating/editing, reset states and reload subjects
@@ -95,10 +91,23 @@ export default function HomeScreen({ navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "subjects");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewSubjectName);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, null, clearClipboard, loadSubjects);
+    const handlePasteWrapper = async () => {
+        const result = await handlePaste(clipboard, clipboardMode, null, clearClipboard, loadSubjects);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    };
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewSubjectName);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    }  
+
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -110,6 +119,14 @@ export default function HomeScreen({ navigation }) {
             case "clearClipboard": clearClipboard(); break;
             default: break;
         }
+    };
+
+    // Show error messages
+    const handleCloseInfo = () => {
+        const remaining = [...errorMessages];
+        remaining.shift();
+        setErrorMessages(remaining);
+        if (remaining.length === 0) setInfoVisible(false);
     };
 
     return (
@@ -140,7 +157,7 @@ export default function HomeScreen({ navigation }) {
 
                     <FlatList
                         data={subjects}
-                        keyExtractor={(item) => item.id.toString()}
+                        keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                         style={{ marginTop: 10 }}
                         renderItem={({ item }) => (
                             <ListButton
@@ -187,6 +204,7 @@ export default function HomeScreen({ navigation }) {
                 placeholder="Enter Subject Name"
                 value={newSubjectName}
                 mode={editTarget ? "edit" : "create"}
+                editTarget={editTarget}
                 onClose={() => {
                     setModalVisible(false);
                     setEditTarget(null);
@@ -198,9 +216,18 @@ export default function HomeScreen({ navigation }) {
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={confirmDelete}
+                title="Confirm Delete"
                 message={deleteTarget?.message || ""}
                 confirmText="Delete"
                 confirmColor={colors.danger}
+            />
+
+            {/* Information Modal For Errors */}
+            <InformationModal
+                visible={infoVisible}
+                onClose={handleCloseInfo}
+                title={errorMessages[0]?.type}
+                message={errorMessages[0]?.message}
             />
 
         </View>

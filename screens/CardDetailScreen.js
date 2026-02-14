@@ -6,6 +6,7 @@ import CircleButton from "../components/CircleButton.js";
 import ListField from "../components/ListField.js";
 import CreateModal from "../components/CreateModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
+import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 
@@ -16,7 +17,6 @@ import { colors } from "../styles/colors.js";
 // Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
-import { validateWithAlert } from "../utils/validation.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -33,8 +33,10 @@ export default function CardDetailScreen({ route, navigation }) {
     const [fieldContext, setFieldContext] = useState("");         // Context of the field being edited
     const [editTarget, setEditTarget] = useState(null);           // Edited Field
     const [deleteTarget, setDeleteTarget] = useState(null);       // The field(s) being deleted. 
+    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
     const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing fields
     const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
     const [expanded, setExpanded] = useState({});                 // Which fields are expanded to show their context
 
     const [footerHeight, setFooterHeight] = useState(60);         // These are used to adjust placing of elements based on header/footer size
@@ -58,10 +60,6 @@ export default function CardDetailScreen({ route, navigation }) {
 
     // Handle creating or editing a card
     const handleField = async (editedField, mode) => {
-
-        // I will change this later, I don't want alerts
-        const trimmed = validateWithAlert(editedField.name, editedField.type);
-        if (!trimmed) return;
 
         // Add or Update Field
         if (mode === "create") await addField(card.id, editedField.name, editedField.context)
@@ -95,10 +93,22 @@ export default function CardDetailScreen({ route, navigation }) {
     // Footer action handlers for delete, edit, cut, copy, paste
     // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "fields");
-    const handleEditSelectedWrapper = () =>   handleEditSelected(selectedItems, setEditTarget, setModalVisible, setFieldTitle, null, null, setFieldContext);
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = () =>          handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
+    const handlePasteWrapper = async () => {
+        const result = await handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    };
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setFieldTitle, null, null, setFieldContext);
+        if (result.length > 0) {
+            setErrorMessages(result);
+            setInfoVisible(true);
+        }
+    }  
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -110,6 +120,14 @@ export default function CardDetailScreen({ route, navigation }) {
             case "clearClipboard": clearClipboard(); break;
             default: break;
         }
+    };
+
+    // Show error messages
+    const handleCloseInfo = () => {
+        const remaining = [...errorMessages];
+        remaining.shift();
+        setErrorMessages(remaining);
+        if (remaining.length === 0) setInfoVisible(false);
     };
 
     return (
@@ -134,16 +152,16 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Fields */}
             {fields.length === 0 ? (
-                <View style={[styles.container, styles.centered]}>
+                <View style={[styles.container, styles.centered, {marginTop: -(headerHeight + 20)}]}>
                     <Text style={[ styles.midText, styles.centeredText, { color: colors.textSecondary } ]}>
-                        No fields yet. Tap the pencil to add context!
+                        No fields yet. Tap the plus button to add context!
                     </Text>
                 </View>
             ) : (
 
                 <FlatList
                     data={fields}
-                    keyExtractor={(item, index) =>item.id ? item.id.toString() : `temp-${index}`}
+                    keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                     style={{ marginTop: 10 }}
                     renderItem={({ item }) => (
                         <ListField
@@ -193,6 +211,8 @@ export default function CardDetailScreen({ route, navigation }) {
                 mode={editTarget ? "edit" : "create"}
                 isField={true}
                 context={fieldContext}
+                parentId={card.id}
+                editTarget={editTarget}
                 onClose={() => {
                     setModalVisible(false);
                     clearSelection();
@@ -204,10 +224,20 @@ export default function CardDetailScreen({ route, navigation }) {
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={confirmDelete}
+                title="Confirm Delete"
                 message={deleteTarget?.message || ""}
                 confirmText="Delete"
                 confirmColor={colors.danger}
             />
+
+            {/* Information Modal For Errors */}
+            <InformationModal
+                visible={infoVisible}
+                onClose={handleCloseInfo}
+                title={errorMessages[0]?.type}
+                message={errorMessages[0]?.message}
+            />
+
         </View>
     );
 }

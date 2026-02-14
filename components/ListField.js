@@ -34,14 +34,16 @@ export default function ListField({ label, context, onPress, onLongPress, isSele
                     )}
                     {isSelected ? (
                         <FontAwesome name="check-circle" size={18} color={colors.accentLight}/>
-                    ): (
-                        <FontAwesome name={expanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary}/>
+                    ) : ( 
+                        context?.length > 0 && (
+                            <FontAwesome name={expanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary}/>
+                        )
                     )}
                 </View>
             </TouchableOpacity>
 
             {/* Expanded context */}
-            {expanded && (
+            {expanded && context?.length > 0 && (
                 <View style={[styles.contextArea, { borderColor: colors.accentLight }]}>
                     <Text style={[styles.smallText, { color: colors.textSecondary }]}>{context}</Text>
                 </View>
