@@ -4,13 +4,22 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Fields inside cards
-export default function ListField({ label, context, onPress, onLongPress, isSelected, status = {}, expanded = false}) {
+export default function ListField({ label, updatedAt, context, onPress, onLongPress, isSelected, status = {}, color = null, expanded = false}) {
     
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
         opacity: status.isCut ? 0.5 : 1,
         backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
     };
+
+    // Format dates nicely
+    const formatDate = (date) => {
+        if (!date) return "";
+        return new Date(date).toLocaleDateString("en-GB"); // e.g. 15/02/2026
+    };
+
+    // Show dates only if item is not selected, cut, or copied
+    const showDates = !isSelected && !status.isCut && !status.isCopied;
 
     return (
         <View style={{alignItems: "center"}}>
@@ -19,6 +28,10 @@ export default function ListField({ label, context, onPress, onLongPress, isSele
                 onPress={onPress}
                 onLongPress={onLongPress}
             >
+
+                {/* Left color stripe */}
+                <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
+
                 {/* Left side: field name */}
                 <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}
@@ -26,6 +39,13 @@ export default function ListField({ label, context, onPress, onLongPress, isSele
 
                 {/* Right side: status icons + expand/collapse */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {showDates && (
+                        <View style={{ alignItems: "flex-end", marginRight: 8 }}>
+                            <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
+                                {formatDate(updatedAt)}
+                            </Text>
+                        </View>
+                    )}
                     {status.isCut && (
                         <FontAwesome name="scissors" size={18} color={colors.accentLight} />
                     )}

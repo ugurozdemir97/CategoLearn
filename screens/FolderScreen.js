@@ -5,6 +5,7 @@ import { View, Text, FlatList } from "react-native";
 import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
+import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
@@ -27,19 +28,20 @@ import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, del
 
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
-    const { folder } = route.params;                              // Folder is the parent folder of the contents we see here
-    const [items, setItems] = useState([]);                       // Items are the subfolders and cards inside this folder
-    const [newName, setNewName] = useState("");                   // Name of the card/folder being created or edited
-    const [editTarget, setEditTarget] = useState(null);           // The item being edited (null if creating new)
-    const [deleteTarget, setDeleteTarget] = useState(null);       // The item(s) being deleted
-    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
-    const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing items
-    const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
-    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
-    const [createType, setCreateType] = useState(null);           // Whether we are creating/editing a card or folder
-    const [fields, setFields] = useState([]);                     // The fields of the card being created/edited
+    const { folder } = route.params;                                    // Folder is the parent folder of the contents we see here
+    const [items, setItems] = useState([]);                             // Items are the subfolders and cards inside this folder
+    const [editTarget, setEditTarget] = useState(null);                 // The item being edited (null if creating new)
+    const [deleteTarget, setDeleteTarget] = useState(null);             // The item(s) being deleted
+    const [errorMessages, setErrorMessages] = useState([]);             // Error messages to display
+    const [modalVisible, setModalVisible] = useState(false);            // Show or Hide modal for creating/editing items
+    const [confirmVisible, setConfirmVisible] = useState(false);        // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);              // Show or Hide information modal for alerts
+    const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
+    const [createType, setCreateType] = useState(null);                 // Whether we are creating/editing a card or folder
+    const [fields, setFields] = useState([]);                           // The fields of the card being created/edited
+    const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
-    const [footerHeight, setFooterHeight] = useState(60);         // These are used to adjust placing of elements based on header/footer size
+    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on header/footer size
     const [headerHeight, setHeaderHeight] = useState(50);
 
     // Handle selection and clipboard using custom hooks/context
@@ -59,8 +61,8 @@ export default function FolderScreen({ route, navigation }) {
 
         // First folders, then cards
         setItems([
-            ...folders.map((f) => ({ ...f, type: "Category", name: f.name })),
-            ...cards.map((c) => ({ ...c, type: "Card", name: c.name })),
+            ...folders.map((f) => ({ ...f, type: "Category"})),
+            ...cards.map((c) => ({ ...c, type: "Card"})),
         ]);
     };
 
@@ -70,17 +72,17 @@ export default function FolderScreen({ route, navigation }) {
         // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
         if (mode === "create") {
             if (itemData.type === "Category") {
-                await addFolder(folder.id, itemData.name, null, 0);
+                await addFolder(folder.id, itemData.name, itemData.color);
             } else if (itemData.type === "Card") {
-                const cardId =                   await addCard(folder.id, itemData.name);
+                const cardId =                   await addCard(folder.id, itemData.name, itemData.color);
                 for (const f of itemData.fields) await addField(cardId, f.name, f.context);
             }
         } else if (mode === "edit" && editTarget) {
             if (editTarget.type === "Category") {
-                await updateFolder(editTarget.id, itemData.name, editTarget.color);
+                await updateFolder(editTarget.id, itemData.name, itemData.color);
             } else {
                 // Update card name, delete old fields and add new fields
-                await updateCard(editTarget.id, itemData.name);
+                await updateCard(editTarget.id, itemData.name, itemData.color);
                 const oldFields =                await getFields(editTarget.id);
                 for (const of of oldFields)      await deleteField(of.id);
                 for (const f of itemData.fields) await addField(editTarget.id, f.name, f.context);
@@ -89,7 +91,6 @@ export default function FolderScreen({ route, navigation }) {
 
         // After creating/editing, reset states and reload items
         setFields([]);
-        setNewName("");
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
@@ -125,12 +126,23 @@ export default function FolderScreen({ route, navigation }) {
         }
     };
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields);
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setCreateType, setFields);
         if (result.length > 0) {
             setErrorMessages(result);
             setInfoVisible(true);
         }
     }  
+
+    // Change the colors of selected items
+    const applyColorToSelected = async (color) => {
+        for (const item of selectedItems) {
+            if (item.type === "Subject" || item.type === "Category") await updateFolder(item.id, item.name, color);
+            else                                                     await updateCard(item.id, item.name, color);
+        }
+
+        await loadItems(); 
+        clearSelection();
+    };
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -140,6 +152,7 @@ export default function FolderScreen({ route, navigation }) {
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
+            case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             default: break;
         }
     };
@@ -168,9 +181,19 @@ export default function FolderScreen({ route, navigation }) {
             />
         
             {/* Category Title */}
-            <Text style={[ styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
-                {folder.name}
-            </Text>
+            <View style={[ styles.headerAndFooter, styles.titleArea, { top: headerHeight, backgroundColor: colors.bgSecondary }]}>
+                
+                {/* Folder name centered */}
+                <Text style={[styles.title, { color: colors.textPrimary, textAlign: "center" }]}>
+                    {folder.name}
+                </Text>
+
+                {/* Created At pinned bottom-right */}
+                <Text style={[ styles.tinyText, {color: colors.textHalfOpacity, position: "absolute", right: 10, bottom: 5 }]}>
+                    Created At: {new Date(folder.created_at).toLocaleDateString("en-GB")}
+                </Text>
+                
+            </View>
 
             {/* Items */}
             {items.length === 0 ? (
@@ -184,10 +207,12 @@ export default function FolderScreen({ route, navigation }) {
                 <FlatList
                     data={items}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    style={{ marginTop: 10 }}
+                    style={{ marginTop: headerHeight + 60 }}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}
+                            updatedAt={item.updated_at}
+                            color={item.color}
                             icon={item.type === "Category" ? "folder" : "file-text-o"}
                             isSelected={isSelected(item)}
                             onLongPress={() => toggleSelection(item)}
@@ -237,7 +262,8 @@ export default function FolderScreen({ route, navigation }) {
                 onCreate={handleItem}
                 title={editTarget ? `Edit ${createType}` : `Create ${createType}`}
                 placeholder={`Enter ${createType} Name`}
-                value={newName}
+                value={editTarget ? editTarget.name : ""}
+                color={editTarget ? editTarget.color : null}
                 mode={editTarget ? "edit" : "create"}
                 isCard={createType === "Card"}
                 fields={fields}
@@ -247,6 +273,14 @@ export default function FolderScreen({ route, navigation }) {
                     setModalVisible(false);
                     setEditTarget(null);
                 }}
+            />
+
+            {/* Color Picker Modal For Changing Color of Items */}
+            <ColorModal
+                visible={colorModalVisible}
+                onClose={() => {applyColorToSelected(selectedColor); setColorModalVisible(false)}}
+                onSelect={(c) => setSelectedColor(c)}
+                selectedColor={selectedColor}
             />
 
             {/* Confirmation Modal */}

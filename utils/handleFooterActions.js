@@ -12,11 +12,10 @@ export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmV
 }
 
 // Edit selected
-export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewName, setCreateType, setFields, setFieldContext) {
+export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setCreateType, setFields, setFieldContext) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
         setEditTarget(item);                    // Store the item being edited  
-        setNewName(item.name);                  // Pre-fill modal input with current name
         setCreateType?.(item.type);             // For folder screen, set the type (card or category) in the modal
         setFieldContext?.(item.context);        // Context of the field for the CardDetailScreen
         if (item.type === "Card") {

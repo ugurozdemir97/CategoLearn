@@ -4,6 +4,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 // Components
 import ConfirmationModal from "./ConfirmationModal.js";
+import ColorModal from "./ColorModal.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -16,14 +17,16 @@ import { validateName } from "../utils/validation.js";
 import { getFolders, getCards, getFields } from "../database/queries.js";
 
 // For creating/editing both cards and folders, with dynamic fields for cards
-export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, isCard = false, isField = false, fields = [], context = "", mode = "create", parentId = null, editTarget = null}) {
+export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, color, isCard = false, isField = false, fields = [], context = "", mode = "create", parentId = null, editTarget = null}) {
     
-    const [localTitle, setLocalTitle] = useState(value);            // Local state for title input
-    const [localFields, setLocalFields] = useState(fields);         // Local state for fields (cards only)
-    const [localContext, setLocalContext] = useState(context);      // Local state for context (fields only)
-    const [confirmVisible, setConfirmVisible] = useState(false);    // For confirming field deletion
-    const [deleteIndex, setDeleteIndex] = useState(null);           // For deleting the fields in Create Card modal
-    const [errorMessage, setErrorMessage] = useState("");           // For displaying error messages
+    const [localTitle, setLocalTitle] = useState(value);                // Local state for title input
+    const [localFields, setLocalFields] = useState(fields);             // Local state for fields (cards only)
+    const [localContext, setLocalContext] = useState(context);          // Local state for context (fields only)
+    const [confirmVisible, setConfirmVisible] = useState(false);        // For confirming field deletion
+    const [colorModalVisible, setColorModalVisible] = useState(false);  // For selecting color
+    const [deleteIndex, setDeleteIndex] = useState(null);               // For deleting the fields in Create Card modal
+    const [errorMessage, setErrorMessage] = useState("");               // For displaying error messages
+    const [selectedColor, setSelectedColor] = useState(color);          // Color of the item
 
     // Place name and fields if editing a card when modal opens
     useEffect(() => {
@@ -32,6 +35,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             setLocalFields([...fields]);
             setLocalContext(context || "");
             setErrorMessage("");
+            setSelectedColor(color);
         }
     }, [visible]);
 
@@ -58,8 +62,17 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             }
 
             // Check for field names and prevent creating a card with multiple fields sharing a same title
-            const fieldNames = localFields.map(f => f.name.trim()).filter(Boolean);
+            const fieldNames = localFields.map(f => f.name);
             let duplicatePair = null;
+
+             // Validate each field name
+            for (const f of fieldNames) {
+                const fieldValidation = validateName(f, "Field");
+                if (!fieldValidation.valid) {
+                    setErrorMessage(fieldValidation.error);
+                    return;
+                }
+            }
 
             // Loop through names and find the first duplicate pair
             for (let i = 0; i < fieldNames.length; i++) {
@@ -77,7 +90,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 return;
             }
 
-            const cardData = { type: "Card", name: validation.trimmed, fields: localFields };
+            const cardData = { type: "Card", name: validation.trimmed, fields: localFields, color: selectedColor };
             onCreate(cardData, mode);
         }
 
@@ -91,7 +104,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 return;
             }
 
-            const fieldData = { type: "Field", name: validation.trimmed, context: localContext };
+            const fieldData = { type: "Field", name: validation.trimmed, context: localContext, color: selectedColor };
             onCreate(fieldData, mode);
         }
 
@@ -105,15 +118,11 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 return;
             }
 
-            const folderData = { type: "Category", name: validation.trimmed };
+            const folderData = { type: "Category", name: validation.trimmed, color: selectedColor };
             onCreate(folderData, mode);
         }
 
-        // Reset Variables And Close Modal
-        setLocalTitle("");
-        setLocalFields([]);
-        setLocalContext("");
-        setErrorMessage("");
+        // Close Modal
         onClose();
     };
 
@@ -165,14 +174,24 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                         ) : null}
 
                         {/* Card/Folder title input */}
-                        <TextInput
-                            style={[styles.input, styles.smallText, { color: colors.textSecondary, backgroundColor: colors.bgSecondary }]}
-                            placeholder={placeholder}
-                            placeholderTextColor={colors.textAccent}
-                            value={localTitle}
-                            onChangeText={setLocalTitle}
-                            maxLength={50}
-                        />
+                        <View style={[styles.centered, { flexDirection: "row"}]}>
+                            <TextInput
+                                style={[styles.input, styles.smallText, { color: colors.textSecondary, backgroundColor: colors.bgSecondary, flex: 1, marginRight: 10 }]}
+                                placeholder={placeholder}
+                                placeholderTextColor={colors.textAccent}
+                                value={localTitle}
+                                onChangeText={setLocalTitle}
+                                maxLength={50}
+                            />
+                            <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
+                                <FontAwesome name="paint-brush" size={20} color={
+                                    selectedColor === "#FFFFFF" || selectedColor === "#ffdd00" || selectedColor === "#00e19d"
+                                        ? "#000000"
+                                        : colors.textPrimary
+                                    } 
+                                />
+                            </TouchableOpacity>
+                        </View>
 
                         {/* Fields section for cards */}
                         {isCard && (
@@ -189,7 +208,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                 onChangeText={(text) => updateField(index, "name", text)}
                                                 maxLength={50}
                                             />
-                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={{marginRight: 14}}>
+                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={[styles.smallInputButton, {borderWidth: 0}]}>
                                                 <FontAwesome name="trash" size={18} color={colors.danger} />
                                             </TouchableOpacity>
                                         </View>
@@ -253,6 +272,15 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 confirmText="Delete"
                 confirmColor={colors.danger}
             />
+
+            {/* Select Color Modal */}
+            <ColorModal
+                visible={colorModalVisible}
+                onClose={() => setColorModalVisible(false)}
+                onSelect={(c) => setSelectedColor(c)}
+                selectedColor={selectedColor}
+            />
+
         </>
     );
 }

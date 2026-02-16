@@ -123,11 +123,11 @@ export async function moveFolder(id, newParentId) {
 // ---------- CARDS ---------- //
 
 // Add card to a folder
-export async function addCard(folderId, name) {
+export async function addCard(folderId, name, color = null) {
     const result = await db.runAsync(
-        `INSERT INTO cards (folder_id, name, created_at, updated_at)
-         VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [folderId, name]
+        `INSERT INTO cards (folder_id, name, color, created_at, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [folderId, name, color]
     );
     return result.lastInsertRowId;
 }
@@ -142,12 +142,12 @@ export async function getCards(folderId) {
 }
 
 // Edit card
-export async function updateCard(id, name) {
+export async function updateCard(id, name, color = null) {
     return db.runAsync(
         `UPDATE cards
-         SET name = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [name, id]
+        [name, color, id]
     );
 }
 
@@ -189,11 +189,11 @@ export async function copyCardRecursive(copiedCard, newFolderId) {
 // ---------- FIELDS ---------- //
 
 // Create field
-export async function addField(cardId, name, context) {
+export async function addField(cardId, name, context = null, color = null) {
     const result = await db.runAsync(
-        `INSERT INTO fields (card_id, name, context, created_at, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [cardId, name, context]
+        `INSERT INTO fields (card_id, name, context, color, created_at, updated_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [cardId, name, context, color]
     );
     return result.lastInsertRowId;
 }
@@ -208,12 +208,12 @@ export async function getFields(cardId) {
 }
 
 // Edit field
-export async function updateField(id, name, context) {
+export async function updateField(id, name, context = null, color = null) {
     return db.runAsync(
         `UPDATE fields
-         SET name = ?, context = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, context = ?, color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [name, context, id]
+        [name, context, color, id]
     );
 }
 

@@ -5,6 +5,7 @@ import { View, Text, FlatList } from "react-native";
 import CircleButton from "../components/CircleButton.js";
 import ListField from "../components/ListField.js";
 import CreateModal from "../components/CreateModal.js";
+import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
@@ -27,19 +28,20 @@ import { getFields, addField, updateField, deleteField } from "../database/queri
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
-    const { card } = route.params;                                // Card is the parent card of the fields we see here
-    const [fields, setFields] = useState([]);                     // Fields are the fields inside this card
-    const [fieldTitle, setFieldTitle] = useState("");             // Name of the field being edited
-    const [fieldContext, setFieldContext] = useState("");         // Context of the field being edited
-    const [editTarget, setEditTarget] = useState(null);           // Edited Field
-    const [deleteTarget, setDeleteTarget] = useState(null);       // The field(s) being deleted. 
-    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
-    const [modalVisible, setModalVisible] = useState(false);      // Show or Hide modal for creating/editing fields
-    const [confirmVisible, setConfirmVisible] = useState(false);  // Show or Hide confirmation modal for deletions
-    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
-    const [expanded, setExpanded] = useState({});                 // Which fields are expanded to show their context
+    const { card } = route.params;                                      // Card is the parent card of the fields we see here
+    const [fields, setFields] = useState([]);                           // Fields are the fields inside this card
+    const [fieldContext, setFieldContext] = useState("");               // Context of the field being edited
+    const [editTarget, setEditTarget] = useState(null);                 // Edited Field
+    const [deleteTarget, setDeleteTarget] = useState(null);             // The field(s) being deleted. 
+    const [errorMessages, setErrorMessages] = useState([]);             // Error messages to display
+    const [modalVisible, setModalVisible] = useState(false);            // Show or Hide modal for creating/editing fields
+    const [confirmVisible, setConfirmVisible] = useState(false);        // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);              // Show or Hide information modal for alerts
+    const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
+    const [expanded, setExpanded] = useState({});                       // Which fields are expanded to show their context
+    const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
-    const [footerHeight, setFooterHeight] = useState(60);         // These are used to adjust placing of elements based on header/footer size
+    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on header/footer size
     const [headerHeight, setHeaderHeight] = useState(50);
 
     // Handle selection and clipboard using custom hooks/context
@@ -62,11 +64,10 @@ export default function CardDetailScreen({ route, navigation }) {
     const handleField = async (editedField, mode) => {
 
         // Add or Update Field
-        if (mode === "create") await addField(card.id, editedField.name, editedField.context)
-        else                   await updateField(editTarget?.id, editedField.name, editedField.context);
+        if (mode === "create") await addField(card.id, editedField.name, editedField.context, editedField.color)
+        else                   await updateField(editTarget?.id, editedField.name, editedField.context, editedField.color);
 
         // Reset modal and reload fields
-        setFieldTitle("");
         setFieldContext("");
         setEditTarget(null);
         clearSelection();
@@ -103,12 +104,19 @@ export default function CardDetailScreen({ route, navigation }) {
         }
     };
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setFieldTitle, null, null, setFieldContext);
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, null, null, setFieldContext);
         if (result.length > 0) {
             setErrorMessages(result);
             setInfoVisible(true);
         }
     }  
+
+    // Change the colors of selected items
+    const applyColorToSelected = async (color) => {
+        for (const item of selectedItems) await updateField(item.id, item.name, item.context, color);
+        await loadFields();
+        clearSelection();
+    };
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -118,6 +126,7 @@ export default function CardDetailScreen({ route, navigation }) {
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
+            case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             default: break;
         }
     };
@@ -146,9 +155,19 @@ export default function CardDetailScreen({ route, navigation }) {
             />
 
             {/* Card Title */}
-            <Text style={[ styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
-                {card.name}
-            </Text>
+            <View style={[ styles.headerAndFooter, styles.titleArea, { top: headerHeight, backgroundColor: colors.bgSecondary }]}>
+                
+                {/* Folder name centered */}
+                <Text style={[styles.title, { color: colors.textPrimary, textAlign: "center" }]}>
+                    {card.name}
+                </Text>
+
+                {/* Created At pinned bottom-right */}
+                <Text style={[ styles.tinyText, {color: colors.textHalfOpacity, position: "absolute", right: 10, bottom: 5 }]}>
+                    Created At: {new Date(card.created_at).toLocaleDateString("en-GB")}
+                </Text>
+                
+            </View>
 
             {/* Fields */}
             {fields.length === 0 ? (
@@ -162,11 +181,13 @@ export default function CardDetailScreen({ route, navigation }) {
                 <FlatList
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    style={{ marginTop: 10 }}
+                    style={{ marginTop: headerHeight + 60 }}
                     renderItem={({ item }) => (
                         <ListField
                             label={item.name}
+                            updatedAt={item.updated_at}
                             context={item.context}
+                            color={item.color}
                             isSelected={isSelected(item)}
                             onLongPress={() => toggleSelection(item)}
                             status={getItemStatus(item.id, "Field")}
@@ -207,7 +228,8 @@ export default function CardDetailScreen({ route, navigation }) {
                 onCreate={handleField}
                 title={editTarget ? "Edit Field" : "Create Field"}
                 placeholder="Field Title"
-                value={fieldTitle}
+                value={editTarget ? editTarget.name : ""}
+                color={editTarget ? editTarget.color : null}
                 mode={editTarget ? "edit" : "create"}
                 isField={true}
                 context={fieldContext}
@@ -217,6 +239,14 @@ export default function CardDetailScreen({ route, navigation }) {
                     setModalVisible(false);
                     clearSelection();
                 }}
+            />
+
+            {/* Color Picker Modal For Changing Color of Items */}
+            <ColorModal
+                visible={colorModalVisible}
+                onClose={() => {applyColorToSelected(selectedColor); setColorModalVisible(false)}}
+                onSelect={(c) => setSelectedColor(c)}
+                selectedColor={selectedColor}
             />
 
             {/* Confirmation Modal */}

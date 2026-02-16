@@ -14,6 +14,14 @@ export default StyleSheet.create({
         alignItems: "center"
     },
 
+    colorPicker: {
+        flexDirection: "row", 
+        flexWrap: "wrap", 
+        justifyContent: "center",
+        gap: 15,
+        padding: 10
+    },
+
     // HEADER & FOOTER
 
     headerAndFooter: {
@@ -30,6 +38,11 @@ export default StyleSheet.create({
     header: {top: 0},
     footer: {bottom: 0},
 
+    titleArea: {
+        height: 60,           
+        position: "absolute",
+    },
+
     // ALIGNMENT
 
     rowSpaceBetween: {
@@ -44,6 +57,7 @@ export default StyleSheet.create({
     title: {fontSize: 22, fontWeight: "bold"},
     midText: {fontSize: 19, fontWeight: "bold"},
     smallText: {fontSize: 15},
+    tinyText: {fontSize: 11},
     centeredText: {textAlign: "center"},
 
     // BUTTONS
@@ -65,9 +79,11 @@ export default StyleSheet.create({
 
     item: {
         padding: 16,
+        paddingLeft: 26,
         marginTop: 10,
         borderRadius: 12,
-        borderWidth: 1
+        borderWidth: 1,
+        position: "relative"
     },
 
     normalButton: {
@@ -75,6 +91,20 @@ export default StyleSheet.create({
          padding: 14, 
          borderRadius: 10, 
          alignItems: "center"
+    },
+
+    smallInputButton: {
+        marginRight: 10,
+        padding: 6,
+        borderRadius: 5,
+        borderWidth: 1
+    },  
+
+    colorButton: {
+        width: "30%",        
+        height: "30%",
+        aspectRatio: 1,          
+        borderRadius: 10,
     },
 
     // MODALS
@@ -111,5 +141,15 @@ export default StyleSheet.create({
         borderLeftWidth: 1,
         borderBottomLeftRadius: 10,
         borderBottomRightRadius: 10,
+    },
+
+    // Visuals 
+
+    itemColorDisplay: {
+        position: "absolute",
+        left: 0, top: 0, bottom: 0,
+        width: 15,
+        borderTopLeftRadius: 12,
+        borderBottomLeftRadius: 12,
     }
 });

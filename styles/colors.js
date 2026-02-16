@@ -11,6 +11,7 @@ export const darkTheme = {
     textPrimary: "#dbeeff",
     textSecondary: "#b6c9e4",
     textAccent: "#a5b4fc",
+    textHalfOpacity: "#ffffff84",
 
     danger: "#e12b2b",
     success: "#22c55e",

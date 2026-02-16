@@ -4,7 +4,7 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Items (Subjects, Folders, etc.) 
-export default function ListButton({ label, icon, onPress, onLongPress, isSelected, status = {}}) {
+export default function ListButton({ label, updatedAt, icon, onPress, onLongPress, isSelected, color = null, status = {}}) {
 
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
@@ -12,12 +12,25 @@ export default function ListButton({ label, icon, onPress, onLongPress, isSelect
         backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
     };
 
+    // Format dates nicely
+    const formatDate = (date) => {
+        if (!date) return "";
+        return new Date(date).toLocaleDateString("en-GB"); // e.g. 15/02/2026
+    };
+
+    // Show dates only if item is not selected, cut, or copied
+    const showDates = !isSelected && !status.isCut && !status.isCopied;
+
     return (
         <TouchableOpacity
             style={[ styles.item, styles.rowSpaceBetween, isSelected && styles.itemSelected, dynamicStyle]}
             onPress={onPress}
             onLongPress={onLongPress}
         >
+
+            {/* Left color stripe */}
+            <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
+
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <FontAwesome name={icon} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
                 <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
@@ -35,6 +48,13 @@ export default function ListButton({ label, icon, onPress, onLongPress, isSelect
                 )}
                 {isSelected && (
                     <FontAwesome name="check-circle" size={20} color={colors.accentLight} />
+                )}
+                {showDates && (
+                    <View style={{ alignItems: "flex-end", marginRight: 8 }}>
+                        <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
+                            {formatDate(updatedAt)}
+                        </Text>
+                    </View>
                 )}
             </View>
 

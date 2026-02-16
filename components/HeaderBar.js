@@ -27,7 +27,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     };
 
     return (
-        <View style={[styles.headerAndFooter, styles.header, { paddingTop: insets.top, height: insets.top + 50, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
+        <View style={[styles.headerAndFooter, styles.header, { paddingTop: insets.top, height: insets.top + 50, backgroundColor: colors.bgPrimary }]} onLayout={onLayout}>
             
             {selectedCount > 0 ? (
                 <View style={[styles.rowSpaceBetween, { flex: 1 }]}>

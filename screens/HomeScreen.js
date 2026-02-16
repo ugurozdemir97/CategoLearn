@@ -5,6 +5,7 @@ import { View, Text, FlatList } from "react-native";
 import CircleButton from "../components/CircleButton.js";
 import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
+import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import InformationModal from "../components/InformationModal.js";
 import HeaderBar from "../components/HeaderBar.js";
@@ -27,14 +28,15 @@ import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/q
 
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
-    const [subjects, setSubjects] = useState([]);                   // All the subjects (root folders) we have
-    const [newSubjectName, setNewSubjectName] = useState("");       // Name of the subject being created/edited
-    const [editTarget, setEditTarget] = useState(null);             // The subject being edited (null if creating new)
-    const [deleteTarget, setDeleteTarget] = useState(null);         // The subject(s) being deleted
-    const [errorMessages, setErrorMessages] = useState([]);         // Error messages to display
-    const [modalVisible, setModalVisible] = useState(false);        // Show or Hide modal for creating/editing subjects
-    const [confirmVisible, setConfirmVisible] = useState(false);    // Show or Hide confirmation modal for deletions
-    const [infoVisible, setInfoVisible] = useState(false);          // Show or Hide information modal for alerts
+    const [subjects, setSubjects] = useState([]);                       // All the subjects (root folders) we have
+    const [editTarget, setEditTarget] = useState(null);                 // The subject being edited (null if creating new)
+    const [deleteTarget, setDeleteTarget] = useState(null);             // The subject(s) being deleted
+    const [errorMessages, setErrorMessages] = useState([]);             // Error messages to display
+    const [modalVisible, setModalVisible] = useState(false);            // Show or Hide modal for creating/editing subjects
+    const [confirmVisible, setConfirmVisible] = useState(false);        // Show or Hide confirmation modal for deletions
+    const [infoVisible, setInfoVisible] = useState(false);              // Show or Hide information modal for alerts
+    const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
+    const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
     const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on header/footer size
     const [headerHeight, setHeaderHeight] = useState(50);
@@ -53,7 +55,7 @@ export default function HomeScreen({ navigation }) {
     const loadSubjects = async () => {
         const result = await getFolders(null); // already fetches parent_id IS NULL
         setSubjects(
-            result.map((f) => ({ ...f, type: "Subject", name: f.name }))     // Bring only root folders, add type for sorting
+            result.map((f) => ({ ...f, type: "Subject"}))     // Bring only root folders, add type for sorting
         );
     };
 
@@ -62,13 +64,12 @@ export default function HomeScreen({ navigation }) {
 
         // Default mode is create, if editTarget is set (pressing edit button sets it) then we are editing instead
         if (mode === "create") {
-            await addFolder(null, folderData.name, null, 1);
+            await addFolder(null, folderData.name, folderData.color);
         } else if (mode === "edit" && editTarget) {
-            await updateFolder(editTarget.id, folderData.name, editTarget.color);
+            await updateFolder(editTarget.id, folderData.name, folderData.color);
         }
 
         // After creating/editing, reset states and reload subjects
-        setNewSubjectName("");
         setEditTarget(null);
         clearSelection();
         setModalVisible(false);
@@ -101,13 +102,19 @@ export default function HomeScreen({ navigation }) {
         }
     };
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, setNewSubjectName);
+        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible);
         if (result.length > 0) {
             setErrorMessages(result);
             setInfoVisible(true);
         }
     }  
 
+    // Change the colors of selected items
+    const applyColorToSelected = async (color) => {
+        for (const item of selectedItems) await updateFolder(item.id, item.name, color);
+        await loadSubjects();
+        clearSelection();
+    };
 
     // Call the right handler based on action from FooterBar
     const handleAction = (action) => {
@@ -117,6 +124,7 @@ export default function HomeScreen({ navigation }) {
             case "copy": handleCopySelectedWrapper(); break;
             case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
+            case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             default: break;
         }
     };
@@ -162,6 +170,8 @@ export default function HomeScreen({ navigation }) {
                         renderItem={({ item }) => (
                             <ListButton
                                 label={item.name}
+                                updatedAt={item.updated_at}
+                                color={item.color}
                                 icon="folder"
                                 isSelected={isSelected(item)}
                                 onLongPress={() => toggleSelection(item)}
@@ -202,7 +212,8 @@ export default function HomeScreen({ navigation }) {
                 onCreate={handleSubject}
                 title={editTarget ? "Edit Subject" : "Create Subject"}
                 placeholder="Enter Subject Name"
-                value={newSubjectName}
+                value={editTarget ? editTarget.name : ""}
+                color={editTarget ? editTarget.color : null}
                 mode={editTarget ? "edit" : "create"}
                 editTarget={editTarget}
                 onClose={() => {
@@ -220,6 +231,14 @@ export default function HomeScreen({ navigation }) {
                 message={deleteTarget?.message || ""}
                 confirmText="Delete"
                 confirmColor={colors.danger}
+            />
+
+            {/* Color Picker Modal For Changing Color of Items */}
+            <ColorModal
+                visible={colorModalVisible}
+                onClose={() => {applyColorToSelected(selectedColor); setColorModalVisible(false)}}
+                onSelect={(c) => setSelectedColor(c)}
+                selectedColor={selectedColor}
             />
 
             {/* Information Modal For Errors */}
