@@ -1,22 +1,20 @@
 export const darkTheme = {
-    bgPrimary: "#0a0e1a",
-    bgSecondary: "#0d0f31",
-    bgCard: "#031031",
-    bgCardCopied: "#080c30",
-    bgModal: "#101d3f",
+    bgPrimary: "#0e033a",
+    bgSecondary: "#040449",
+    bgCard: "#041162",
+    bgCardCopied: "#041D6A",
+    bgModal: "#05115d",
 
-    accent: "#2b2dc1",
-    accentLight: "#809eff",
+    accent: "#0003ba",
+    accentLight: "#47bfff",
 
-    textPrimary: "#dbeeff",
-    textSecondary: "#b6c9e4",
-    textAccent: "#a5b4fc",
-    textHalfOpacity: "#ffffff84",
+    textPrimary: "#e7f4ff",
+    textSecondary: "#cfe4ff",
+    textHalfOpacity: "#dbeeff80",
 
     danger: "#e12b2b",
     success: "#22c55e",
     warning: "#f59e0b"
-    
 };
 
 export const lightTheme = {
@@ -31,7 +29,7 @@ export const lightTheme = {
 
     textPrimary: "#111827",
     textSecondary: "#6b7280",
-    textAccent: "#1d4ed8",
+    textSecondary: "#1d4ed8",
 
     border: "#d1d5db",
     borderAccent: "#2563eb",

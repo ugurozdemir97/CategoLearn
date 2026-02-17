@@ -8,8 +8,9 @@ function getColorIndex(color) {
 }
 
 // Main sort function
-export function handleSort(items, setItems, mode, colorSortMode = "alphabetical") {
-    const folders = items.filter(i => i.type === "Category" || i.type === "Subject");
+export async function handleSort(items, setItems, mode, colorSortMode = "alphabetical") {
+
+    const folders = items.filter(i => i.type === "Category");
     const cards   = items.filter(i => i.type === "Card");
     const fields  = items.filter(i => i.type === "Field");
 

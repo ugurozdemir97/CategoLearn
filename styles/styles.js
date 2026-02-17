@@ -4,63 +4,7 @@ export default StyleSheet.create({
 
     // CONTAINERS
 
-    container: {
-        flex: 1,
-        paddingHorizontal: 15
-    },
-
-    centered: {
-        justifyContent: "center",
-        alignItems: "center"
-    },
-
-    colorPicker: {
-        flexDirection: "row", 
-        flexWrap: "wrap", 
-        justifyContent: "center",
-        gap: 15,
-        padding: 10
-    },
-
-    // HEADER & FOOTER
-
-    headerAndFooter: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        zIndex: 10
-    },
-
-    header: {top: 0},
-    footer: {bottom: 0},
-
-    titleArea: {
-        height: 60,           
-        position: "absolute",
-    },
-
-    // ALIGNMENT
-
-    rowSpaceBetween: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-
-
-    // TEXT
-
-    title: {fontSize: 22, fontWeight: "bold"},
-    midText: {fontSize: 19, fontWeight: "bold"},
-    smallText: {fontSize: 15},
-    tinyText: {fontSize: 11},
-    centeredText: {textAlign: "center"},
-
-    // BUTTONS
+    container: {flex: 1},
 
     buttonContainer: {
         position: "absolute",
@@ -70,77 +14,94 @@ export default StyleSheet.create({
         rowGap: 12
     },
 
+    colorPicker: {
+        flexDirection: "row", 
+        flexWrap: "wrap", 
+        justifyContent: "center",
+        width: 170,
+        height: 170,
+        gap: 10,
+        marginBottom: 15
+    },
+
+    // ALIGNMENT
+
+    spaceBetween: {justifyContent: "space-between"},
+    spaceAround: {justifyContent: "space-around"},
+
+    rowCenter: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+
+    centered: {
+        justifyContent: "center",
+        alignItems: "center"
+    },
+
+    paddingHorizontal: {paddingHorizontal: 20},
+    paddingVertical: {paddingVertical: 15},
+
+    // TEXT
+
+    bigText: {fontSize: 18, fontWeight: "bold"},
+    midText: {fontSize: 16},
+    smallText: {fontSize: 14},
+    tinyText: {fontSize: 12},
+    centeredText: {textAlign: "center"},
+
+    // BUTTONS
+
     circleButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         borderWidth: 2
     },
 
-    item: {
-        padding: 16,
-        paddingLeft: 26,
-        marginTop: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        position: "relative"
-    },
-
     normalButton: {
-         flex: 1, 
-         padding: 14, 
-         borderRadius: 10, 
-         alignItems: "center"
+        padding: 8, 
+        borderRadius: 5, 
+        alignItems: "center"
     },
 
     smallInputButton: {
-        marginRight: 10,
-        padding: 6,
+        padding: 8,
         borderRadius: 5,
         borderWidth: 1
     },  
 
     colorButton: {
-        width: "30%",        
-        height: "30%",
+        width: 50,        
+        height: 50,
         aspectRatio: 1,          
-        borderRadius: 10,
+        borderRadius: 5,
     },
 
     // MODALS
 
     modalContent: {
-        width: "90%",
+        width: "96%",
         padding: 15,
-        borderRadius: 16
+        borderRadius: 5
     },
 
     input: {
-        paddingHorizontal: 14,
-        borderRadius: 10
+        borderRadius: 5,
+        flex: 1
     },
 
     fieldInput: {
-        height: 100,
+        minHeight: 100,
+        maxHeight: 300,
+        flex: 0,
         textAlignVertical: "top"
-    },
-
-    dashedBorder: {
-        borderWidth: 1,
-        borderStyle: "dashed"
     },
 
     // Card detail fields
     contextArea: {
-        width: "92%",
-        paddingTop: 5,
-        paddingBottom: 15, 
+        width: "100%",
         paddingHorizontal: 15, 
-        borderBottomWidth: 1,
-        borderRightWidth: 1,
-        borderLeftWidth: 1,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 10,
     },
 
     // Visuals 
@@ -149,7 +110,10 @@ export default StyleSheet.create({
         position: "absolute",
         left: 0, top: 0, bottom: 0,
         width: 15,
-        borderTopLeftRadius: 12,
-        borderBottomLeftRadius: 12,
+    },
+
+    dashedBorder: {
+        borderWidth: 1.5,
+        borderStyle: "dashed"
     }
 });

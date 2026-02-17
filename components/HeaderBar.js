@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
+import { saveSortMode, loadSortMode } from "../storage/sortPreference.js";
 
 const sortModes = [
+    "Order alphabetically",
     "Order by creation date",
     "Order by edit time",
-    "Order alphabetically",
     "Order by color",
 ];
 
@@ -19,25 +20,42 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     const insets = useSafeAreaInsets();
     const [sortIndex, setSortIndex] = useState(0);
 
+    // Load last sort mode when component mounts
+    useEffect(() => {
+        (async () => {
+            const savedMode = await loadSortMode();
+            const index = sortModes.indexOf(savedMode);
+
+            if (index !== -1) {
+                setSortIndex(index);
+            } else {
+                setSortIndex(0);
+                await saveSortMode(sortModes[0]);
+            }
+        })();
+    }, []);
+
     // Cycle through sort modes on button press
-    const cycleSort = () => {
+    const cycleSort = async () => {
         const nextIndex = (sortIndex + 1) % sortModes.length;
         setSortIndex(nextIndex);
-        onSort(items, setItems, sortModes[nextIndex]); 
+        const mode = sortModes[nextIndex];
+        onSort(items, setItems, mode);
+        await saveSortMode(mode);
     };
 
     return (
-        <View style={[styles.headerAndFooter, styles.header, { paddingTop: insets.top, height: insets.top + 50, backgroundColor: colors.bgPrimary }]} onLayout={onLayout}>
+        <View style={[styles.paddingHorizontal, styles.spaceBetween, styles.rowCenter,  { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: colors.bgPrimary }]} onLayout={onLayout}>
             
             {selectedCount > 0 ? (
-                <View style={[styles.rowSpaceBetween, { flex: 1 }]}>
+                <View style={[styles.rowCenter, styles.spaceBetween, {flex: 1}]}>
 
                     {/* Selected Count */}
                     <Text style={[styles.smallText, { color: colors.textPrimary }]}>
                        {selectedCount}/{totalCount} selected
                     </Text>
 
-                    <View style={[styles.centered, {flexDirection: "row", gap: 15}]}>
+                    <View style={[styles.centered, {flexDirection: "row", gap: 15, height: 20}]}>
 
                         {/* Cancel Selection */}
                         <TouchableOpacity onPress={onCancelSelection}>
@@ -55,11 +73,9 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
             ) : (
 
                 // Change Sort Mode
-                <TouchableOpacity onPress={cycleSort} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <Text style={[styles.smallText, { color: colors.textPrimary}]}>
-                        {sortModes[sortIndex]}
-                    </Text>
-                    <FontAwesome name="caret-down" size={23} color={colors.textPrimary} />
+                <TouchableOpacity onPress={cycleSort} style={[styles.rowCenter, {gap: 10, height: 20}]}>
+                    <Text style={[styles.smallText, { color: colors.textPrimary}]}>{sortModes[sortIndex]}</Text>
+                    <FontAwesome name="caret-down" size={18} color={colors.textPrimary} />
                 </TouchableOpacity>
             )}
         </View>

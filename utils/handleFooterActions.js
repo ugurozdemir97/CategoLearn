@@ -67,7 +67,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
 
         // Rule 2: Cards can only be pasted into Folders
         else if (item.type === "Card") {
-            if (node?.type !== "Category" && node?.type !== "Subject") {
+            if (node?.type !== "Category") {
                 errorMessages.set("Not Allowed", "Cards can only be pasted inside folders.");
                 continue;
             }
@@ -83,7 +83,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
         }
 
         // Rule 3: Folders cannot be pasted into Cards
-        else if (item.type === "Category" || item.type === "Subject") {
+        else if (item.type === "Category") {
             if (node?.type === "Card") {
                 errorMessages.set("Not Allowed", "Folders cannot be pasted inside cards.");
                 continue;

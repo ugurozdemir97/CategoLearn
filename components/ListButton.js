@@ -23,7 +23,7 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
 
     return (
         <TouchableOpacity
-            style={[ styles.item, styles.rowSpaceBetween, isSelected && styles.itemSelected, dynamicStyle]}
+            style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8}]}
             onPress={onPress}
             onLongPress={onLongPress}
         >
@@ -31,7 +31,7 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
             {/* Left color stripe */}
             <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
 
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View style={[styles.rowCenter, { flex: 1, marginLeft: 5 }]}>
                 <FontAwesome name={icon} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
                 <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}
@@ -39,7 +39,14 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
             </View>
 
             {/* Right side: status icons (cut/copy) and selection checkmark */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={[styles.rowCenter, { gap: 8 }]}>
+                {showDates && (
+                    <View style={{ alignItems: "flex-end" }}>
+                        <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
+                            {formatDate(updatedAt)}
+                        </Text>
+                    </View>
+                )}
                 {status.isCut && (
                     <FontAwesome name="scissors" size={18} color={colors.accentLight} />
                 )}
@@ -47,14 +54,7 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
                     <FontAwesome name="copy" size={18} color={colors.accentLight} />
                 )}
                 {isSelected && (
-                    <FontAwesome name="check-circle" size={20} color={colors.accentLight} />
-                )}
-                {showDates && (
-                    <View style={{ alignItems: "flex-end", marginRight: 8 }}>
-                        <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
-                            {formatDate(updatedAt)}
-                        </Text>
-                    </View>
+                    <FontAwesome name="check-circle" size={18} color={colors.accentLight} />
                 )}
             </View>
 

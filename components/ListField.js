@@ -24,7 +24,7 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
     return (
         <View style={{alignItems: "center"}}>
             <TouchableOpacity
-                style={[ styles.item, styles.rowSpaceBetween, isSelected && styles.itemSelected, dynamicStyle]}
+                style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8}]}
                 onPress={onPress}
                 onLongPress={onLongPress}
             >
@@ -33,14 +33,14 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
                 <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
 
                 {/* Left side: field name */}
-                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary, marginLeft: 5 }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}
                 </Text>
 
                 {/* Right side: status icons + expand/collapse */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.rowCenter, { gap: 8 }]}>
                     {showDates && (
-                        <View style={{ alignItems: "flex-end", marginRight: 8 }}>
+                        <View style={{ alignItems: "flex-end", marginRight: 5 }}>
                             <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
                                 {formatDate(updatedAt)}
                             </Text>
@@ -56,7 +56,7 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
                         <FontAwesome name="check-circle" size={18} color={colors.accentLight}/>
                     ) : ( 
                         context?.length > 0 && (
-                            <FontAwesome name={expanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary}/>
+                            <FontAwesome name={expanded ? "chevron-down" : "chevron-up"} size={18} color={colors.textSecondary}/>
                         )
                     )}
                 </View>
@@ -64,7 +64,7 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
 
             {/* Expanded context */}
             {expanded && context?.length > 0 && (
-                <View style={[styles.contextArea, { borderColor: colors.accentLight }]}>
+                <View style={[styles.contextArea, styles.paddingVertical, styles.paddingHorizontal, { backgroundColor: colors.bgSecondary }]}>
                     <Text style={[styles.smallText, { color: colors.textSecondary }]}>{context}</Text>
                 </View>
             )}

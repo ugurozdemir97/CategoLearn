@@ -1,18 +1,12 @@
-# Add Colors and make order by color functional. All items will have one of these:
-"No color", "Black", "Red", "Green", "Blue", "Purple", "Yellow", "Orange", "Cyan", "White", "Gray"
-And when order by color is selected, we will order everything alphabeticly or last edit time but color by color.
-For example I have Red (A, V), Blue (B, Z), Yellow (C, T)
-When I order by color this will happen: A > V > B > Z > C > T even though C is alphabeticly before V. 
-And in the settings screen I will have the option: 
-When ordered by color: order alphabeticly or order by last edit time
-And I will also have a place where I can click and drag colors, that order will be used to order by color.
-For example you can do red first then orange then blue... or blue, black, red... 
-
---------------------------------------------------------------------------------------------
+Settings Screen: 
+Color Priority
+Order by color option: Last Edit Time / Alphabetically
+Change Theme Option in the Future
+Maybe Language Settings in The Future
 
 ## In The Future
 
-# Add Settings Screen for changing theme and maybe language
 # Add Search Function
+# Add reminder and quiz functions. It should remind you cards from time to time
 # Add deleted items screen and a function to restore them, if their parent exist restore in the correct place, if not, restore them in an empty subject folder
 # Add synchronising using Google account

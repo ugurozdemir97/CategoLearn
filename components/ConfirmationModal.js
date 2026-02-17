@@ -1,4 +1,4 @@
-import { Modal, View, Text, TouchableOpacity } from "react-native";
+import { Modal, View, Text, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
@@ -7,23 +7,25 @@ export default function ConfirmationModal({ visible, onCancel, onConfirm, messag
     
     return (
         <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onCancel}>
-            <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.3)" }]}>
-                <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
+                <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
+                <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
 
-                    <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary, marginBottom: 10 }]}>{title}</Text>
-                    <Text style={[styles.smallText, styles.centeredText, {color: colors.textSecondary, marginBottom: 10 }]}>{message}</Text>
+                        <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary, marginBottom: 5 }]}>{title}</Text>
+                        <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary, marginBottom: 15 }]}>{message}</Text>
 
-                    <View style={[styles.rowSpaceBetween, { marginTop: 10, gap: 10 }]}>
-                        <TouchableOpacity onPress={onCancel} style={[styles.normalButton, {backgroundColor: colors.bgSecondary}]}>
-                            <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Cancel</Text>
-                        </TouchableOpacity>
+                        <View style={[ styles.rowCenter, styles.spaceBetween, {gap: 10} ]}>
+                            <TouchableOpacity onPress={onCancel} style={[styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
+                                <Text style={[styles.midText, { color: colors.textPrimary }]}>Cancel</Text>
+                            </TouchableOpacity>
 
-                        <TouchableOpacity onPress={onConfirm} style={[styles.normalButton, {backgroundColor: confirmColor}]}>
-                            <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>{confirmText}</Text>
-                        </TouchableOpacity>
+                            <TouchableOpacity onPress={onConfirm} style={[styles.normalButton, {backgroundColor: confirmColor, flex: 1 }]}>
+                                <Text style={[styles.midText, { color: colors.textPrimary }]}>{confirmText}</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }

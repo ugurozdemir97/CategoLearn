@@ -13,18 +13,18 @@ export default function FooterBar({ selectedCount, hasClipboard, onAction, onLay
 
     // Reusable icon button component
     const IconButton = ({ name, action, label, color = colors.textPrimary }) => (
-        <TouchableOpacity onPress={() => onAction(action)} style={{ alignItems: "center", gap: 4 }}>
+        <TouchableOpacity onPress={() => onAction(action)} style={[styles.centered, {gap: 3}]}>
             <FontAwesome name={name} size={22} color={color} />
-            <Text style={{ fontSize: 12, color }}>{label}</Text>
+            <Text style={[styles.tinyText, { color }]}>{label}</Text>
         </TouchableOpacity>
     );
 
     return (
-        <View style={[styles.headerAndFooter,styles.footer, { paddingTop: insets.bottom, height: insets.bottom + 70, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
+        <View style={[styles.paddingHorizontal, styles.rowCenter, styles.spaceBetween, { paddingBottom: insets.bottom + 15, paddingTop: 15, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
 
             {/* Delete - Cut - Copy - Color - Edit */}
             {selectedCount > 0 ? (
-                <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
+                <View style={[styles.rowCenter, styles.spaceAround, {flex: 1}]}>
                     <IconButton name="trash" action="delete" color={colors.danger} label="Delete"/>
                     <IconButton name="scissors" action="cut" label="Cut"/>
                     <IconButton name="copy" action="copy" label="Copy"/>
@@ -33,7 +33,7 @@ export default function FooterBar({ selectedCount, hasClipboard, onAction, onLay
             ) : (  
 
                 // Search - Settings - Deleted Items - (Paste)
-                <View style={{ flexDirection: "row", justifyContent: "space-around", flex: 1 }}>
+                <View style={[styles.rowCenter, styles.spaceAround, {flex: 1}]}>
                     <IconButton name="search" action="search" label="Search"/>
                     <IconButton name="cog" action="settings" label="Settings"/>
                     <IconButton name="trash-o" action="deleted" label="Deleted"/>

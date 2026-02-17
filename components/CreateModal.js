@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, View, Text, TextInput, ScrollView, TouchableOpacity } from "react-native";
+import { Modal, View, Text, TextInput, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
@@ -161,105 +161,111 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     return (
         <>
             <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
-                <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.3)" }]}>
-                    <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
+                <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
+                    <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
 
-                        {/* Edit/Create Card/Folder */}
-                        <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary, marginBottom: 10 }]}>
-                            {title}
-                        </Text>
+                            {/* Edit/Create Card/Folder */}
+                            <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>{title}</Text>
 
-                        {errorMessage ? (
-                            <Text style={[styles.smallText, styles.centeredText, { color: colors.danger, marginBottom: 10 }]}>{errorMessage}</Text>
-                        ) : null}
+                            {errorMessage ? (
+                                <Text style={[styles.midText, styles.centeredText, { color: colors.danger, marginTop: 5 }]}>{errorMessage}</Text>
+                            ) : null}
 
-                        {/* Card/Folder title input */}
-                        <View style={[styles.centered, { flexDirection: "row"}]}>
-                            <TextInput
-                                style={[styles.input, styles.smallText, { color: colors.textSecondary, backgroundColor: colors.bgSecondary, flex: 1, marginRight: 10 }]}
-                                placeholder={placeholder}
-                                placeholderTextColor={colors.textAccent}
-                                value={localTitle}
-                                onChangeText={setLocalTitle}
-                                maxLength={50}
-                            />
-                            <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
-                                <FontAwesome name="paint-brush" size={20} color={
-                                    selectedColor === "#FFFFFF" || selectedColor === "#ffdd00" || selectedColor === "#00e19d"
-                                        ? "#000000"
-                                        : colors.textPrimary
-                                    } 
+                            {/* Card/Folder title input */}
+                            <View style={[styles.rowCenter, {gap: 10, marginVertical: 10}]}>
+                                <TextInput
+                                    style={[styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, backgroundColor: colors.bgSecondary }]}
+                                    placeholder={placeholder}
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={localTitle}
+                                    onChangeText={setLocalTitle}
+                                    maxLength={50}
                                 />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Fields section for cards */}
-                        {isCard && (
-                            <ScrollView style={{ maxHeight: 500, width: "100%" }}>
-
-                                {localFields.map((field, index) => (
-                                    <View key={index} style={[styles.input, { backgroundColor: colors.bgSecondary, marginTop: 10, paddingHorizontal: 0}]}>
-                                        <View style={[styles.centered, { flexDirection: "row"}]}>
-                                            <TextInput
-                                                style={[styles.input, styles.smallText, { color: colors.textSecondary, flex: 1}]}
-                                                placeholder="Field Name"
-                                                placeholderTextColor={colors.textAccent}
-                                                value={field.name}
-                                                onChangeText={(text) => updateField(index, "name", text)}
-                                                maxLength={50}
-                                            />
-                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={[styles.smallInputButton, {borderWidth: 0}]}>
-                                                <FontAwesome name="trash" size={18} color={colors.danger} />
-                                            </TouchableOpacity>
-                                        </View>
-
-                                        <View style={styles.centered}>
-                                            <View style={[styles.dashedBorder, {borderColor: colors.accentLight, width: "92%"}]} />
-                                        </View>
-
-                                        <TextInput
-                                            style={[styles.input, styles.fieldInput, styles.smallText, { color: colors.textSecondary, borderColor: colors.accentLight }]}
-                                            placeholder="Context (optional)"
-                                            placeholderTextColor={colors.textAccent}
-                                            value={field.context}
-                                            onChangeText={(text) => updateField(index, "context", text)}
-                                            multiline={true}
-                                        />
-                                    </View>
-                                ))}
-
-                                {/* Add Field Button */}
-                                <TouchableOpacity onPress={addField} style={[styles.normalButton, styles.dashedBorder, styles.centered, { borderColor: "black", marginTop: 10, flexDirection: "row" }]}>
-                                    <FontAwesome name="plus" size={14} color={colors.accentLight} style={{ marginRight: 8 }} />
-                                    <Text style={{ color: colors.accentLight, fontWeight: "bold" }}>Add Field</Text>
+                                <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
+                                    <FontAwesome name="paint-brush" size={20} color={
+                                        selectedColor === "#FFFFFF" || selectedColor === "#ffdd00" || selectedColor === "#00e19d"
+                                            ? "#000000"
+                                            : colors.textPrimary
+                                        } 
+                                    />
                                 </TouchableOpacity>
-                            </ScrollView>
-                        )}
-                        
-                        {isField && (
-                            <TextInput
-                                style={[styles.input, styles.fieldInput, styles.smallText, { color: colors.textSecondary, backgroundColor: colors.bgSecondary, marginTop: 10 }]}
-                                placeholder="Context (optional)"
-                                placeholderTextColor={colors.textAccent}
-                                value={localContext}
-                                onChangeText={setLocalContext}
-                                multiline={true}
-                            />
-                        )}
+                            </View>
 
-                        {/* Action Buttons */}
-                        <View style={[styles.rowSpaceBetween, { marginTop: 10, gap: 10 }]}>
+                            {/* Fields section for cards */}
+                            {isCard && (
+                                <View>
+                                    {localFields.length > 0 && (
+                                        <ScrollView style={{ maxHeight: 370, width: "100%", marginBottom: 10  }}>
+                                            {localFields.map((field, index) => {
+                                                const isLast = index === localFields.length - 1;
+                                                return (
+                                                    <View key={index} style={[ styles.input, {backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10 }]}>
+                                                        <View style={[styles.centered, { flexDirection: "row" }]}>
+                                                            <TextInput
+                                                                style={[ styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, flex: 1 }]}
+                                                                placeholder="Field Name"
+                                                                placeholderTextColor={colors.textSecondary}
+                                                                value={field.name}
+                                                                onChangeText={(text) => updateField(index, "name", text)}
+                                                                maxLength={50}
+                                                            />
+                                                            <TouchableOpacity onPress={() => requestDeleteField(index)} style={[ styles.smallInputButton, { borderWidth: 0, marginRight: 5 }]}>
+                                                                <FontAwesome name="trash" size={18} color={colors.danger} />
+                                                            </TouchableOpacity>
+                                                        </View>
 
-                            <TouchableOpacity onPress={onClose} style={[styles.normalButton, {backgroundColor: colors.bgSecondary}]}>
-                                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleAction} style={[styles.normalButton, {backgroundColor: colors.accent}]}>
-                                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>{mode === "create" ? "Create" : "Save"}</Text>
-                            </TouchableOpacity>
+                                                        <View style={styles.centered}>
+                                                            <View style={[styles.dashedBorder, { borderColor: colors.accentLight, width: "100%", borderBottomWidth: 0 } ]}/>
+                                                        </View>
 
+                                                        <TextInput
+                                                            style={[ styles.input, styles.fieldInput, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary } ]}
+                                                            placeholder="Context (optional)"
+                                                            placeholderTextColor={colors.textSecondary}
+                                                            value={field.context}
+                                                            onChangeText={(text) => updateField(index, "context", text)}
+                                                            multiline={true}
+                                                        />
+                                                    </View>
+                                                );
+                                            })}
+                                        </ScrollView>
+                                    )}
+
+                                    {/* Add Field Button */}
+                                    <TouchableOpacity onPress={addField} style={[styles.normalButton, styles.dashedBorder, styles.centered, { borderColor: colors.bgPrimary, flexDirection: "row", gap: 10 }]}>
+                                        <FontAwesome name="plus" size={14} color={colors.accentLight}/>
+                                        <Text style={[styles.midText, { color: colors.accentLight }]}>Add Field</Text>
+                                    </TouchableOpacity> 
+                                </View>
+                            )}
+                            
+                            {isField && (
+                                <TextInput
+                                    style={[ styles.input, styles.fieldInput, styles.smallText, styles.paddingHorizontal, { backgroundColor: colors.bgSecondary, color: colors.textSecondary } ]}
+                                    placeholder="Context (optional)"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={localContext}
+                                    onChangeText={setLocalContext}
+                                    multiline={true}
+                                />
+                            )}
+
+                            {/* Action Buttons */}
+                            <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
+
+                                <TouchableOpacity onPress={onClose} style={[styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
+                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleAction} style={[styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
+                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? "Create" : "Save"}</Text>
+                                </TouchableOpacity>
+
+                            </View>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Confirmation Modal for deleting a field */}

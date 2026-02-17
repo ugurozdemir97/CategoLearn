@@ -23,8 +23,9 @@ import { useSelection } from "../hooks/useSelection.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
-// Database queries
+// Database Queries and Storage
 import { getFields, addField, updateField, deleteField } from "../database/queries.js";
+import { loadSortMode } from "../storage/sortPreference.js";
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
@@ -57,7 +58,8 @@ export default function CardDetailScreen({ route, navigation }) {
     // Load all fields inside this card from the database
     const loadFields = async () => {
         const result = await getFields(card.id);
-        setFields(result.map(f => ({ ...f, type: "Field" })));
+        const lastMode = await loadSortMode();
+        handleSort(result, setFields, lastMode);
     };
 
     // Handle creating or editing a card
@@ -140,7 +142,7 @@ export default function CardDetailScreen({ route, navigation }) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
 
             {/* HeaderBar */}
             <HeaderBar
@@ -155,10 +157,10 @@ export default function CardDetailScreen({ route, navigation }) {
             />
 
             {/* Card Title */}
-            <View style={[ styles.headerAndFooter, styles.titleArea, { top: headerHeight, backgroundColor: colors.bgSecondary }]}>
+            <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
                 
                 {/* Folder name centered */}
-                <Text style={[styles.title, { color: colors.textPrimary, textAlign: "center" }]}>
+                <Text style={[styles.bigText, { color: colors.textPrimary }]}>
                     {card.name}
                 </Text>
 
@@ -171,8 +173,8 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Fields */}
             {fields.length === 0 ? (
-                <View style={[styles.container, styles.centered, {marginTop: -(headerHeight + 20)}]}>
-                    <Text style={[ styles.midText, styles.centeredText, { color: colors.textSecondary } ]}>
+                <View style={[styles.container, styles.centered]}>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
                         No fields yet. Tap the plus button to add context!
                     </Text>
                 </View>
@@ -181,7 +183,7 @@ export default function CardDetailScreen({ route, navigation }) {
                 <FlatList
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    style={{ marginTop: headerHeight + 60 }}
+                    style={{ marginTop: 8 }}
                     renderItem={({ item }) => (
                         <ListField
                             label={item.name}
@@ -213,6 +215,9 @@ export default function CardDetailScreen({ route, navigation }) {
                     onPress={() => {if (selectedItems.length === 1) handleEditSelectedWrapper(); else setModalVisible(true)}}
                 />
             </View>
+
+            {/* Empty Spacing */}
+            <View style={{backgroundColor: colors.bgPrimary, height: 15}}></View>
 
             {/* Footer */}
             <FooterBar

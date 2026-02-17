@@ -23,8 +23,9 @@ import { useSelection } from "../hooks/useSelection.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
-// Database queries
+// Database Queries and Storage
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
+import { loadSortMode } from "../storage/sortPreference.js";
 
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
@@ -54,9 +55,8 @@ export default function HomeScreen({ navigation }) {
     // Load all root folders (subjects) from the database
     const loadSubjects = async () => {
         const result = await getFolders(null); // already fetches parent_id IS NULL
-        setSubjects(
-            result.map((f) => ({ ...f, type: "Subject"}))     // Bring only root folders, add type for sorting
-        );
+        const lastMode = await loadSortMode();
+        handleSort(result, setSubjects, lastMode);
     };
 
     // Handle Create or Edit
@@ -125,6 +125,7 @@ export default function HomeScreen({ navigation }) {
             case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
             case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
+            case "settings": navigation.navigate("Settings"); break;
             default: break;
         }
     };
@@ -155,18 +156,22 @@ export default function HomeScreen({ navigation }) {
             {/* Subjects */}
             {subjects.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
-                    <Text style={[styles.midText, {color: colors.textSecondary}]}>What Do You Want To Learn About?</Text>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
+                        What Do You Want To Learn About?
+                    </Text>
                 </View>
             ) : (
                 <>
-                    <Text style={[styles.title, styles.centeredText, { marginTop: headerHeight + 20, color: colors.textPrimary }]}>
-                        Subjects
-                    </Text>
+                    <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
+                        <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>
+                            Subjects
+                        </Text>
+                    </View>
 
                     <FlatList
                         data={subjects}
                         keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                        style={{ marginTop: 10 }}
+                        style={{ marginTop: 8 }}
                         renderItem={({ item }) => (
                             <ListButton
                                 label={item.name}
@@ -198,6 +203,9 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => {if (selectedItems.length === 1) handleEditSelectedWrapper(); else setModalVisible(true)}}
                 />
             </View>
+
+            {/* Empty Spacing */}
+            <View style={{backgroundColor: colors.bgPrimary, height: 15}}></View>
 
             {/* Footer */}
             <FooterBar

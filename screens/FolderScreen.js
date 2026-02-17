@@ -23,8 +23,9 @@ import { useSelection } from "../hooks/useSelection.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
-// Database queries
+// Database Queries and Storage
 import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, getFields, deleteField } from "../database/queries.js";
+import { loadSortMode } from "../storage/sortPreference.js";
 
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
@@ -58,12 +59,9 @@ export default function FolderScreen({ route, navigation }) {
     const loadItems = async () => {
         const folders = await getFolders(folder.id);
         const cards = await getCards(folder.id);
-
-        // First folders, then cards
-        setItems([
-            ...folders.map((f) => ({ ...f, type: "Category"})),
-            ...cards.map((c) => ({ ...c, type: "Card"})),
-        ]);
+        const result = [...folders, ...cards];
+        const lastMode = await loadSortMode();
+        handleSort(result, setItems, lastMode);
     };
 
     // Handle Create or Edit for both cards and folders
@@ -136,8 +134,8 @@ export default function FolderScreen({ route, navigation }) {
     // Change the colors of selected items
     const applyColorToSelected = async (color) => {
         for (const item of selectedItems) {
-            if (item.type === "Subject" || item.type === "Category") await updateFolder(item.id, item.name, color);
-            else                                                     await updateCard(item.id, item.name, color);
+            if (item.type === "Category") await updateFolder(item.id, item.name, color);
+            else                          await updateCard(item.id, item.name, color);
         }
 
         await loadItems(); 
@@ -181,10 +179,10 @@ export default function FolderScreen({ route, navigation }) {
             />
         
             {/* Category Title */}
-            <View style={[ styles.headerAndFooter, styles.titleArea, { top: headerHeight, backgroundColor: colors.bgSecondary }]}>
+            <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
                 
                 {/* Folder name centered */}
-                <Text style={[styles.title, { color: colors.textPrimary, textAlign: "center" }]}>
+                <Text style={[styles.bigText, { color: colors.textPrimary }]}>
                     {folder.name}
                 </Text>
 
@@ -197,9 +195,11 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Items */}
             {items.length === 0 ? (
-                <View style={[styles.container, styles.centered, {marginTop: -(headerHeight + 20)}]}>
-                    <Text style={[styles.midText, { color: colors.textSecondary }]}>
-                        No Items Yet. You Can Create Cards or Folders to Organize Your Learning!
+                <View style={[styles.container, styles.centered]}>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
+                        No Items Yet.{"\n"}
+                        Create Cards to Store Information{"\n"}
+                        or Folders to Organize Your Learning!
                     </Text>
                 </View>
             ) : (
@@ -207,7 +207,7 @@ export default function FolderScreen({ route, navigation }) {
                 <FlatList
                     data={items}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    style={{ marginTop: headerHeight + 60 }}
+                    style={{ marginTop: 8 }}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}
@@ -248,6 +248,9 @@ export default function FolderScreen({ route, navigation }) {
                 )}
 
             </View>
+
+            {/* Empty Spacing */}
+            <View style={{backgroundColor: colors.bgPrimary, height: 15}}></View>
 
             {/* Footer */}
             <FooterBar
