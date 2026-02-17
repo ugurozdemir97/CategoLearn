@@ -1,14 +1,18 @@
-// Predetermined color order (later this will be customizable in settings)
-const COLOR_ORDER = [ null, "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d" ];
+// Storage
+import { loadColorOrder, loadColorSortPreference } from "../storage/sortPreference.js";
 
-// Helper: get index of a color in COLOR_ORDER
-function getColorIndex(color) {
-    const idx = COLOR_ORDER.indexOf(color);
-    return idx === -1 ? COLOR_ORDER.length : idx; // unknown colors go last
+// Helper: get index of a color in saved order
+function getColorIndex(color, savedOrder) {
+    const idx = savedOrder.indexOf(color);
+    return idx === -1 ? savedOrder.length : idx; // unknown colors go last
 }
 
 // Main sort function
-export async function handleSort(items, setItems, mode, colorSortMode = "alphabetical") {
+export async function handleSort(items, setItems, mode) {
+
+    const savedOrder = await loadColorOrder();
+    const savedSortPref = await loadColorSortPreference();
+    console.log(savedOrder)
 
     const folders = items.filter(i => i.type === "Category");
     const cards   = items.filter(i => i.type === "Card");
@@ -18,11 +22,11 @@ export async function handleSort(items, setItems, mode, colorSortMode = "alphabe
         let sorted = [...group];
         switch (mode) {
             case "Order by creation date":
-                sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 break;
 
             case "Order by edit time":
-                sorted.sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+                sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
                 break;
 
             case "Order alphabetically":
@@ -31,14 +35,14 @@ export async function handleSort(items, setItems, mode, colorSortMode = "alphabe
 
             case "Order by color":
                 sorted.sort((a, b) => {
-                    const colorDiff = getColorIndex(a.color) - getColorIndex(b.color);
+                    const colorDiff = getColorIndex(a.color, savedOrder) - getColorIndex(b.color, savedOrder);
                     if (colorDiff !== 0) return colorDiff;
 
                     // Secondary sort inside same color group
-                    if (colorSortMode === "alphabetical") {
+                    if (savedSortPref === "Order alphabetically") {
                         return (a.name || "").localeCompare(b.name || "");
-                    } else if (colorSortMode === "editTime") {
-                        return new Date(a.updated_at) - new Date(b.updated_at);
+                    } else if (savedSortPref === "Order by edit time") {
+                        return new Date(b.updated_at) - new Date(a.updated_at);
                     }
                     return 0;
                 });

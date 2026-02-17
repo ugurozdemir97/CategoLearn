@@ -1,421 +1,187 @@
-import { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { useState, useCallback, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Pressable as GHPressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import { FontAwesome } from "@expo/vector-icons";
+
+// Components
+import SectionBlock from "../components/SettingsTitle.js";
+import RadioButton from "../components/RadioButton.js";
+
+// Styles and Colors
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
-const COLOR_ORDER = [
-  null,
-  "#000000",
-  "#FFFFFF",
-  "#bb0000",
-  "#00b700",
-  "#0000da",
-  "#ffdd00",
-  "#980081",
-  "#00e19d",
-];
+// Database Queries and Storage
+import { saveColorOrder, loadColorOrder, saveColorSortPreference, loadColorSortPreference } from "../storage/sortPreference.js";
 
-const COLOR_NAMES = {
-  null: "None",
-  "#000000": "Black",
-  "#FFFFFF": "White",
-  "#bb0000": "Red",
-  "#00b700": "Green",
-  "#0000da": "Blue",
-  "#ffdd00": "Yellow",
-  "#980081": "Purple",
-  "#00e19d": "Mint",
-};
+// Temporary, I will load these from AsyncStorage
+const COLOR_NAMES = { null: "None", "#000000": "Black", "#FFFFFF": "White", "#bb0000": "Red", "#00b700": "Green", "#0000da": "Blue", "#ffdd00": "Yellow", "#980081": "Purple", "#00e19d": "Mint" };
 
-function SectionHeader({ title }) {
-  return (
-    <View style={localStyles.sectionHeaderRow}>
-      <View style={localStyles.sectionAccentBar} />
-      <Text style={localStyles.sectionHeaderText}>{title}</Text>
-    </View>
-  );
-}
-
-function RadioOption({ label, selected, onPress }) {
-  return (
-    <TouchableOpacity onPress={onPress} style={localStyles.radioButton} activeOpacity={0.7}>
-      <View style={[localStyles.radioCircle, selected && localStyles.radioCircleSelected]}>
-        {selected && <View style={localStyles.radioInner} />}
-      </View>
-      <Text style={[localStyles.radioLabel, selected && localStyles.radioLabelSelected]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
+// Settings - Preferences and Synchronisation
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
-  const [colorOrder, setColorOrder] = useState(COLOR_ORDER);
-  const [colorSortMode, setColorSortMode] = useState("alphabetical");
+    const insets = useSafeAreaInsets();
+    const [colorOrder, setColorOrder] = useState([]);
+    const [colorSortMode, setColorSortMode] = useState("");
 
-  // FIX: Use a key-based approach so indices are always accurate after drag
-  // Arrow buttons swap by value, avoiding stale-index bugs
-  const moveColor = (item, direction) => {
-    setColorOrder((prev) => {
-      const currentIndex = prev.indexOf(item);
-      const targetIndex = currentIndex + direction;
-      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
-      const newOrder = [...prev];
-      newOrder[currentIndex] = newOrder[targetIndex];
-      newOrder[targetIndex] = item;
-      return newOrder;
-    });
-  };
+    // Load saved preferences on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            const savedOrder = await loadColorOrder();
+            const savedSortPref = await loadColorSortPreference();
+            setColorOrder(savedOrder);
+            setColorSortMode(savedSortPref);
+        };
 
-  const handleDragEnd = useCallback(({ data }) => {
-    setColorOrder(data);
-  }, []);
+        loadSettings();
 
-  const renderItem = ({ item, index, drag, isActive }) => (
-      <ScaleDecorator activeScale={1.02}>
-        <View
-          style={[
-            localStyles.colorRow,
-            isActive && localStyles.colorRowActive,
-          ]}
-        >
-          {/* Color swatch + drag handle */}
-          <TouchableOpacity
-            onLongPress={drag}
-            delayLongPress={150}
-            activeOpacity={0.8}
-            style={localStyles.dragHandle}
-          >
-            <View
-              style={[
-                localStyles.colorBox,
-                {
-                  backgroundColor: item || "transparent",
-                  borderColor: item === "#FFFFFF" ? "#ccc" : item ? item : colors.textHalfOpacity,
-                },
-                !item && styles.dashedBorder,
-              ]}
-            />
-            <View style={localStyles.dragDots}>
-              {[0, 1, 2].map((i) => (
-                <View key={i} style={localStyles.dragDot} />
-              ))}
-              {[0, 1, 2].map((i) => (
-                <View key={`b${i}`} style={localStyles.dragDot} />
-              ))}
-            </View>
-          </TouchableOpacity>
+    }, []);
 
-          {/* Label */}
-          <Text style={[styles.smallText, localStyles.colorLabel]}>
-            {COLOR_NAMES[item] ?? item ?? "None"}
-          </Text>
+    // Update color order in state and save to storage
+    const updateColorOrder = (order) => {
+        setColorOrder(order);
+        saveColorOrder(order);
+    };
 
-          {item && (
-            <Text style={localStyles.colorHex}>{item}</Text>
-          )}
+    // Update sort mode in state and save to storage
+    const updateColorSortMode = (mode) => {
+        setColorSortMode(mode);
+        saveColorSortPreference(mode);
+    };
 
-          {/* Arrow buttons */}
-          <View style={[styles.rowCenter, { gap: 4 }]}>
-            <GHPressable
-              onPress={() => moveColor(item, -1)}
-              disabled={index === 0}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={({ pressed }) => [
-                localStyles.arrowButton,
-                index === 0 && localStyles.arrowButtonDisabled,
-                pressed && localStyles.arrowButtonPressed,
-              ]}
-            >
-              <Text style={[localStyles.arrow, index === 0 && localStyles.arrowDisabled]}>↑</Text>
-            </GHPressable>
-            <GHPressable
-              onPress={() => moveColor(item, 1)}
-              disabled={index === colorOrder.length - 1}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={({ pressed }) => [
-                localStyles.arrowButton,
-                index === colorOrder.length - 1 && localStyles.arrowButtonDisabled,
-                pressed && localStyles.arrowButtonPressed,
-              ]}
-            >
-              <Text style={[localStyles.arrow, index === colorOrder.length - 1 && localStyles.arrowDisabled]}>↓</Text>
-            </GHPressable>
-          </View>
+    // Move colors by pressing the arrow buttons
+    const moveColor = (item, direction) => {
+        setColorOrder((prev) => {
+          const currentIndex = prev.indexOf(item);
+          const targetIndex = currentIndex + direction;
+
+          // If item is already the first one and we try to move it up 
+          // or it is the last item and we try to move it down
+          // Just return the current color order
+          if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+
+          // Swap 2 elements, the item you move goes to target place and swap places with the item there
+          const newOrder = [...prev];
+          newOrder[currentIndex] = newOrder[targetIndex];
+          newOrder[targetIndex] = item;
+          saveColorOrder(newOrder);
+          return newOrder;
+        });
+    };
+
+    // Dragging items will change the color order too.
+    const handleDragEnd = useCallback(({ data }) => { updateColorOrder(data); }, []);
+
+    return (
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+            <ScrollView contentContainerStyle={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+
+                {/* Screen Title */}
+                <Text style={[styles.bigText, styles.paddingHorizontal, { color: colors.textPrimary }]}>Settings</Text>
+
+                {/* Color Settings */}
+                <SectionBlock
+                    title="Colors"
+                    description="Which color order would you like to use to sort the items? Click and drag the colors or use the arrow buttons to reorder them."
+                />
+
+                {/* Color drag list */}
+                <DraggableFlatList
+                    data={colorOrder}
+                    keyExtractor={(item) => item ?? "none"}  // ?? is like || this one. But for "null" or "undefined", while || is for "false"
+                    onDragEnd={handleDragEnd}
+                    activationDistance={8}
+                    scrollEnabled={false}
+                    style={styles.paddingHorizontal}
+                    renderItem={({ item, index, drag, isActive }) => (
+                        <ScaleDecorator activeScale={1.03}>
+                            <View style={[styles.colorRow, styles.rowCenter, { 
+                                backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard,
+                                borderColor: isActive ? colors.accentLight : "transparent"
+                            }]}>
+
+                                {/* Drag handle + color swatch */}
+                                <TouchableOpacity onLongPress={drag} delayLongPress={150} activeOpacity={1} style={[styles.rowCenter, {gap: 10, flex: 1}]}>
+                                    <View style={[ styles.colorBox, !item && styles.dashedBorder, 
+                                        {backgroundColor: item || "transparent", 
+                                        borderColor: item ? "transparent" : colors.textHalfOpacity} 
+                                    ]}/>
+                                  
+                                    <View style={styles.dragDots}>
+                                        {[0,1,2,3,4,5].map((i) => (
+                                          <View key={i} style={[styles.dragDot, {backgroundColor: colors.textHalfOpacity}]} />
+                                        ))}
+                                    </View>
+
+                                    <Text style={[styles.smallText, {color: colors.textPrimary, flex: 1}]}>
+                                        {COLOR_NAMES[item] ?? item ?? "None"}
+                                    </Text>
+
+                                    {item && (
+                                        <Text style={[styles.tinyText, {color: colors.textHalfOpacity}]}>{item}</Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                {/* Arrow buttons */}
+                                <View style={[styles.rowCenter, { gap: 4 }]}>
+                                    <GHPressable
+                                      onPress={() => moveColor(item, -1)}
+                                      disabled={index === 0}
+                                      style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary} ]}
+                                    >
+                                          <FontAwesome name="arrow-up" size={15} color={colors.textPrimary} />
+                                    </GHPressable>
+                                    
+                                    <GHPressable
+                                      onPress={() => moveColor(item, 1)}
+                                      disabled={index === colorOrder.length - 1}
+                                      style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary} ]}
+                                    >
+                                          <FontAwesome name="arrow-down" size={15} color={colors.textPrimary} />
+                                    </GHPressable>
+                              </View>
+                          </View>
+                        </ScaleDecorator>
+                    )}
+                />
+
+                {/* Sort order radio buttons */}
+                <SectionBlock title={null} description="Sort colors by"/>
+
+                <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
+                    <RadioButton
+                        label="Name"
+                        selected={colorSortMode === "Order alphabetically"}
+                        onPress={() => updateColorSortMode("Order alphabetically")}
+                    />
+                    <RadioButton
+                        label="Last Edit Time"
+                        selected={colorSortMode === "Order by edit time"}
+                        onPress={() => updateColorSortMode("Order by edit time")}
+                    />
+                </View>
+
+                {/* Divider */}
+                <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
+
+
+                {/* Theme Settings */}
+                <SectionBlock title="Themes" description="Coming soon..." />
+
+                {/* Divider */}
+                <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
+
+                {/* Language Settings */}
+                <SectionBlock title="Languages" description="Coming soon..." />
+
+                {/* Divider */}
+                <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
+
+                {/* Synchronisation Settings */}
+                <SectionBlock title="Synchronisation" description="Coming soon..." />
+
+            </ScrollView>
         </View>
-      </ScaleDecorator>
-  );
-
-  const ListHeader = (
-    <>
-      <Text style={[styles.bigText, localStyles.screenTitle]}>Settings</Text>
-
-      <SectionHeader title="Colors" />
-      <Text style={[styles.smallText, localStyles.sectionDesc]}>
-        Drag or use arrows to reorder colors
-      </Text>
-
-      <View style={localStyles.divider} />
-    </>
-  );
-
-  const ListFooter = (
-    <>
-      <View style={localStyles.divider} />
-
-      <Text style={[styles.smallText, localStyles.sectionSubtitle]}>Sort colors by</Text>
-      <View style={localStyles.radioGroup}>
-        <RadioOption
-          label="Alphabetically"
-          selected={colorSortMode === "alphabetical"}
-          onPress={() => setColorSortMode("alphabetical")}
-        />
-        <RadioOption
-          label="Last Edit Time"
-          selected={colorSortMode === "editTime"}
-          onPress={() => setColorSortMode("editTime")}
-        />
-      </View>
-
-      <SectionHeader title="Theme" />
-      <Text style={[styles.smallText, localStyles.sectionDesc]}>
-        Theme options will appear here
-      </Text>
-
-      <SectionHeader title="Language" />
-      <Text style={[styles.smallText, localStyles.sectionDesc]}>
-        Language settings (coming soon)
-      </Text>
-
-      <SectionHeader title="Synchronisation" />
-      <Text style={[styles.smallText, localStyles.sectionDesc]}>
-        Google account sync (coming soon)
-      </Text>
-
-      <View style={{ height: 40 }} />
-    </>
-  );
-
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top,
-          backgroundColor: colors.bgPrimary,
-        },
-      ]}
-    >
-      <DraggableFlatList
-        data={colorOrder}
-        keyExtractor={(item) => item ?? "none"}
-        onDragEnd={handleDragEnd}
-        activationDistance={8}
-        contentContainerStyle={[localStyles.listContent, { paddingBottom: insets.bottom + 20 }]}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-        renderItem={renderItem}
-      />
-    </View>
-  );
+    );
 }
-
-const localStyles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: 20,
-  },
-
-  screenTitle: {
-    color: colors.textPrimary,
-    marginTop: 10,
-    marginBottom: 24,
-    letterSpacing: 0.5,
-  },
-
-  // Section headers
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 4,
-    gap: 10,
-  },
-  sectionAccentBar: {
-    width: 3,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: colors.accentLight,
-  },
-  sectionHeaderText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  sectionDesc: {
-    color: colors.textSecondary,
-    marginTop: 6,
-    marginBottom: 4,
-    lineHeight: 19,
-  },
-  sectionSubtitle: {
-    color: colors.textSecondary,
-    marginTop: 14,
-    marginBottom: 4,
-    fontWeight: "600",
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: colors.textHalfOpacity,
-    marginVertical: 12,
-    borderRadius: 1,
-  },
-
-  // Color rows
-  colorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginVertical: 3,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: "transparent",
-    gap: 10,
-  },
-  colorRowActive: {
-    backgroundColor: colors.bgCardCopied,
-    borderColor: colors.accentLight,
-    shadowColor: colors.accentLight,
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 6,
-  },
-
-  dragHandle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  dragDots: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: 10,
-    gap: 2,
-  },
-  dragDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.textHalfOpacity,
-  },
-
-  colorBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    borderWidth: 1.5,
-  },
-
-  colorLabel: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontWeight: "500",
-  },
-
-  colorHex: {
-    fontSize: 11,
-    color: colors.textHalfOpacity,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    marginRight: 4,
-  },
-
-  // Arrow buttons
-  arrowButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 7,
-    backgroundColor: colors.bgSecondary,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  arrowButtonDisabled: {
-    borderColor: "transparent",
-    backgroundColor: colors.bgSecondary,
-    opacity: 0.3,
-  },
-  arrowButtonPressed: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accentLight,
-  },
-  arrow: {
-    fontSize: 14,
-    color: colors.accentLight,
-    lineHeight: 16,
-  },
-  arrowDisabled: {
-    color: colors.textHalfOpacity,
-  },
-
-  // Radio group
-  radioGroup: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  radioButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: colors.textSecondary,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioCircleSelected: {
-    borderColor: colors.accentLight,
-  },
-  radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.accentLight,
-  },
-  radioLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  radioLabelSelected: {
-    color: colors.accentLight,
-    fontWeight: "600",
-  },
-});

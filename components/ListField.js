@@ -2,6 +2,7 @@ import { TouchableOpacity, Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
+import { formatDate } from "../utils/formatTime.js";
 
 // Fields inside cards
 export default function ListField({ label, updatedAt, context, onPress, onLongPress, isSelected, status = {}, color = null, expanded = false}) {
@@ -10,12 +11,6 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
     const dynamicStyle = {
         opacity: status.isCut ? 0.5 : 1,
         backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
-    };
-
-    // Format dates nicely
-    const formatDate = (date) => {
-        if (!date) return "";
-        return new Date(date).toLocaleDateString("en-GB"); // e.g. 15/02/2026
     };
 
     // Show dates only if item is not selected, cut, or copied
@@ -30,10 +25,10 @@ export default function ListField({ label, updatedAt, context, onPress, onLongPr
             >
 
                 {/* Left color stripe */}
-                <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
+                <View key={color} style={[styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: color || "transparent", borderColor: !color ? colors.bgPrimary : "transparent"}]}/>
 
                 {/* Left side: field name */}
-                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary, marginLeft: 5 }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary, marginLeft: 10 }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}
                 </Text>
 

@@ -151,6 +151,7 @@ export default function FolderScreen({ route, navigation }) {
             case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
             case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
+            case "settings": navigation.navigate("Settings"); break;
             default: break;
         }
     };

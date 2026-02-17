@@ -2,6 +2,7 @@ import { TouchableOpacity, Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
+import { formatDate } from "../utils/formatTime.js";
 
 // Items (Subjects, Folders, etc.) 
 export default function ListButton({ label, updatedAt, icon, onPress, onLongPress, isSelected, color = null, status = {}}) {
@@ -10,12 +11,6 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
     const dynamicStyle = {
         opacity: status.isCut ? 0.5 : 1,
         backgroundColor: status.isCopied ? colors.bgCardCopied : colors.bgCard,
-    };
-
-    // Format dates nicely
-    const formatDate = (date) => {
-        if (!date) return "";
-        return new Date(date).toLocaleDateString("en-GB"); // e.g. 15/02/2026
     };
 
     // Show dates only if item is not selected, cut, or copied
@@ -29,9 +24,9 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
         >
 
             {/* Left color stripe */}
-            <View key={color} style={[styles.itemColorDisplay, {backgroundColor: color || "transparent"}]}/>
+            <View key={color} style={[styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: color || "transparent", borderColor: !color ? colors.bgPrimary : "transparent"}]}/>
 
-            <View style={[styles.rowCenter, { flex: 1, marginLeft: 5 }]}>
+            <View style={[styles.rowCenter, { flex: 1, marginLeft: 10 }]}>
                 <FontAwesome name={icon} size={20} color={colors.accentLight} style={{ marginRight: 14 }}/>
                 <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                     {label}

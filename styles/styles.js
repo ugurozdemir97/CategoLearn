@@ -78,6 +78,36 @@ export default StyleSheet.create({
         borderRadius: 5,
     },
 
+    colorRow: {
+        paddingVertical: 5,
+        paddingHorizontal: 8,
+        borderRadius: 10,
+        marginTop: 6,
+        borderWidth: 1,
+        gap: 10
+    },
+
+    arrowButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 7,
+        borderWidth: 1
+    },
+
+    radioCircle: {
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        borderWidth: 2,
+        backgroundColor: "transparent"
+    },
+
+    radioInner: {
+        width: 8,
+        height: 8,
+        borderRadius: 4
+    },
+
     // MODALS
 
     modalContent: {
@@ -108,12 +138,33 @@ export default StyleSheet.create({
 
     itemColorDisplay: {
         position: "absolute",
-        left: 0, top: 0, bottom: 0,
-        width: 15,
+        left: 10, top: 5, bottom: 5,
+        width: 10,
+        borderRadius: 3
     },
 
     dashedBorder: {
         borderWidth: 1.5,
         borderStyle: "dashed"
+    },
+
+    colorBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 6
+    },
+
+    dragDots: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        width: 10,
+        gap: 2
+    },
+
+    dragDot: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5
     }
+
 });
