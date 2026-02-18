@@ -1,7 +1,12 @@
-### Optimize and organize SearchScreen, DeletedScreen and db queries
+### Update ListButton to accept deletedAt. For deleted screen. Then use ListButton there
+### Update header to sort items by deletion date in Deleted screen and handle sort functions
+### Deleting root folder deletes everything in it separately. But it shouldnt happen. For example A > B > C, if you delete A, all items are deleted separately
+### Instead, we should see A in the deleted screen with B > C in it. 
+### When you delete Restored Items folder it shouldn't go to Deleted Screen.
 
 # In The Future
 
-### Add a screen to show all your folders and files as a tree. It will be very difficult to implement but it would be nice
 ### Add reminder and quiz functions. It should remind you cards from time to time
+### Add Voice and Images to cards, images must be resized/cropped to 500x500 to save space
+### Add a screen to show all your folders and files as a tree. It will be very difficult to implement but it would be nice
 ### Add synchronising using Google account

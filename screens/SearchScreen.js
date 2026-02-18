@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
+
+// Components
+import ListButton from "../components/ListButton.js";
 
 // Database Queries
 import db from "../database/db.js";
@@ -11,7 +15,8 @@ import { colors } from "../styles/colors.js";
 
 // Searching Screen
 export default function SearchScreen({ navigation }) {
-    const [query, setQuery] = useState("");        
+    const insets = useSafeAreaInsets();            // For placing elements
+    const [query, setQuery] = useState("");        // Searched text
     const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
     const [results, setResults] = useState([]);    // Filtered items
 
@@ -46,16 +51,14 @@ export default function SearchScreen({ navigation }) {
         setResults(filtered);
     };
 
-    // Helper: Build folder ancestry path (works for any starting folder ID)
+    // Helper: Build folder ancestry path
     const buildFolderPath = async (folderId) => {
         const parents = [];
         let currentId = folderId;
         
+        // As long as parent exist, add each folder to the parents array recursively
         while (currentId !== null) {
-            const parent = await db.getFirstAsync(
-                "SELECT * FROM folders WHERE id = ?",
-                [currentId]
-            );
+            const parent = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [currentId]);
             if (!parent) break;
             parents.unshift({ id: parent.id, name: parent.name, type: parent.type }); // Add to beginning
             currentId = parent.parent_id;
@@ -66,81 +69,58 @@ export default function SearchScreen({ navigation }) {
 
     // Build navigation path for an item
     const buildPath = async (item) => {
-        const path = [{ id: null, name: "Subjects", type: "Category" }];
 
+        // Add Subjects to the path, first element should always be Subjects root
+        const path = [{ id: null, name: "Subjects", type: "Category" }];  
+
+        // For folders, build path from parent up to root, if its parent is the root skip this
         if (item.type === "Category") {
-            // For folders, build path from parent up to root
             if (item.parent_id !== null) {
-                const parents = await buildFolderPath(item.parent_id);
-                path.push(...parents);
+                const parents = await buildFolderPath(item.parent_id); 
+                path.push(...parents)
             }
-            
+
+        // For cards, build path from card's parent folder up to root
         } else if (item.type === "Card") {
-            // For cards, build path from card's parent folder up to root, then add the folder itself
-            const folder = await db.getFirstAsync(
-                "SELECT * FROM folders WHERE id = ?",
-                [item.parent_id]
-            );
+            const folder =  await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [item.parent_id]);
             const parents = await buildFolderPath(folder.parent_id);
             path.push(...parents, { id: folder.id, name: folder.name, type: folder.type });
             
+        // For fields, get parent card, then card's parent folder, build path
         } else if (item.type === "Field") {
-            // For fields, get parent card, then card's parent folder, build path
-            const card = await db.getFirstAsync(
-                "SELECT * FROM cards WHERE id = ?",
-                [item.parent_id]
-            );
-            const folder = await db.getFirstAsync(
-                "SELECT * FROM folders WHERE id = ?",
-                [card.parent_id]
-            );
+            const card =    await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [item.parent_id]);
+            const folder =  await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [card.parent_id]);
             const parents = await buildFolderPath(folder.parent_id);
             path.push(...parents, { id: folder.id, name: folder.name, type: folder.type });
         }
-        return path;
+
+        return path;  
     };
 
     // Navigate to the correct screen based on item type
     const handleItemPress = async (item) => {
+
+        // Create the path
         const path = await buildPath(item);
 
+        // If Category and parent is null, go to HomeScreen, if parent exist go to FolderScreen
         if (item.type === "Category") {
-            if (item.parent_id === null) {
-                // Root folder - go to Home
-                navigation.navigate("Home");
-            } else {
-                // Navigate directly to folder with full path
-                navigation.navigate("Folder", {
-                    folder: item,
-                    path: [...path, { id: item.id, name: item.name, type: item.type }],
-                });
-            }
-            
+            if (item.parent_id === null) navigation.navigate("Home");
+            else navigation.navigate("Folder", {folder: item, path: [...path, { id: item.id, name: item.name, type: item.type }]});
+
+        // If Card, navigate to parent folder of the card
         } else if (item.type === "Card") {
-            // Navigate to parent folder of the card
-            const folder = await db.getFirstAsync(
-                "SELECT * FROM folders WHERE id = ?",
-                [item.parent_id]
-            );
-            navigation.navigate("Folder", {
-                folder: folder,
-                path: path,
-            });
-            
+            const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [item.parent_id]);
+            navigation.navigate("Folder", {folder: folder, path: path});
+        
+        // If Card, navigate to the parent card
         } else if (item.type === "Field") {
-            // Get parent card first
-            const card = await db.getFirstAsync(
-                "SELECT * FROM cards WHERE id = ?",
-                [item.parent_id]
-            );
-            
-            navigation.navigate("CardDetail", {
-                card: card,
-                path: [...path, { id: card.id, name: card.name, type: card.type }],
-            });
+            const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [item.parent_id]);
+            navigation.navigate("CardDetail", {card: card, path: [...path, { id: card.id, name: card.name, type: card.type }]});
         }
     };
 
+    // Display different icons depend on the item type
     const getIcon = (type) => {
         if (type === "Category") return "folder";
         if (type === "Card") return "file-text-o";
@@ -148,139 +128,66 @@ export default function SearchScreen({ navigation }) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }]}>
+
             {/* Search Bar */}
-            <View style={localStyles.searchContainer}>
-                <FontAwesome name="search" size={18} color={colors.textSecondary} style={localStyles.searchIcon} />
+            <View style={[styles.rowCenter, styles.paddingHorizontal, {gap: 10, backgroundColor: colors.bgSecondary, paddingVertical: 5}]}>
+                <FontAwesome name="search" size={20} color={colors.textSecondary}/>
                 <TextInput
                     value={query}
-                    onChangeText={(text) => {
-                        setQuery(text);
-                        runSearch(text);
-                    }}
+                    onChangeText={(text) => {setQuery(text); runSearch(text)}}
                     placeholder="Search folders, cards, fields..."
                     placeholderTextColor={colors.textSecondary}
-                    style={localStyles.searchInput}
+                    style={[styles.input, styles.midText, { color: colors.textSecondary }]}
                     returnKeyType="search"
+                    maxLength={100}
                 />
                 {query.length > 0 && (
                     <TouchableOpacity onPress={() => { setQuery(""); setResults([]); }}>
-                        <FontAwesome name="times-circle" size={18} color={colors.textSecondary} />
+                        <FontAwesome name="times-circle" size={20} color={colors.textSecondary} />
                     </TouchableOpacity>
                 )}
             </View>
 
             {/* Results */}
+            {/* If something is typed and no result found */}
             {query.trim().length > 0 && results.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
-                    <Text style={[styles.midText, { color: colors.textSecondary }]}>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
                         No results found for "{query}"
                     </Text>
                 </View>
+            
+            // If nothing is typed
             ) : results.length === 0 ? (
-                <View style={[styles.container, styles.centered]}>
+                <View style={[styles.container, styles.centered, {gap: 10}]}>
                     <FontAwesome name="search" size={60} color={colors.textHalfOpacity} />
-                    <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 20 }]}>
+                    <Text style={[styles.midText, styles.centeredText, {color: colors.textHalfOpacity}]}>
                         Start typing to search
                     </Text>
                 </View>
+
+            // If something is searched and found
             ) : (
                 <FlatList
                     data={results}
                     keyExtractor={(item, index) => `${item.type}-${item.id}-${index}`}
                     style={{ marginTop: 10 }}
                     renderItem={({ item }) => (
-                        <TouchableOpacity
+                        <ListButton
+                            label={item.name}
+                            updatedAt={item.updated_at}
+                            color={item.color}
+                            icon={getIcon(item.type)}
+                            context={item.context}
+                            isSelected={false}
+                            status={{}}
                             onPress={() => handleItemPress(item)}
-                            style={localStyles.resultItem}
-                            activeOpacity={0.7}
-                        >
-                            <View style={[localStyles.iconContainer, { backgroundColor: item.color || colors.bgCard }]}>
-                                <FontAwesome name={getIcon(item.type)} size={18} color={colors.textPrimary} />
-                            </View>
-                            <View style={localStyles.resultContent}>
-                                <Text style={localStyles.resultName} numberOfLines={1}>
-                                    {item.name}
-                                </Text>
-                                <View style={localStyles.resultMeta}>
-                                    <Text style={localStyles.resultType}>{item.type}</Text>
-                                    {item.context && (
-                                        <Text style={localStyles.resultContext} numberOfLines={1}>
-                                            • {item.context}
-                                        </Text>
-                                    )}
-                                </View>
-                            </View>
-                            <FontAwesome name="chevron-right" size={14} color={colors.textHalfOpacity} />
-                        </TouchableOpacity>
+                            onLongPress={() => {}}
+                        />
                     )}
                 />
             )}
         </View>
     );
 }
-
-const localStyles = StyleSheet.create({
-    searchContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.bgCard,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        margin: 16,
-        borderWidth: 1,
-        borderColor: colors.accent,
-    },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 15,
-        color: colors.textPrimary,
-    },
-    resultItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.bgCard,
-        marginHorizontal: 16,
-        marginVertical: 4,
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.accent,
-    },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 12,
-    },
-    resultContent: {
-        flex: 1,
-    },
-    resultName: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    resultMeta: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    resultType: {
-        fontSize: 12,
-        color: colors.accentLight,
-        fontWeight: "500",
-    },
-    resultContext: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginLeft: 4,
-        flex: 1,
-    },
-});

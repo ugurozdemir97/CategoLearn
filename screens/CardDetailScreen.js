@@ -3,7 +3,7 @@ import { View, Text, FlatList } from "react-native";
 
 // Components
 import CircleButton from "../components/CircleButton.js";
-import ListField from "../components/ListField.js";
+import ListButton from "../components/ListButton.js";
 import CreateModal from "../components/CreateModal.js";
 import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
@@ -200,11 +200,12 @@ export default function CardDetailScreen({ route, navigation }) {
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     style={{ marginTop: 8 }}
                     renderItem={({ item }) => (
-                        <ListField
+                        <ListButton
                             label={item.name}
                             updatedAt={item.updated_at}
                             context={item.context}
                             color={item.color}
+                            icon="align-left"
                             isSelected={isSelected(item)}
                             onLongPress={() => toggleSelection(item)}
                             status={getItemStatus(item.id, "Field")}
