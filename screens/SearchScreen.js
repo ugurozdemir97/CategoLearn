@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import db from "../database/db.js";
@@ -7,35 +7,49 @@ import { colors } from "../styles/colors.js";
 
 export default function SearchScreen({ navigation }) {
     const [query, setQuery] = useState("");
+    const [allItems, setAllItems] = useState([]);
     const [results, setResults] = useState([]);
 
-    const runSearch = async (searchQuery) => {
+    // Load all data once when screen mounts
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("focus", loadAllData);
+        return unsubscribe;
+    }, [navigation]);
+
+    const loadAllData = async () => {
+        // Load all folders, cards, fields once (excluding deleted)
+        const folders = await db.getAllAsync(
+            "SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL"
+        );
+        const cards = await db.getAllAsync(
+            "SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL"
+        );
+        const fields = await db.getAllAsync(
+            "SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL"
+        );
+
+        // Combine and store in state
+        setAllItems([...folders, ...cards, ...fields]);
+    };
+
+    // Filter in JavaScript - much faster than querying DB every keystroke
+    const runSearch = (searchQuery) => {
         const trimmed = searchQuery.trim();
         if (!trimmed) {
             setResults([]);
             return;
         }
 
-        const searchTerm = `%${trimmed.toLowerCase()}%`;
+        const searchTerm = trimmed.toLowerCase();
 
-        // Optimized SQL queries with LIKE - searches only what matches
-        const folders = await db.getAllAsync(
-            "SELECT *, 'Category' as type FROM folders WHERE LOWER(name) LIKE ?",
-            [searchTerm]
-        );
+        // Filter items that match the search term
+        const filtered = allItems.filter(item => {
+            const nameMatch = (item.name || "").toLowerCase().includes(searchTerm);
+            const contextMatch = item.context && item.context.toLowerCase().includes(searchTerm);
+            return nameMatch || contextMatch;
+        });
 
-        const cards = await db.getAllAsync(
-            "SELECT *, 'Card' as type FROM cards WHERE LOWER(name) LIKE ?",
-            [searchTerm]
-        );
-
-        const fields = await db.getAllAsync(
-            "SELECT *, 'Field' as type FROM fields WHERE LOWER(name) LIKE ? OR LOWER(context) LIKE ?",
-            [searchTerm, searchTerm]
-        );
-
-        // Combine results: folders first, then cards, then fields
-        setResults([...folders, ...cards, ...fields]);
+        setResults(filtered);
     };
 
     // Build navigation path for an item
