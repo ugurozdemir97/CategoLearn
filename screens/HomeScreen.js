@@ -127,6 +127,7 @@ export default function HomeScreen({ navigation }) {
             case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             case "settings": navigation.navigate("Settings"); break;
             case "search": navigation.navigate("Search"); break;
+            case "deleted": navigation.navigate("Deleted"); break;
             default: break;
         }
     };
@@ -181,7 +182,7 @@ export default function HomeScreen({ navigation }) {
                                 icon="folder"
                                 isSelected={isSelected(item)}
                                 onLongPress={() => toggleSelection(item)}
-                                status={getItemStatus(item.id, "Subject")}  // Is the item currently cut or copied
+                                status={getItemStatus(item.id, "Category")}  // Is the item currently cut or copied
                                 onPress={() => {
 
                                     // Toggle selection if in secondary select mode

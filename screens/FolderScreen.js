@@ -153,6 +153,8 @@ export default function FolderScreen({ route, navigation }) {
             case "clearClipboard": clearClipboard(); break;
             case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             case "settings": navigation.navigate("Settings"); break;
+            case "search": navigation.navigate("Search"); break;
+            case "deleted": navigation.navigate("Deleted"); break;
             default: break;
         }
     };

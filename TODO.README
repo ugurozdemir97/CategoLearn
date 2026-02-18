@@ -2,5 +2,4 @@
 
 # Add a screen to show all your folders and files as a tree. It will be very difficult to implement but it would be nice
 # Add reminder and quiz functions. It should remind you cards from time to time
-# Add deleted items screen and a function to restore them, if their parent exist restore in the correct place, if not, restore them in an empty subject folder
 # Add synchronising using Google account

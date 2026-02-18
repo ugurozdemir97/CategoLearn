@@ -7,6 +7,7 @@ import FolderScreen from "../screens/FolderScreen";
 import CardDetailScreen from "../screens/CardDetailScreen";
 import SettingScreen from "../screens/SettingScreen";
 import SearchScreen from "../screens/SearchScreen";
+import DeletedScreen from "../screens/DeletedScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ function StackNavigator() {
                 <Stack.Screen name="CardDetail" component={CardDetailScreen} />
                 <Stack.Screen name="Settings" component={SettingScreen} />
                 <Stack.Screen name="Search" component={SearchScreen} />
+                <Stack.Screen name="Deleted" component={DeletedScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );

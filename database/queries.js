@@ -11,17 +11,15 @@ export async function addFolder(parentId, name, color = null) {
     return result.lastInsertRowId;
 }
 
-
-// Get folders
+// Get folders (excluding deleted)
 export async function getFolders(parentId) {
     let sql, params;
 
-    // If parentId is null, we want to fetch root folders (subjects) otherwise fetch categories under the given parent
     if (parentId == null) {
-        sql = "SELECT * FROM folders WHERE parent_id IS NULL ORDER BY name";
+        sql = "SELECT * FROM folders WHERE parent_id IS NULL AND deleted_at IS NULL ORDER BY name";
         params = [];
     } else {
-        sql = "SELECT * FROM folders WHERE parent_id = ? ORDER BY name";
+        sql = "SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name";
         params = [parentId];
     }
 
@@ -39,57 +37,62 @@ export async function updateFolder(id, name, color = null) {
     );
 }
 
-// Delete folder and everything that belongs to it
+// Soft delete folder (marks as deleted)
 export async function deleteFolder(folderId) {
+    // Mark this folder as deleted
+    await db.runAsync(
+        "UPDATE folders SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [folderId]
+    );
 
-    // Delete all cards in this folder (deleteCard already handles fields)
-    const childCards =          await getCards(folderId);
-    for (const c of childCards) await deleteCard(c.id);
+    // Mark all child cards as deleted
+    const childCards = await db.getAllAsync(
+        "SELECT * FROM cards WHERE folder_id = ? AND deleted_at IS NULL",
+        [folderId]
+    );
+    for (const c of childCards) {
+        await deleteCard(c.id);
+    }
 
-    // Delete all subfolders recursively
-    const childFolders =               await getFolders(folderId);
-    for (const folder of childFolders) await deleteFolder(folder.id);
+    // Mark all child folders as deleted recursively
+    const childFolders = await db.getAllAsync(
+        "SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL",
+        [folderId]
+    );
+    for (const folder of childFolders) {
+        await deleteFolder(folder.id);
+    }
+}
 
-    // Finally delete this folder
+// Permanently delete folder (CASCADE handles children automatically)
+export async function permanentlyDeleteFolder(folderId) {
+    // Just delete the folder - SQL CASCADE will handle all children
     await db.runAsync("DELETE FROM folders WHERE id = ?", [folderId]);
 }
 
-// Check if a folder is a descendant of another, used to prevent pasting a folder into its own children
+// Check if a folder is a descendant of another
 export async function isDescendant(sourceId, nodeId) {
-    // SourceId is the id of the folder we have cut/copy
-    // NodeId is the id of the folder we want to paste into (So the parent folder's id, if pasting into root then nodeId is null)
     if (sourceId === nodeId) return true;
     const children = await getFolders(sourceId);
 
     for (const child of children) {
-
-        // If the child is the nodeId return true
-        // If any of the child's descendants is the nodeId return true, do this recursively
         if (child.id === nodeId || await isDescendant(child.id, nodeId)) return true;
-
     }
     return false;
 }
 
 // Copy folder recursively (with cards + fields)
 export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
-    
-    // Get copied item
     const copiedItem = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [itemId]);
-
-    // Change the root if necessary
-    const isRoot = newParentId === null ? 1 : 0;
-
-    // Create a new folder inside the target parent
     const newFolderId = await addFolder(newParentId, copiedItem.name, copiedItem.color);
     idMap[copiedItem.id] = newFolderId;
 
     // Copy cards with their fields
-    const childCards =          await getCards(copiedItem.id);
+    const childCards = await getCards(copiedItem.id);
     for (const c of childCards) await copyCardRecursive(c.id, newFolderId);
 
-    // Copy subfolders and their contents recursively
-    const childFolders =               await getFolders(copiedItem.id);
+    // Copy subfolders recursively
+    const childFolders = await getFolders(copiedItem.id);
     for (const folder of childFolders) await copyFolderRecursive(folder.id, newFolderId, idMap);
 
     return newFolderId;
@@ -97,23 +100,17 @@ export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
 
 // Move folder (cut/paste)
 export async function moveFolder(id, newParentId) {
-
-    // Move to root (subject)
     if (newParentId === null) {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = NULL,
-                 updated_at = CURRENT_TIMESTAMP
+             SET parent_id = NULL, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [id]
         );
-
-    // Move under another folder (category)
     } else {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = ?,
-                 updated_at = CURRENT_TIMESTAMP
+             SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [newParentId, id]
         );
@@ -132,10 +129,10 @@ export async function addCard(folderId, name, color = null) {
     return result.lastInsertRowId;
 }
 
-// Get cards in a folder
+// Get cards in a folder (excluding deleted)
 export async function getCards(folderId) {
     const rows = await db.getAllAsync(
-        "SELECT * FROM cards WHERE folder_id = ? ORDER BY name",
+        "SELECT * FROM cards WHERE folder_id = ? AND deleted_at IS NULL ORDER BY name",
         [folderId]
     );
     return rows;
@@ -151,14 +148,29 @@ export async function updateCard(id, name, color = null) {
     );
 }
 
-// Delete card and all its fields
+// Soft delete card (marks as deleted)
 export async function deleteCard(cardId) {
+    // Mark card as deleted
+    await db.runAsync(
+        "UPDATE cards SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [cardId]
+    );
 
-    const fields =          await getFields(cardId);
-    for (const f of fields) await deleteField(f.id);
+    // Mark all fields as deleted
+    const fields = await db.getAllAsync(
+        "SELECT * FROM fields WHERE card_id = ? AND deleted_at IS NULL",
+        [cardId]
+    );
+    for (const f of fields) {
+        await deleteField(f.id);
+    }
+}
 
-    // Finally delete the card itself
-    return db.runAsync("DELETE FROM cards WHERE id = ?", [cardId]);
+// Permanently delete card (CASCADE handles fields automatically)
+export async function permanentlyDeleteCard(cardId) {
+    // Just delete the card - SQL CASCADE will handle all fields
+    const result = await db.runAsync("DELETE FROM cards WHERE id = ?", [cardId]);
+    return result;
 }
 
 // Move card (cut/paste)
@@ -173,14 +185,10 @@ export async function moveCard(id, newFolderId) {
 
 // Copy card recursively (with all its fields)
 export async function copyCardRecursive(copiedCard, newFolderId) {
-    // Get copied card details
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [copiedCard]);
-
-    // Insert new card into the target folder
     const newCardId = await addCard(newFolderId, card.name);
 
-    // Copy fields
-    const fields =          await getFields(card.id);
+    const fields = await getFields(card.id);
     for (const f of fields) await addField(newCardId, f.name, f.context);
 
     return newCardId;
@@ -198,10 +206,10 @@ export async function addField(cardId, name, context = null, color = null) {
     return result.lastInsertRowId;
 }
 
-// Get fields
+// Get fields (excluding deleted)
 export async function getFields(cardId) {
     const rows = await db.getAllAsync(
-        "SELECT * FROM fields WHERE card_id = ? ORDER BY id",
+        "SELECT * FROM fields WHERE card_id = ? AND deleted_at IS NULL ORDER BY id",
         [cardId]
     );
     return rows;
@@ -217,9 +225,18 @@ export async function updateField(id, name, context = null, color = null) {
     );
 }
 
-// Delete field
+// Soft delete field (marks as deleted)
 export async function deleteField(id) {
-    return db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
+    return db.runAsync(
+        "UPDATE fields SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [id]
+    );
+}
+
+// Permanently delete field
+export async function permanentlyDeleteField(id) {
+    const result = await db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
+    return result;
 }
 
 // Move field (cut/paste)
@@ -230,4 +247,141 @@ export async function moveField(id, newCardId) {
          WHERE id = ?`,
         [newCardId, id]
     );
+}
+
+// ---------- TRASH / RESTORE ---------- //
+
+// Get all deleted items
+export async function getDeletedItems() {
+    const folders = await db.getAllAsync(
+        "SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    );
+    const cards = await db.getAllAsync(
+        "SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    );
+    const fields = await db.getAllAsync(
+        "SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    );
+    return [...folders, ...cards, ...fields];
+}
+
+// Restore a folder
+export async function restoreFolder(folderId) {
+    const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
+    if (!folder) return;
+
+    // Check if parent exists and is not deleted
+    let targetParentId = folder.parent_id;
+    if (targetParentId !== null) {
+        const parent = await db.getFirstAsync(
+            "SELECT * FROM folders WHERE id = ? AND deleted_at IS NULL",
+            [targetParentId]
+        );
+        if (!parent) {
+            // Parent doesn't exist or is deleted, restore to "Restored Items" folder
+            targetParentId = await getOrCreateRestoredItemsFolder();
+        }
+    }
+
+    // Restore this folder
+    await db.runAsync(
+        "UPDATE folders SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [targetParentId, folderId]
+    );
+}
+
+// Restore a card
+export async function restoreCard(cardId) {
+    const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
+    if (!card) return;
+
+    // Check if parent folder exists and is not deleted
+    const parentFolder = await db.getFirstAsync(
+        "SELECT * FROM folders WHERE id = ? AND deleted_at IS NULL",
+        [card.folder_id]
+    );
+
+    let targetFolderId = card.folder_id;
+    if (!parentFolder) {
+        // Parent folder doesn't exist or is deleted, restore to "Restored Items" folder
+        targetFolderId = await getOrCreateRestoredItemsFolder();
+    }
+
+    // Restore this card
+    await db.runAsync(
+        "UPDATE cards SET deleted_at = NULL, folder_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [targetFolderId, cardId]
+    );
+}
+
+// Restore a field
+export async function restoreField(fieldId) {
+    const field = await db.getFirstAsync("SELECT * FROM fields WHERE id = ?", [fieldId]);
+    if (!field) return;
+
+    // Check if parent card exists and is not deleted
+    const parentCard = await db.getFirstAsync(
+        "SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL",
+        [field.card_id]
+    );
+
+    if (!parentCard) {
+        // Parent card doesn't exist or is deleted - cannot restore field without card
+        // We need to restore the parent card first or move to a "Restored Fields" card
+        const restoredFolder = await getOrCreateRestoredItemsFolder();
+        const restoredCard = await getOrCreateRestoredFieldsCard(restoredFolder);
+        
+        await db.runAsync(
+            "UPDATE fields SET deleted_at = NULL, card_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            [restoredCard, fieldId]
+        );
+    } else {
+        // Parent exists, restore normally
+        await db.runAsync(
+            "UPDATE fields SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            [fieldId]
+        );
+    }
+}
+
+// Get or create "Restored Items" folder
+async function getOrCreateRestoredItemsFolder() {
+    const existing = await db.getFirstAsync(
+        "SELECT * FROM folders WHERE name = 'Restored Items' AND parent_id IS NULL AND deleted_at IS NULL"
+    );
+    if (existing) return existing.id;
+
+    const result = await db.runAsync(
+        "INSERT INTO folders (parent_id, name, color) VALUES (NULL, 'Restored Items', '#ff9800')",
+        []
+    );
+    return result.lastInsertRowId;
+}
+
+// Get or create "Restored Fields" card in given folder
+async function getOrCreateRestoredFieldsCard(folderId) {
+    const existing = await db.getFirstAsync(
+        "SELECT * FROM cards WHERE name = 'Restored Fields' AND folder_id = ? AND deleted_at IS NULL",
+        [folderId]
+    );
+    if (existing) return existing.id;
+
+    const result = await db.runAsync(
+        "INSERT INTO cards (folder_id, name, color) VALUES (?, 'Restored Fields', '#ff9800')",
+        [folderId]
+    );
+    return result.lastInsertRowId;
+}
+
+// Restore multiple items (folders first, then cards, then fields)
+export async function restoreMultipleItems(items) {
+    // Sort: folders first, cards second, fields last
+    const folders = items.filter(i => i.type === "Category");
+    const cards = items.filter(i => i.type === "Card");
+    const fields = items.filter(i => i.type === "Field");
+
+    // Restore in order
+    for (const folder of folders) await restoreFolder(folder.id);
+    for (const card of cards) await restoreCard(card.id);
+    for (const field of fields) await restoreField(field.id);
 }

@@ -16,8 +16,9 @@ export async function setupDatabase() {
             type TEXT DEFAULT 'Category',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE,
-            UNIQUE(parent_id, name) -- prevent duplicate names in same folder
+            UNIQUE(parent_id, name)
         );
     `);
 
@@ -31,8 +32,9 @@ export async function setupDatabase() {
             type TEXT DEFAULT 'Card',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(folder_id) REFERENCES folders(id) ON DELETE CASCADE,
-            UNIQUE(folder_id, name) -- prevent duplicate card names in same folder
+            UNIQUE(folder_id, name)
         );
     `);
 
@@ -47,8 +49,9 @@ export async function setupDatabase() {
             context TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(card_id) REFERENCES cards(id) ON DELETE CASCADE,
-            UNIQUE(card_id, name) -- prevent duplicate field names in same card
+            UNIQUE(card_id, name)
         );
     `);
 }
