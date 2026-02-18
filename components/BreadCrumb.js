@@ -20,7 +20,7 @@ export default function BreadCrumb({ path, onNavigate }) {
             style={{backgroundColor: colors.bgBreadCurmb, maxHeight: 30}}
         >
             {path.map((node, index) => (
-                <View key={node.id} style={styles.rowCenter}>
+                <View key={`${node.type}-${node.id}`} style={styles.rowCenter}>
                     <TouchableOpacity onPress={() => onNavigate(node)} activeOpacity={0.7} style={styles.crumbButton}>
                         <Text style={[ styles.tinyText, {color: index === path.length - 1 ? colors.accentLight : colors.textSecondary}]}>
                             {node.name}

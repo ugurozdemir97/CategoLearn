@@ -188,7 +188,7 @@ export default function HomeScreen({ navigation }) {
                                     // Toggle selection if in secondary select mode
                                     // Otherwise, navigate to Folder screen to see contents of the subject
                                     if (secondarySelect) toggleSelection(item);                         
-                                    else navigation.navigate("Folder", {folder: item, path: [{ id: null, name: "Subjects" }, { id: item.id, name: item.name }]});
+                                    else navigation.navigate("Folder", {folder: item, path: [{ id: null, name: "Subjects", type: "Category" }, { id: item.id, name: item.name, type: item.type }]});
                                 }}
 
                             />

@@ -47,7 +47,7 @@ export async function deleteFolder(folderId) {
 
     // Mark all child cards as deleted
     const childCards = await db.getAllAsync(
-        "SELECT * FROM cards WHERE folder_id = ? AND deleted_at IS NULL",
+        "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL",
         [folderId]
     );
     for (const c of childCards) {
@@ -122,7 +122,7 @@ export async function moveFolder(id, newParentId) {
 // Add card to a folder
 export async function addCard(folderId, name, color = null) {
     const result = await db.runAsync(
-        `INSERT INTO cards (folder_id, name, color, created_at, updated_at)
+        `INSERT INTO cards (parent_id, name, color, created_at, updated_at)
          VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [folderId, name, color]
     );
@@ -132,7 +132,7 @@ export async function addCard(folderId, name, color = null) {
 // Get cards in a folder (excluding deleted)
 export async function getCards(folderId) {
     const rows = await db.getAllAsync(
-        "SELECT * FROM cards WHERE folder_id = ? AND deleted_at IS NULL ORDER BY name",
+        "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name",
         [folderId]
     );
     return rows;
@@ -158,7 +158,7 @@ export async function deleteCard(cardId) {
 
     // Mark all fields as deleted
     const fields = await db.getAllAsync(
-        "SELECT * FROM fields WHERE card_id = ? AND deleted_at IS NULL",
+        "SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL",
         [cardId]
     );
     for (const f of fields) {
@@ -177,7 +177,7 @@ export async function permanentlyDeleteCard(cardId) {
 export async function moveCard(id, newFolderId) {
     return db.runAsync(
         `UPDATE cards
-         SET folder_id = ?, updated_at = CURRENT_TIMESTAMP
+         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [newFolderId, id]
     );
@@ -199,7 +199,7 @@ export async function copyCardRecursive(copiedCard, newFolderId) {
 // Create field
 export async function addField(cardId, name, context = null, color = null) {
     const result = await db.runAsync(
-        `INSERT INTO fields (card_id, name, context, color, created_at, updated_at)
+        `INSERT INTO fields (parent_id, name, context, color, created_at, updated_at)
          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [cardId, name, context, color]
     );
@@ -209,7 +209,7 @@ export async function addField(cardId, name, context = null, color = null) {
 // Get fields (excluding deleted)
 export async function getFields(cardId) {
     const rows = await db.getAllAsync(
-        "SELECT * FROM fields WHERE card_id = ? AND deleted_at IS NULL ORDER BY id",
+        "SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL ORDER BY id",
         [cardId]
     );
     return rows;
@@ -243,7 +243,7 @@ export async function permanentlyDeleteField(id) {
 export async function moveField(id, newCardId) {
     return db.runAsync(
         `UPDATE fields
-         SET card_id = ?, updated_at = CURRENT_TIMESTAMP
+         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [newCardId, id]
     );
@@ -298,10 +298,10 @@ export async function restoreCard(cardId) {
     // Check if parent folder exists and is not deleted
     const parentFolder = await db.getFirstAsync(
         "SELECT * FROM folders WHERE id = ? AND deleted_at IS NULL",
-        [card.folder_id]
+        [card.parent_id]
     );
 
-    let targetFolderId = card.folder_id;
+    let targetFolderId = card.parent_id;
     if (!parentFolder) {
         // Parent folder doesn't exist or is deleted, restore to "Restored Items" folder
         targetFolderId = await getOrCreateRestoredItemsFolder();
@@ -309,7 +309,7 @@ export async function restoreCard(cardId) {
 
     // Restore this card
     await db.runAsync(
-        "UPDATE cards SET deleted_at = NULL, folder_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE cards SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [targetFolderId, cardId]
     );
 }
@@ -322,7 +322,7 @@ export async function restoreField(fieldId) {
     // Check if parent card exists and is not deleted
     const parentCard = await db.getFirstAsync(
         "SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL",
-        [field.card_id]
+        [field.parent_id]
     );
 
     if (!parentCard) {
@@ -332,7 +332,7 @@ export async function restoreField(fieldId) {
         const restoredCard = await getOrCreateRestoredFieldsCard(restoredFolder);
         
         await db.runAsync(
-            "UPDATE fields SET deleted_at = NULL, card_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE fields SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             [restoredCard, fieldId]
         );
     } else {
@@ -361,13 +361,13 @@ async function getOrCreateRestoredItemsFolder() {
 // Get or create "Restored Fields" card in given folder
 async function getOrCreateRestoredFieldsCard(folderId) {
     const existing = await db.getFirstAsync(
-        "SELECT * FROM cards WHERE name = 'Restored Fields' AND folder_id = ? AND deleted_at IS NULL",
+        "SELECT * FROM cards WHERE name = 'Restored Fields' AND parent_id = ? AND deleted_at IS NULL",
         [folderId]
     );
     if (existing) return existing.id;
 
     const result = await db.runAsync(
-        "INSERT INTO cards (folder_id, name, color) VALUES (?, 'Restored Fields', '#ff9800')",
+        "INSERT INTO cards (parent_id, name, color) VALUES (?, 'Restored Fields', '#ff9800')",
         [folderId]
     );
     return result.lastInsertRowId;

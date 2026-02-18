@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+
+// Database Queries
 import db from "../database/db.js";
+
+// Styles and Colors
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
+// Searching Screen
 export default function SearchScreen({ navigation }) {
-    const [query, setQuery] = useState("");
-    const [allItems, setAllItems] = useState([]);
-    const [results, setResults] = useState([]);
+    const [query, setQuery] = useState("");        
+    const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
+    const [results, setResults] = useState([]);    // Filtered items
 
     // Load all data once when screen mounts
     useEffect(() => {
@@ -16,35 +21,24 @@ export default function SearchScreen({ navigation }) {
         return unsubscribe;
     }, [navigation]);
 
+    // Bring all folders, cards, fields except deleted ones
     const loadAllData = async () => {
-        // Load all folders, cards, fields once (excluding deleted)
-        const folders = await db.getAllAsync(
-            "SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL"
-        );
-        const cards = await db.getAllAsync(
-            "SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL"
-        );
-        const fields = await db.getAllAsync(
-            "SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL"
-        );
-
-        // Combine and store in state
-        setAllItems([...folders, ...cards, ...fields]);
+        const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL");
+        const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL");
+        const fields =  await db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL");
+        setAllItems([...folders, ...cards, ...fields]);  // Combine and store in state
     };
 
-    // Filter in JavaScript - much faster than querying DB every keystroke
+    // Filter Items as you write something in the search input
     const runSearch = (searchQuery) => {
         const trimmed = searchQuery.trim();
-        if (!trimmed) {
-            setResults([]);
-            return;
-        }
+        if (!trimmed) { setResults([]); return; }
 
         const searchTerm = trimmed.toLowerCase();
 
         // Filter items that match the search term
         const filtered = allItems.filter(item => {
-            const nameMatch = (item.name || "").toLowerCase().includes(searchTerm);
+            const nameMatch = item.name.toLowerCase().includes(searchTerm);
             const contextMatch = item.context && item.context.toLowerCase().includes(searchTerm);
             return nameMatch || contextMatch;
         });
@@ -52,68 +46,57 @@ export default function SearchScreen({ navigation }) {
         setResults(filtered);
     };
 
+    // Helper: Build folder ancestry path (works for any starting folder ID)
+    const buildFolderPath = async (folderId) => {
+        const parents = [];
+        let currentId = folderId;
+        
+        while (currentId !== null) {
+            const parent = await db.getFirstAsync(
+                "SELECT * FROM folders WHERE id = ?",
+                [currentId]
+            );
+            if (!parent) break;
+            parents.unshift({ id: parent.id, name: parent.name, type: parent.type }); // Add to beginning
+            currentId = parent.parent_id;
+        }
+        
+        return parents;
+    };
+
     // Build navigation path for an item
     const buildPath = async (item) => {
-        const path = [{ id: null, name: "Subjects" }];
+        const path = [{ id: null, name: "Subjects", type: "Category" }];
 
         if (item.type === "Category") {
-            // Folder: traverse up to root
-            let currentId = item.parent_id;
-            while (currentId !== null) {
-                const parent = await db.getFirstAsync(
-                    "SELECT * FROM folders WHERE id = ?",
-                    [currentId]
-                );
-                if (!parent) break;
-                path.push({ id: parent.id, name: parent.name });
-                currentId = parent.parent_id;
+            // For folders, build path from parent up to root
+            if (item.parent_id !== null) {
+                const parents = await buildFolderPath(item.parent_id);
+                path.push(...parents);
             }
+            
         } else if (item.type === "Card") {
-            // Card: get its folder, then traverse up
+            // For cards, build path from card's parent folder up to root, then add the folder itself
             const folder = await db.getFirstAsync(
                 "SELECT * FROM folders WHERE id = ?",
-                [item.folder_id]
+                [item.parent_id]
             );
-            if (folder) {
-                path.push({ id: folder.id, name: folder.name });
-                let currentId = folder.parent_id;
-                while (currentId !== null) {
-                    const parent = await db.getFirstAsync(
-                        "SELECT * FROM folders WHERE id = ?",
-                        [currentId]
-                    );
-                    if (!parent) break;
-                    path.splice(1, 0, { id: parent.id, name: parent.name });
-                    currentId = parent.parent_id;
-                }
-            }
+            const parents = await buildFolderPath(folder.parent_id);
+            path.push(...parents, { id: folder.id, name: folder.name, type: folder.type });
+            
         } else if (item.type === "Field") {
-            // Field: get its card, then card's folder, then traverse up
+            // For fields, get parent card, then card's parent folder, build path
             const card = await db.getFirstAsync(
                 "SELECT * FROM cards WHERE id = ?",
-                [item.card_id]
+                [item.parent_id]
             );
-            if (card) {
-                const folder = await db.getFirstAsync(
-                    "SELECT * FROM folders WHERE id = ?",
-                    [card.folder_id]
-                );
-                if (folder) {
-                    path.push({ id: folder.id, name: folder.name });
-                    let currentId = folder.parent_id;
-                    while (currentId !== null) {
-                        const parent = await db.getFirstAsync(
-                            "SELECT * FROM folders WHERE id = ?",
-                            [currentId]
-                        );
-                        if (!parent) break;
-                        path.splice(1, 0, { id: parent.id, name: parent.name });
-                        currentId = parent.parent_id;
-                    }
-                }
-            }
+            const folder = await db.getFirstAsync(
+                "SELECT * FROM folders WHERE id = ?",
+                [card.parent_id]
+            );
+            const parents = await buildFolderPath(folder.parent_id);
+            path.push(...parents, { id: folder.id, name: folder.name, type: folder.type });
         }
-
         return path;
     };
 
@@ -122,41 +105,39 @@ export default function SearchScreen({ navigation }) {
         const path = await buildPath(item);
 
         if (item.type === "Category") {
-            // Navigate to folder
             if (item.parent_id === null) {
                 // Root folder - go to Home
                 navigation.navigate("Home");
             } else {
-                // Navigate to Folder screen
+                // Navigate directly to folder with full path
                 navigation.navigate("Folder", {
                     folder: item,
-                    path: [...path, { id: item.id, name: item.name }]
+                    path: [...path, { id: item.id, name: item.name, type: item.type }],
                 });
             }
+            
         } else if (item.type === "Card") {
             // Navigate to parent folder of the card
             const folder = await db.getFirstAsync(
                 "SELECT * FROM folders WHERE id = ?",
-                [item.folder_id]
+                [item.parent_id]
             );
-            if (folder) {
-                navigation.navigate("Folder", {
-                    folder: folder,
-                    path: path
-                });
-            }
+            navigation.navigate("Folder", {
+                folder: folder,
+                path: path,
+            });
+            
         } else if (item.type === "Field") {
-            // Navigate to CardDetail (parent card)
+            // Get parent card first
             const card = await db.getFirstAsync(
                 "SELECT * FROM cards WHERE id = ?",
-                [item.card_id]
+                [item.parent_id]
             );
-            if (card) {
-                navigation.navigate("CardDetail", {
-                    card: card,
-                    path: [...path, { id: card.id, name: card.name }]
-                });
-            }
+            
+            navigation.navigate("CardDetail", {
+                card: card,
+                path: [...path, { id: card.id, name: card.name, type: card.type }],
+            });
         }
     };
 

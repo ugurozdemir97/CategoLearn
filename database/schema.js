@@ -26,15 +26,15 @@ export async function setupDatabase() {
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS cards (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            folder_id INTEGER NOT NULL,
+            parent_id INTEGER NOT NULL,
             name TEXT NOT NULL CHECK(length(name) >= 1 AND length(name) <= 50),
             color TEXT,
             type TEXT DEFAULT 'Card',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             deleted_at DATETIME DEFAULT NULL,
-            FOREIGN KEY(folder_id) REFERENCES folders(id) ON DELETE CASCADE,
-            UNIQUE(folder_id, name)
+            FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE,
+            UNIQUE(parent_id, name)
         );
     `);
 
@@ -42,7 +42,7 @@ export async function setupDatabase() {
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS fields (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id INTEGER NOT NULL,
+            parent_id INTEGER NOT NULL,
             name TEXT NOT NULL CHECK(length(name) >= 1 AND length(name) <= 50),
             color TEXT,
             type TEXT DEFAULT 'Field',
@@ -50,8 +50,8 @@ export async function setupDatabase() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             deleted_at DATETIME DEFAULT NULL,
-            FOREIGN KEY(card_id) REFERENCES cards(id) ON DELETE CASCADE,
-            UNIQUE(card_id, name)
+            FOREIGN KEY(parent_id) REFERENCES cards(id) ON DELETE CASCADE,
+            UNIQUE(parent_id, name)
         );
     `);
 }

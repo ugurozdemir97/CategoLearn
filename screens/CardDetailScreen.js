@@ -25,6 +25,7 @@ import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
+import db from "../database/db.js";
 import { getFields, addField, updateField, deleteField } from "../database/queries.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
@@ -162,12 +163,11 @@ export default function CardDetailScreen({ route, navigation }) {
 
             <BreadCrumb
                 path={path}
-                onNavigate={(node) => {
-                    const targetIndex = path.findIndex(p => p.id === node.id);   // Find the index of where we want to go
-                    const currentIndex = path.length - 1;                        // Where we are right now
-                    if (targetIndex === 0) {navigation.navigate("Home"); return} // If clicking the root folder (index 0), go to Home
-                    const stepsBack = currentIndex - targetIndex;                // How many steps we have to go back
-                    if (stepsBack > 0) navigation.pop(stepsBack)                 // Removes x screens from the stack
+                onNavigate={async (node) => {
+                    const targetIndex = path.findIndex(p => p.id === node.id);
+                    if (targetIndex === 0) {navigation.navigate("Home"); return;}                                 // If clicking the root folder (index 0), go to Home
+                    const targetFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [node.id]); // Get the folder data
+                    navigation.navigate("Folder", {folder: targetFolder, path: path.slice(0, targetIndex + 1)});  // Update the current screen's params
                 }}
             />
 
@@ -197,7 +197,7 @@ export default function CardDetailScreen({ route, navigation }) {
 
                 <FlatList
                     data={fields}
-                    keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
+                    keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     style={{ marginTop: 8 }}
                     renderItem={({ item }) => (
                         <ListField

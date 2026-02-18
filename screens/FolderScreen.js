@@ -25,6 +25,7 @@ import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
+import db from "../database/db.js";
 import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, getFields, deleteField } from "../database/queries.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
@@ -50,7 +51,12 @@ export default function FolderScreen({ route, navigation }) {
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
 
-    // Call loadItems when we are in this screen
+    // Reload items when folder or path changes
+    useEffect(() => {
+        loadItems();
+    }, [folder.id]); // Re-run when folder.id changes
+
+    // Also reload on focus (when coming back from other screens)
     useEffect(() => {
         const unsubscribe = navigation.addListener("focus", () => {loadItems()});
         return unsubscribe;
@@ -184,12 +190,11 @@ export default function FolderScreen({ route, navigation }) {
 
             <BreadCrumb
                 path={path}
-                onNavigate={(node) => {
-                    const targetIndex = path.findIndex(p => p.id === node.id);   // Find the index of where we want to go
-                    const currentIndex = path.length - 1;                        // Where we are right now
-                    if (targetIndex === 0) {navigation.navigate("Home"); return} // If clicking the root folder (index 0), go to Home
-                    const stepsBack = currentIndex - targetIndex;                // How many steps we have to go back
-                    if (stepsBack > 0) navigation.pop(stepsBack)                 // Removes x screens from the stack
+                onNavigate={async (node) => {
+                    const targetIndex = path.findIndex(p => p.id === node.id);
+                    if (targetIndex === 0) {navigation.navigate("Home"); return;}                                 // If clicking the root folder (index 0), go to Home
+                    const targetFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [node.id]); // Get the folder data
+                    navigation.setParams({folder: targetFolder, path: path.slice(0, targetIndex + 1)});           // Update the current screen's params
                 }}
             />
         
@@ -239,14 +244,16 @@ export default function FolderScreen({ route, navigation }) {
                                 if (secondarySelect) toggleSelection(item);  
                                 else {
                                     if (item.type === "Category") {
-                                        navigation.push("Folder", {
+                                        // Update params instead of pushing - instant navigation!
+                                        navigation.setParams({
                                             folder: item,
-                                            path: [...(route.params?.path || []), { id: item.id, name: item.name }]
+                                            path: [...path, { id: item.id, name: item.name, type: item.type }]
                                         });
                                     } else {
+                                        // Cards go to a different screen, so use navigate
                                         navigation.navigate("CardDetail", {
                                             card: item,
-                                            path: [...(route.params?.path || []), { id: item.id, name: item.name }]
+                                            path: [...path, { id: item.id, name: item.name, type: item.type }],
                                         });
                                     }
                                 }  
