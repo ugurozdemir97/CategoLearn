@@ -8,6 +8,7 @@ import CreateModal from "../components/CreateModal.js";
 import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import InformationModal from "../components/InformationModal.js";
+import BreadCrumb from "../components/BreadCrumb.js"
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 
@@ -29,7 +30,7 @@ import { loadSortMode } from "../storage/sortPreference.js";
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
-    const { card } = route.params;                                      // Card is the parent card of the fields we see here
+    const { card, path } = route.params;                                // Card is the parent card of the fields we see here
     const [fields, setFields] = useState([]);                           // Fields are the fields inside this card
     const [fieldContext, setFieldContext] = useState("");               // Context of the field being edited
     const [editTarget, setEditTarget] = useState(null);                 // Edited Field
@@ -155,6 +156,17 @@ export default function CardDetailScreen({ route, navigation }) {
                 onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(fields)}
+            />
+
+            <BreadCrumb
+                path={path}
+                onNavigate={(node) => {
+                    const targetIndex = path.findIndex(p => p.id === node.id);   // Find the index of where we want to go
+                    const currentIndex = path.length - 1;                        // Where we are right now
+                    if (targetIndex === 0) {navigation.navigate("Home"); return} // If clicking the root folder (index 0), go to Home
+                    const stepsBack = currentIndex - targetIndex;                // How many steps we have to go back
+                    if (stepsBack > 0) navigation.pop(stepsBack)                 // Removes x screens from the stack
+                }}
             />
 
             {/* Card Title */}

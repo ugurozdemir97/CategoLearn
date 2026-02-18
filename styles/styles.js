@@ -94,6 +94,11 @@ export default StyleSheet.create({
         borderWidth: 1
     },
 
+    crumbButton: {
+        paddingHorizontal: 6,
+        paddingVertical: 2
+    },
+
     radioCircle: {
         width: 18,
         height: 18,

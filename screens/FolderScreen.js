@@ -8,6 +8,7 @@ import CreateModal from "../components/CreateModal.js";
 import ColorModal from "../components/ColorModal.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 import InformationModal from "../components/InformationModal.js";
+import BreadCrumb from "../components/BreadCrumb.js"
 import HeaderBar from "../components/HeaderBar.js";
 import FooterBar from "../components/FooterBar.js";
 
@@ -29,7 +30,7 @@ import { loadSortMode } from "../storage/sortPreference.js";
 
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
-    const { folder } = route.params;                                    // Folder is the parent folder of the contents we see here
+    const { folder, path } = route.params;                              // Folder is the parent folder of the contents we see here
     const [items, setItems] = useState([]);                             // Items are the subfolders and cards inside this folder
     const [editTarget, setEditTarget] = useState(null);                 // The item being edited (null if creating new)
     const [deleteTarget, setDeleteTarget] = useState(null);             // The item(s) being deleted
@@ -178,6 +179,17 @@ export default function FolderScreen({ route, navigation }) {
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(items)}
             />
+
+            <BreadCrumb
+                path={path}
+                onNavigate={(node) => {
+                    const targetIndex = path.findIndex(p => p.id === node.id);   // Find the index of where we want to go
+                    const currentIndex = path.length - 1;                        // Where we are right now
+                    if (targetIndex === 0) {navigation.navigate("Home"); return} // If clicking the root folder (index 0), go to Home
+                    const stepsBack = currentIndex - targetIndex;                // How many steps we have to go back
+                    if (stepsBack > 0) navigation.pop(stepsBack)                 // Removes x screens from the stack
+                }}
+            />
         
             {/* Category Title */}
             <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
@@ -222,11 +234,20 @@ export default function FolderScreen({ route, navigation }) {
 
                                 // Toggle selection if in secondary select mode
                                 // Navigate to Folder or CardDetail screen on press
-                                if (secondarySelect) toggleSelection(item);                         
+                                if (secondarySelect) toggleSelection(item);  
                                 else {
-                                    if (item.type === "Category") navigation.push("Folder", { folder: item }); 
-                                    else                          navigation.navigate("CardDetail", { card: item }); 
-                                }
+                                    if (item.type === "Category") {
+                                        navigation.push("Folder", {
+                                            folder: item,
+                                            path: [...(route.params?.path || []), { id: item.id, name: item.name }]
+                                        });
+                                    } else {
+                                        navigation.navigate("CardDetail", {
+                                            card: item,
+                                            path: [...(route.params?.path || []), { id: item.id, name: item.name }]
+                                        });
+                                    }
+                                }  
                             }}
 
                         />

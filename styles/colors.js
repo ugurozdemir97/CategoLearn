@@ -4,6 +4,7 @@ export const darkTheme = {
     bgCard: "#041162",
     bgCardCopied: "#041D6A",
     bgModal: "#05115d",
+    bgBreadCurmb: "#020029",
 
     accent: "#0003ba",
     accentLight: "#47bfff",

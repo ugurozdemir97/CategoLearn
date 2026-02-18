@@ -126,6 +126,7 @@ export default function HomeScreen({ navigation }) {
             case "clearClipboard": clearClipboard(); break;
             case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
             case "settings": navigation.navigate("Settings"); break;
+            case "search": navigation.navigate("Search"); break;
             default: break;
         }
     };
@@ -186,8 +187,7 @@ export default function HomeScreen({ navigation }) {
                                     // Toggle selection if in secondary select mode
                                     // Otherwise, navigate to Folder screen to see contents of the subject
                                     if (secondarySelect) toggleSelection(item);                         
-                                    else navigation.navigate("Folder", { folder: item }); 
-
+                                    else navigation.navigate("Folder", {folder: item, path: [{ id: null, name: "Subjects" }, { id: item.id, name: item.name }]});
                                 }}
 
                             />

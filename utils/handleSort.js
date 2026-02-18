@@ -12,7 +12,6 @@ export async function handleSort(items, setItems, mode) {
 
     const savedOrder = await loadColorOrder();
     const savedSortPref = await loadColorSortPreference();
-    console.log(savedOrder)
 
     const folders = items.filter(i => i.type === "Category");
     const cards   = items.filter(i => i.type === "Card");
