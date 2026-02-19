@@ -4,6 +4,14 @@ import db from "./db";
 
 // Create folder
 export async function addFolder(parentId, name, color = null) {
+    // Prevent creating folders inside system folder (Restored Items)
+    if (parentId !== null) {
+        const parent = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [parentId]);
+        if (parent && parent.is_system_folder === 1) {
+            throw new Error("Cannot create folders inside system folders");
+        }
+    }
+    
     const result = await db.runAsync(
         "INSERT INTO folders (parent_id, name, color) VALUES (?, ?, ?)",
         [parentId, name, color]
@@ -11,7 +19,7 @@ export async function addFolder(parentId, name, color = null) {
     return result.lastInsertRowId;
 }
 
-// Get folders (excluding deleted)
+// Get folders (excluding deleted and hiding empty Restored Items)
 export async function getFolders(parentId) {
     let sql, params;
 
@@ -24,11 +32,62 @@ export async function getFolders(parentId) {
     }
 
     const rows = await db.getAllAsync(sql, params);
-    return rows;
+    
+    // Filter out Restored Items folder if it's empty (system folder with no non-system children)
+    const filtered = [];
+    for (const folder of rows) {
+        if (folder.is_system_folder === 1) {
+            // Check if it has any non-system folders
+            const childFolders = await db.getAllAsync(
+                "SELECT COUNT(*) as count FROM folders WHERE parent_id = ? AND deleted_at IS NULL AND is_system_folder = 0",
+                [folder.id]
+            );
+            
+            // Check if it has any non-system cards (excluding empty system cards)
+            const childCards = await db.getAllAsync(
+                "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL",
+                [folder.id]
+            );
+            
+            let hasNonEmptyCards = false;
+            for (const card of childCards) {
+                if (card.is_system_card === 0) {
+                    // Regular card counts
+                    hasNonEmptyCards = true;
+                    break;
+                } else {
+                    // System card only counts if it has fields
+                    const fields = await db.getAllAsync(
+                        "SELECT COUNT(*) as count FROM fields WHERE parent_id = ? AND deleted_at IS NULL",
+                        [card.id]
+                    );
+                    if (fields[0].count > 0) {
+                        hasNonEmptyCards = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Only include if it has non-system folders or non-empty cards
+            if (childFolders[0].count > 0 || hasNonEmptyCards) {
+                filtered.push(folder);
+            }
+        } else {
+            filtered.push(folder);
+        }
+    }
+    
+    return filtered;
 }
 
 // Edit folder
 export async function updateFolder(id, name, color = null) {
+    // Prevent editing system folders
+    const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [id]);
+    if (folder && folder.is_system_folder === 1) {
+        throw new Error("Cannot edit system folders");
+    }
+    
     return db.runAsync(
         `UPDATE folders
          SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
@@ -37,36 +96,61 @@ export async function updateFolder(id, name, color = null) {
     );
 }
 
-// Soft delete folder (marks as deleted)
+// Soft delete folder (marks ONLY the folder as deleted, not its children)
 export async function deleteFolder(folderId) {
-    // Mark this folder as deleted
+    const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
+    
+    // Prevent deleting system folder (Restored Items)
+    if (folder && folder.is_system_folder === 1) {
+        // Instead of deleting the folder, soft-delete all its children
+        const childFolders = await db.getAllAsync(
+            "SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL",
+            [folderId]
+        );
+        const childCards = await db.getAllAsync(
+            "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL",
+            [folderId]
+        );
+        
+        // Soft delete all children
+        for (const child of childFolders) {
+            await deleteFolder(child.id);
+        }
+        for (const child of childCards) {
+            await deleteCard(child.id);
+        }
+        
+        return; // Don't delete the system folder itself
+    }
+
+    // Mark only this folder as deleted (children remain active but hidden)
     await db.runAsync(
         "UPDATE folders SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         [folderId]
     );
+}
 
-    // Mark all child cards as deleted
+// Permanently delete folder (recursively deletes ALL non-deleted children)
+export async function permanentlyDeleteFolder(folderId) {
+    // Get all child cards that are NOT already deleted and delete them permanently
     const childCards = await db.getAllAsync(
         "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL",
         [folderId]
     );
-    for (const c of childCards) {
-        await deleteCard(c.id);
+    for (const card of childCards) {
+        await permanentlyDeleteCard(card.id);
     }
 
-    // Mark all child folders as deleted recursively
+    // Get all child folders that are NOT already deleted and delete them permanently (recursive)
     const childFolders = await db.getAllAsync(
         "SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL",
         [folderId]
     );
     for (const folder of childFolders) {
-        await deleteFolder(folder.id);
+        await permanentlyDeleteFolder(folder.id);
     }
-}
 
-// Permanently delete folder (CASCADE handles children automatically)
-export async function permanentlyDeleteFolder(folderId) {
-    // Just delete the folder - SQL CASCADE will handle all children
+    // Finally delete this folder itself
     await db.runAsync("DELETE FROM folders WHERE id = ?", [folderId]);
 }
 
@@ -121,6 +205,12 @@ export async function moveFolder(id, newParentId) {
 
 // Add card to a folder
 export async function addCard(folderId, name, color = null) {
+    // Prevent creating cards inside system folder (Restored Items)
+    const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
+    if (folder && folder.is_system_folder === 1) {
+        throw new Error("Cannot create cards inside system folders");
+    }
+    
     const result = await db.runAsync(
         `INSERT INTO cards (parent_id, name, color, created_at, updated_at)
          VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -129,17 +219,43 @@ export async function addCard(folderId, name, color = null) {
     return result.lastInsertRowId;
 }
 
-// Get cards in a folder (excluding deleted)
+// Get cards in a folder (excluding deleted and hiding empty Restored Fields)
 export async function getCards(folderId) {
     const rows = await db.getAllAsync(
         "SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name",
         [folderId]
     );
-    return rows;
+    
+    // Filter out Restored Fields card if it's empty (system card with no fields)
+    const filtered = [];
+    for (const card of rows) {
+        if (card.is_system_card === 1) {
+            // Check if it has any fields
+            const fields = await db.getAllAsync(
+                "SELECT COUNT(*) as count FROM fields WHERE parent_id = ? AND deleted_at IS NULL",
+                [card.id]
+            );
+            
+            // Only include if it has fields
+            if (fields[0].count > 0) {
+                filtered.push(card);
+            }
+        } else {
+            filtered.push(card);
+        }
+    }
+    
+    return filtered;
 }
 
 // Edit card
 export async function updateCard(id, name, color = null) {
+    // Prevent editing system cards
+    const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [id]);
+    if (card && card.is_system_card === 1) {
+        throw new Error("Cannot edit system cards");
+    }
+    
     return db.runAsync(
         `UPDATE cards
          SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
@@ -148,29 +264,46 @@ export async function updateCard(id, name, color = null) {
     );
 }
 
-// Soft delete card (marks as deleted)
+// Soft delete card (marks ONLY the card as deleted, not its fields)
 export async function deleteCard(cardId) {
-    // Mark card as deleted
+    const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
+    
+    // Prevent deleting system card (Restored Fields)
+    if (card && card.is_system_card === 1) {
+        // Instead of deleting the card, soft-delete all its fields
+        const fields = await db.getAllAsync(
+            "SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL",
+            [cardId]
+        );
+        
+        // Soft delete all fields
+        for (const field of fields) {
+            await deleteField(field.id);
+        }
+        
+        return; // Don't delete the system card itself
+    }
+
+    // Mark only card as deleted (fields remain active but hidden)
     await db.runAsync(
         "UPDATE cards SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         [cardId]
     );
+}
 
-    // Mark all fields as deleted
+// Permanently delete card (recursively deletes ALL non-deleted fields)
+export async function permanentlyDeleteCard(cardId) {
+    // Get all fields that are NOT already deleted and delete them permanently
     const fields = await db.getAllAsync(
         "SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL",
         [cardId]
     );
-    for (const f of fields) {
-        await deleteField(f.id);
+    for (const field of fields) {
+        await permanentlyDeleteField(field.id);
     }
-}
 
-// Permanently delete card (CASCADE handles fields automatically)
-export async function permanentlyDeleteCard(cardId) {
-    // Just delete the card - SQL CASCADE will handle all fields
-    const result = await db.runAsync("DELETE FROM cards WHERE id = ?", [cardId]);
-    return result;
+    // Finally delete the card itself
+    await db.runAsync("DELETE FROM cards WHERE id = ?", [cardId]);
 }
 
 // Move card (cut/paste)
@@ -198,6 +331,12 @@ export async function copyCardRecursive(copiedCard, newFolderId) {
 
 // Create field
 export async function addField(cardId, name, context = null, color = null) {
+    // Prevent creating fields inside system card (Restored Fields)
+    const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
+    if (card && card.is_system_card === 1) {
+        throw new Error("Cannot create fields inside system cards");
+    }
+    
     const result = await db.runAsync(
         `INSERT INTO fields (parent_id, name, context, color, created_at, updated_at)
          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -235,8 +374,7 @@ export async function deleteField(id) {
 
 // Permanently delete field
 export async function permanentlyDeleteField(id) {
-    const result = await db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
-    return result;
+    await db.runAsync("DELETE FROM fields WHERE id = ?", [id]);
 }
 
 // Move field (cut/paste)
@@ -251,7 +389,7 @@ export async function moveField(id, newCardId) {
 
 // ---------- TRASH / RESTORE ---------- //
 
-// Get all deleted items
+// Get all deleted items (only top-level parents, not their children)
 export async function getDeletedItems() {
     const folders = await db.getAllAsync(
         "SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
@@ -265,7 +403,7 @@ export async function getDeletedItems() {
     return [...folders, ...cards, ...fields];
 }
 
-// Restore a folder
+// Restore a folder (and all its children)
 export async function restoreFolder(folderId) {
     const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
     if (!folder) return;
@@ -290,7 +428,7 @@ export async function restoreFolder(folderId) {
     );
 }
 
-// Restore a card
+// Restore a card (and all its fields)
 export async function restoreCard(cardId) {
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
     if (!card) return;
@@ -326,8 +464,7 @@ export async function restoreField(fieldId) {
     );
 
     if (!parentCard) {
-        // Parent card doesn't exist or is deleted - cannot restore field without card
-        // We need to restore the parent card first or move to a "Restored Fields" card
+        // Parent card doesn't exist or is deleted - move to "Restored Fields" card
         const restoredFolder = await getOrCreateRestoredItemsFolder();
         const restoredCard = await getOrCreateRestoredFieldsCard(restoredFolder);
         
@@ -347,27 +484,26 @@ export async function restoreField(fieldId) {
 // Get or create "Restored Items" folder
 async function getOrCreateRestoredItemsFolder() {
     const existing = await db.getFirstAsync(
-        "SELECT * FROM folders WHERE name = 'Restored Items' AND parent_id IS NULL AND deleted_at IS NULL"
+        "SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL AND deleted_at IS NULL"
     );
     if (existing) return existing.id;
 
     const result = await db.runAsync(
-        "INSERT INTO folders (parent_id, name, color) VALUES (NULL, 'Restored Items', '#ff9800')",
-        []
+        "INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)"
     );
     return result.lastInsertRowId;
 }
 
-// Get or create "Restored Fields" card in given folder
+// Get or create "Restored Fields " card in Restored Items folder
 async function getOrCreateRestoredFieldsCard(folderId) {
     const existing = await db.getFirstAsync(
-        "SELECT * FROM cards WHERE name = 'Restored Fields' AND parent_id = ? AND deleted_at IS NULL",
+        "SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ? AND deleted_at IS NULL",
         [folderId]
     );
     if (existing) return existing.id;
 
     const result = await db.runAsync(
-        "INSERT INTO cards (parent_id, name, color) VALUES (?, 'Restored Fields', '#ff9800')",
+        "INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)",
         [folderId]
     );
     return result.lastInsertRowId;

@@ -8,6 +8,7 @@ import { colors } from "../styles/colors.js";
 
 // Components
 import HeaderBar from "../components/HeaderBar.js";
+import ListButton from "../components/ListButton.js";
 import ConfirmationModal from "../components/ConfirmationModal.js";
 
 // Database Queries
@@ -16,13 +17,20 @@ import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permane
 // Hooks
 import { useSelection } from "../hooks/useSelection.js";
 
+// Utils
+import { handleSort } from "../utils/handleSort.js";
+
+// Storage
+import { loadSortMode } from "../storage/sortPreference.js";
+
 export default function DeletedScreen({ navigation }) {
-    const [deletedItems, setDeletedItems] = useState([]);
-    const [confirmVisible, setConfirmVisible] = useState(false);
-    const [confirmAction, setConfirmAction] = useState(null);
+    const [deletedItems, setDeletedItems] = useState([]);         // All deleted Items
+    const [confirmVisible, setConfirmVisible] = useState(false);  // Show/Hide Confirmation Modal
+    const [confirmAction, setConfirmAction] = useState(null);     // Confirm deletion or restore
 
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
 
+    // Bring all deleted items on mount
     useEffect(() => {
         const unsubscribe = navigation.addListener("focus", loadDeletedItems);
         return unsubscribe;
@@ -30,9 +38,11 @@ export default function DeletedScreen({ navigation }) {
 
     const loadDeletedItems = async () => {
         const items = await getDeletedItems();
-        setDeletedItems(items);
+        const lastMode = await loadSortMode();
+        handleSort(items, setDeletedItems, lastMode, true);  // Pass true for "isDeletedScreen"
     };
 
+    // Restore items
     const handleRestore = useCallback(async () => {
         if (selectedItems.length === 0) return;
         await restoreMultipleItems(selectedItems);
@@ -40,6 +50,7 @@ export default function DeletedScreen({ navigation }) {
         await loadDeletedItems();
     }, [selectedItems, clearSelection]);
 
+    // Permanently delete selected items
     const handlePermanentDelete = useCallback(async () => {
         if (selectedItems.length === 0) return;
         
@@ -52,8 +63,9 @@ export default function DeletedScreen({ navigation }) {
         clearSelection();
         setConfirmVisible(false);
         await loadDeletedItems();
-    }, [selectedItems, deletedItems.length, clearSelection]);
+    }, [selectedItems, clearSelection]);
 
+    // Permanently delete everything
     const handleEmptyTrash = useCallback(async () => {
         for (const item of deletedItems) {
             if (item.type === "Category") await permanentlyDeleteFolder(item.id);
@@ -65,6 +77,7 @@ export default function DeletedScreen({ navigation }) {
         await loadDeletedItems();
     }, [deletedItems]);
 
+    // Handle all actions
     const handleAction = (action) => {
         switch (action) {
             case "restore":
@@ -83,6 +96,7 @@ export default function DeletedScreen({ navigation }) {
         }
     };
 
+    // Give icons to items
     const getIcon = (type) => {
         if (type === "Category") return "folder";
         if (type === "Card") return "file-text-o";
@@ -95,87 +109,63 @@ export default function DeletedScreen({ navigation }) {
             <HeaderBar
                 selectedCount={selectedItems.length}
                 totalCount={deletedItems.length}
-                onLayout={(event) => {}}
+                onSort={handleSort}
+                items={deletedItems}
+                setItems={setDeletedItems}
                 onCancelSelection={clearSelection}
                 onSelectAll={() => selectAll(deletedItems)}
+                isDeletedScreen={true}
             />
 
             <View style={[styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
-                <Text style={[styles.bigText, { color: colors.textPrimary }]}>Trash</Text>
+                <Text style={[styles.bigText, { color: colors.textPrimary }]}>Deleted Items</Text>
             </View>
 
             {deletedItems.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <FontAwesome name="trash-o" size={60} color={colors.textHalfOpacity} />
-                    <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 20 }]}>
-                        Trash is empty
-                    </Text>
+                    <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 10 }]}>There are no deleted items</Text>
                 </View>
             ) : (
                 <FlatList
                     data={deletedItems}
-                    keyExtractor={(item) => `${item.type}-${item.id}`}
+                    keyExtractor={(item, index) => `${index}-${item.type}-${item.id}`}
                     style={{ marginTop: 8 }}
                     renderItem={({ item }) => (
-                        <TouchableOpacity
+                        <ListButton
+                            label={item.name}
+                            deletedAt={item.deleted_at}
+                            color={item.color}
+                            icon={getIcon(item.type)}
+                            isSelected={isSelected(item)}
+                            status={{}}
                             onPress={() => toggleSelection(item)}
                             onLongPress={() => toggleSelection(item)}
-                            style={[
-                                localStyles.trashItem,
-                                isSelected(item) && localStyles.trashItemSelected
-                            ]}
-                            activeOpacity={0.7}
-                        >
-                            <View style={[localStyles.iconContainer, { backgroundColor: item.color || colors.bgCard }]}>
-                                <FontAwesome name={getIcon(item.type)} size={18} color={colors.textPrimary} />
-                            </View>
-                            
-                            <View style={localStyles.itemContent}>
-                                <Text style={localStyles.itemName} numberOfLines={1}>
-                                    {item.name}
-                                </Text>
-                                <Text style={localStyles.itemMeta}>
-                                    {item.type} • Deleted {new Date(item.deleted_at).toLocaleDateString("en-GB")}
-                                </Text>
-                            </View>
-
-                            {isSelected(item) && (
-                                <FontAwesome name="check-circle" size={20} color={colors.accentLight} />
-                            )}
-                        </TouchableOpacity>
+                        />
                     )}
                 />
             )}
 
-            <View style={{ height: 15 }} />
+            <View style={{height: 10}}></View>
 
-            <View style={localStyles.trashFooter}>
+            <View style={[styles.rowCenter, styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary, gap: 10}]}>
                 {selectedItems.length > 0 ? (
                     <>
-                        <TouchableOpacity
-                            onPress={() => handleAction("restore")}
-                            style={[localStyles.footerButton, { backgroundColor: colors.success }]}
-                        >
+                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>
                             <FontAwesome name="undo" size={16} color={colors.textPrimary} />
-                            <Text style={localStyles.footerButtonText}>Restore ({selectedItems.length})</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Restore ({selectedItems.length})</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            onPress={() => handleAction("permanentDelete")}
-                            style={[localStyles.footerButton, { backgroundColor: colors.danger }]}
-                        >
+                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
-                            <Text style={localStyles.footerButtonText}>Delete Forever</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Delete Forever ({selectedItems.length})</Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     deletedItems.length > 0 && (
-                        <TouchableOpacity
-                            onPress={() => handleAction("emptyTrash")}
-                            style={[localStyles.footerButton, { backgroundColor: colors.danger, flex: 1 }]}
-                        >
+                        <TouchableOpacity onPress={() => handleAction("emptyTrash")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
-                            <Text style={localStyles.footerButtonText}>Empty Trash</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Empty Trash</Text>
                         </TouchableOpacity>
                     )
                 )}
@@ -185,10 +175,10 @@ export default function DeletedScreen({ navigation }) {
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={confirmAction === "empty" ? handleEmptyTrash : handlePermanentDelete}
-                title={confirmAction === "empty" ? "Empty Trash?" : "Delete Forever?"}
+                title={confirmAction === "empty" ? "Delete Everything Permanently?" : "Delete Forever?"}
                 message={
                     confirmAction === "empty"
-                        ? "All items in trash will be permanently deleted. This cannot be undone."
+                        ? "All items will be permanently deleted. This cannot be undone."
                         : `${selectedItems.length} item(s) will be permanently deleted. This cannot be undone.`
                 }
                 confirmText="Delete Forever"
@@ -197,65 +187,3 @@ export default function DeletedScreen({ navigation }) {
         </View>
     );
 }
-
-const localStyles = StyleSheet.create({
-    trashItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.bgCard,
-        marginHorizontal: 16,
-        marginVertical: 4,
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.accent,
-    },
-    trashItemSelected: {
-        borderColor: colors.accentLight,
-        backgroundColor: colors.bgCardCopied,
-    },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 12,
-    },
-    itemContent: {
-        flex: 1,
-    },
-    itemName: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    itemMeta: {
-        fontSize: 12,
-        color: colors.textSecondary,
-    },
-    trashFooter: {
-        flexDirection: "row",
-        gap: 10,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: colors.bgSecondary,
-        borderTopWidth: 1,
-        borderTopColor: colors.accent,
-    },
-    footerButton: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 12,
-        borderRadius: 8,
-    },
-    footerButtonText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: colors.textPrimary,
-    },
-});

@@ -24,6 +24,7 @@ import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
+//import db from "../database/db.js";
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
@@ -57,6 +58,11 @@ export default function HomeScreen({ navigation }) {
         const result = await getFolders(null); // already fetches parent_id IS NULL
         const lastMode = await loadSortMode();
         handleSort(result, setSubjects, lastMode);
+
+        //const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL");
+        //const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL");
+        //const fields =  await db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL");
+        //console.log(folders.length, cards.length, fields.length);
     };
 
     // Handle Create or Edit

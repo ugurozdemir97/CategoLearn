@@ -5,7 +5,7 @@ import { colors } from "../styles/colors.js";
 import { formatDate } from "../utils/formatTime.js";
 
 // Items (Categories, Cards, and Fields)
-export default function ListButton({ label, updatedAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
+export default function ListButton({ label, updatedAt, deletedAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
 
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
@@ -18,6 +18,9 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
 
     // Determine if this is a field with context that can be expanded
     const hasContext = context && context.length > 0;
+
+    // Use deletedAt if provided, otherwise use updatedAt
+    const displayDate = deletedAt || updatedAt;
 
     return (
         <View style={{alignItems: "center"}}>
@@ -44,7 +47,7 @@ export default function ListButton({ label, updatedAt, icon, onPress, onLongPres
                     {showDates && (
                         <View style={{ alignItems: "flex-end" }}>
                             <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
-                                {formatDate(updatedAt)}
+                                {formatDate(displayDate)}
                             </Text>
                         </View>
                     )}

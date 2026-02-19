@@ -2,9 +2,9 @@ import db from "./db";
 
 export async function setupDatabase() {
     // Drop old tables if you want a clean reset
-    // await db.execAsync("DROP TABLE IF EXISTS fields");
-    // await db.execAsync("DROP TABLE IF EXISTS cards");
-    // await db.execAsync("DROP TABLE IF EXISTS folders");
+    //await db.execAsync("DROP TABLE IF EXISTS fields");
+    //await db.execAsync("DROP TABLE IF EXISTS cards");
+    //await db.execAsync("DROP TABLE IF EXISTS folders");
 
     // Folders table (subjects + categories unified)
     await db.execAsync(`
@@ -14,11 +14,11 @@ export async function setupDatabase() {
             name TEXT NOT NULL CHECK(length(name) >= 1 AND length(name) <= 50),
             color TEXT,
             type TEXT DEFAULT 'Category',
+            is_system_folder INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             deleted_at DATETIME DEFAULT NULL,
-            FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE,
-            UNIQUE(parent_id, name)
+            FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE
         );
     `);
 
@@ -30,11 +30,11 @@ export async function setupDatabase() {
             name TEXT NOT NULL CHECK(length(name) >= 1 AND length(name) <= 50),
             color TEXT,
             type TEXT DEFAULT 'Card',
+            is_system_card INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             deleted_at DATETIME DEFAULT NULL,
-            FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE,
-            UNIQUE(parent_id, name)
+            FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE
         );
     `);
 
@@ -50,8 +50,53 @@ export async function setupDatabase() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             deleted_at DATETIME DEFAULT NULL,
-            FOREIGN KEY(parent_id) REFERENCES cards(id) ON DELETE CASCADE,
-            UNIQUE(parent_id, name)
+            FOREIGN KEY(parent_id) REFERENCES cards(id) ON DELETE CASCADE
         );
     `);
+
+    // Create UNIQUE indexes that exclude system items
+    await db.execAsync(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_folders 
+        ON folders(parent_id, name) 
+        WHERE is_system_folder = 0;
+    `);
+
+    await db.execAsync(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_cards 
+        ON cards(parent_id, name) 
+        WHERE is_system_card = 0;
+    `);
+
+    await db.execAsync(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_fields 
+        ON fields(parent_id, name);
+    `);
+
+    // Create Restored Items folder if it doesn't exist
+    const restoredItemsFolder = await db.getFirstAsync(
+        "SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL"
+    );
+    
+    let restoredItemsFolderId;
+    if (!restoredItemsFolder) {
+        const result = await db.runAsync(
+            "INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)"
+        );
+        restoredItemsFolderId = result.lastInsertRowId;
+    } else {
+        restoredItemsFolderId = restoredItemsFolder.id;
+    }
+
+    // Create Restored Fields card if it doesn't exist
+    const restoredFieldsCard = await db.getFirstAsync(
+        "SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ?",
+        [restoredItemsFolderId]
+    );
+    
+    if (!restoredFieldsCard) {
+        await db.runAsync(
+            "INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)",
+            [restoredItemsFolderId]
+        );
+    }
 }

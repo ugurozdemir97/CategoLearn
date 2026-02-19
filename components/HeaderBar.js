@@ -13,34 +13,45 @@ const sortModes = [
     "Order by color",
 ];
 
+const deletedSortModes = [
+    "Order alphabetically",
+    "Order by creation date",
+    "Order by edit time",
+    "Order by deletion time",
+    "Order by color",
+];
+
 // HeaderBar component with sort button and selection info
-export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items, setItems, onLayout, onCancelSelection, onSelectAll}) {
+export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items, setItems, onLayout, onCancelSelection, onSelectAll, isDeletedScreen = false}) {
 
     // Safe area insets for preventing overlap with navigation buttons/status bar
     const insets = useSafeAreaInsets();
     const [sortIndex, setSortIndex] = useState(0);
+    
+    // Choose sort modes based on screen type
+    const modes = isDeletedScreen ? deletedSortModes : sortModes;
 
     // Load last sort mode when component mounts
     useEffect(() => {
         (async () => {
             const savedMode = await loadSortMode();
-            const index = sortModes.indexOf(savedMode);
+            const index = modes.indexOf(savedMode);
 
             if (index !== -1) {
                 setSortIndex(index);
             } else {
                 setSortIndex(0);
-                await saveSortMode(sortModes[0]);
+                await saveSortMode(modes[0]);
             }
         })();
-    }, []);
+    }, [isDeletedScreen]);
 
     // Cycle through sort modes on button press
     const cycleSort = async () => {
-        const nextIndex = (sortIndex + 1) % sortModes.length;
+        const nextIndex = (sortIndex + 1) % modes.length;
         setSortIndex(nextIndex);
-        const mode = sortModes[nextIndex];
-        onSort(items, setItems, mode);
+        const mode = modes[nextIndex];
+        onSort(items, setItems, mode, isDeletedScreen);
         await saveSortMode(mode);
     };
 
@@ -74,7 +85,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
 
                 // Change Sort Mode
                 <TouchableOpacity onPress={cycleSort} style={[styles.rowCenter, {gap: 10, height: 20}]}>
-                    <Text style={[styles.smallText, { color: colors.textPrimary}]}>{sortModes[sortIndex]}</Text>
+                    <Text style={[styles.smallText, { color: colors.textPrimary}]}>{modes[sortIndex]}</Text>
                     <FontAwesome name="caret-down" size={18} color={colors.textPrimary} />
                 </TouchableOpacity>
             )}

@@ -8,7 +8,7 @@ function getColorIndex(color, savedOrder) {
 }
 
 // Main sort function
-export async function handleSort(items, setItems, mode) {
+export async function handleSort(items, setItems, mode, isDeletedScreen = false) {
 
     const savedOrder = await loadColorOrder();
     const savedSortPref = await loadColorSortPreference();
@@ -26,6 +26,13 @@ export async function handleSort(items, setItems, mode) {
 
             case "Order by edit time":
                 sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                break;
+
+            case "Order by deletion time":
+                // Only available in deleted screen
+                if (isDeletedScreen) {
+                    sorted.sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at));
+                }
                 break;
 
             case "Order alphabetically":

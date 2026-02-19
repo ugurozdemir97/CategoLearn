@@ -1,8 +1,6 @@
-### Update ListButton to accept deletedAt. For deleted screen. Then use ListButton there
-### Update header to sort items by deletion date in Deleted screen and handle sort functions
-### Deleting root folder deletes everything in it separately. But it shouldnt happen. For example A > B > C, if you delete A, all items are deleted separately
-### Instead, we should see A in the deleted screen with B > C in it. 
-### When you delete Restored Items folder it shouldn't go to Deleted Screen.
+Update List Button to show dates acccording to sorthing method
+If sorted by edit time, it will display edit time, if creation date, it will display creation date. 
+Maybe there can be an icon too for each of them next to date. Deleted At (Trash icon), Created At (An icon for creation), Edited At (brush icon)
 
 # In The Future
 
