@@ -232,6 +232,7 @@ export default function FolderScreen({ route, navigation }) {
                         <ListButton
                             label={item.name}
                             updatedAt={item.updated_at}
+                            createdAt={item.created_at} 
                             color={item.color}
                             icon={item.type === "Category" ? "folder" : "file-text-o"}
                             isSelected={isSelected(item)}

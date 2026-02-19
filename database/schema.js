@@ -15,8 +15,8 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Category',
             is_system_folder INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE
         );
@@ -31,8 +31,8 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Card',
             is_system_card INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE
         );
@@ -47,8 +47,8 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Field',
             context TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
             FOREIGN KEY(parent_id) REFERENCES cards(id) ON DELETE CASCADE
         );

@@ -1,6 +1,13 @@
-Update List Button to show dates acccording to sorthing method
-If sorted by edit time, it will display edit time, if creation date, it will display creation date. 
-Maybe there can be an icon too for each of them next to date. Deleted At (Trash icon), Created At (An icon for creation), Edited At (brush icon)
+# In The Future
+
+### Add reminder and quiz functions. It should remind you cards from time to time
+### Add Voice and Images to cards, images must be resized/cropped to 500x500 to save space
+### Add a screen to show all your folders and files as a tree. It will be very difficult to implement but it would be nice
+### Add synchronising using Google account
+
+Now the app is basically done. I had a very long TODO list for my app "CategoLearn" but right now most of the things are finished. I had "In The Future" section in my TODO list,
+
+
 
 # In The Future
 

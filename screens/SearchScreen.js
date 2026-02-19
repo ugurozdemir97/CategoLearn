@@ -177,6 +177,7 @@ export default function SearchScreen({ navigation }) {
                         <ListButton
                             label={item.name}
                             updatedAt={item.updated_at}
+                            createdAt={item.created_at} 
                             color={item.color}
                             icon={getIcon(item.type)}
                             context={item.context}

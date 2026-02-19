@@ -5,6 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 import { saveSortMode, loadSortMode } from "../storage/sortPreference.js";
+import { useSortMode } from "../context/SortModeContext.js";
 
 const sortModes = [
     "Order alphabetically",
@@ -27,6 +28,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     // Safe area insets for preventing overlap with navigation buttons/status bar
     const insets = useSafeAreaInsets();
     const [sortIndex, setSortIndex] = useState(0);
+    const { setSortMode } = useSortMode();
     
     // Choose sort modes based on screen type
     const modes = isDeletedScreen ? deletedSortModes : sortModes;
@@ -39,8 +41,10 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
 
             if (index !== -1) {
                 setSortIndex(index);
+                setSortMode(savedMode);
             } else {
                 setSortIndex(0);
+                setSortMode(modes[0]);
                 await saveSortMode(modes[0]);
             }
         })();
@@ -51,6 +55,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
         const nextIndex = (sortIndex + 1) % modes.length;
         setSortIndex(nextIndex);
         const mode = modes[nextIndex];
+        setSortMode(mode); // Update global context
         onSort(items, setItems, mode, isDeletedScreen);
         await saveSortMode(mode);
     };

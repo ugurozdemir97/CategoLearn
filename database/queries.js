@@ -90,7 +90,7 @@ export async function updateFolder(id, name, color = null) {
     
     return db.runAsync(
         `UPDATE folders
-         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, color = ?, updated_at = (datetime('now', 'localtime'))
          WHERE id = ?`,
         [name, color, id]
     );
@@ -125,7 +125,7 @@ export async function deleteFolder(folderId) {
 
     // Mark only this folder as deleted (children remain active but hidden)
     await db.runAsync(
-        "UPDATE folders SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE folders SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
         [folderId]
     );
 }
@@ -187,14 +187,14 @@ export async function moveFolder(id, newParentId) {
     if (newParentId === null) {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = NULL, updated_at = CURRENT_TIMESTAMP
+             SET parent_id = NULL, updated_at = (datetime('now', 'localtime'))
              WHERE id = ?`,
             [id]
         );
     } else {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
+             SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
              WHERE id = ?`,
             [newParentId, id]
         );
@@ -213,7 +213,7 @@ export async function addCard(folderId, name, color = null) {
     
     const result = await db.runAsync(
         `INSERT INTO cards (parent_id, name, color, created_at, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, (datetime('now', 'localtime')), (datetime('now', 'localtime')))`,
         [folderId, name, color]
     );
     return result.lastInsertRowId;
@@ -258,7 +258,7 @@ export async function updateCard(id, name, color = null) {
     
     return db.runAsync(
         `UPDATE cards
-         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, color = ?, updated_at = (datetime('now', 'localtime'))
          WHERE id = ?`,
         [name, color, id]
     );
@@ -286,7 +286,7 @@ export async function deleteCard(cardId) {
 
     // Mark only card as deleted (fields remain active but hidden)
     await db.runAsync(
-        "UPDATE cards SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE cards SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
         [cardId]
     );
 }
@@ -310,7 +310,7 @@ export async function permanentlyDeleteCard(cardId) {
 export async function moveCard(id, newFolderId) {
     return db.runAsync(
         `UPDATE cards
-         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
+         SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
          WHERE id = ?`,
         [newFolderId, id]
     );
@@ -339,7 +339,7 @@ export async function addField(cardId, name, context = null, color = null) {
     
     const result = await db.runAsync(
         `INSERT INTO fields (parent_id, name, context, color, created_at, updated_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, (datetime('now', 'localtime')), (datetime('now', 'localtime')))`,
         [cardId, name, context, color]
     );
     return result.lastInsertRowId;
@@ -358,7 +358,7 @@ export async function getFields(cardId) {
 export async function updateField(id, name, context = null, color = null) {
     return db.runAsync(
         `UPDATE fields
-         SET name = ?, context = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, context = ?, color = ?, updated_at = (datetime('now', 'localtime'))
          WHERE id = ?`,
         [name, context, color, id]
     );
@@ -367,7 +367,7 @@ export async function updateField(id, name, context = null, color = null) {
 // Soft delete field (marks as deleted)
 export async function deleteField(id) {
     return db.runAsync(
-        "UPDATE fields SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE fields SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
         [id]
     );
 }
@@ -381,7 +381,7 @@ export async function permanentlyDeleteField(id) {
 export async function moveField(id, newCardId) {
     return db.runAsync(
         `UPDATE fields
-         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
+         SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
          WHERE id = ?`,
         [newCardId, id]
     );
@@ -423,7 +423,7 @@ export async function restoreFolder(folderId) {
 
     // Restore this folder
     await db.runAsync(
-        "UPDATE folders SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE folders SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
         [targetParentId, folderId]
     );
 }
@@ -447,7 +447,7 @@ export async function restoreCard(cardId) {
 
     // Restore this card
     await db.runAsync(
-        "UPDATE cards SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE cards SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
         [targetFolderId, cardId]
     );
 }
@@ -469,13 +469,13 @@ export async function restoreField(fieldId) {
         const restoredCard = await getOrCreateRestoredFieldsCard(restoredFolder);
         
         await db.runAsync(
-            "UPDATE fields SET deleted_at = NULL, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE fields SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
             [restoredCard, fieldId]
         );
     } else {
         // Parent exists, restore normally
         await db.runAsync(
-            "UPDATE fields SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE fields SET deleted_at = NULL, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
             [fieldId]
         );
     }

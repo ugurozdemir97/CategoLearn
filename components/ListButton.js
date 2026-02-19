@@ -3,9 +3,12 @@ import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 import { formatDate } from "../utils/formatTime.js";
+import { useSortMode } from "../context/SortModeContext.js";
 
 // Items (Categories, Cards, and Fields)
-export default function ListButton({ label, updatedAt, deletedAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
+export default function ListButton({ label, updatedAt, deletedAt, createdAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
+
+    const { sortMode } = useSortMode();
 
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
@@ -19,8 +22,24 @@ export default function ListButton({ label, updatedAt, deletedAt, icon, onPress,
     // Determine if this is a field with context that can be expanded
     const hasContext = context && context.length > 0;
 
-    // Use deletedAt if provided, otherwise use updatedAt
-    const displayDate = deletedAt || updatedAt;
+    // Determine which date and icon to show based on sort mode
+    let displayDate = updatedAt;
+    let dateIcon = "pencil";
+    if (sortMode === "Order by deletion time" && deletedAt) {
+        displayDate = deletedAt;
+        dateIcon = "trash-o";
+    } else if (sortMode === "Order by creation date" && createdAt) {
+        displayDate = createdAt;
+        dateIcon = "plus-circle";
+    } else if (sortMode === "Order by edit time" && updatedAt) {
+        displayDate = updatedAt;
+        dateIcon = "pencil";
+    } else {
+        if (deletedAt) {
+            displayDate = deletedAt;
+            dateIcon = "trash-o";
+        } 
+    }
 
     return (
         <View style={{alignItems: "center"}}>
@@ -45,7 +64,8 @@ export default function ListButton({ label, updatedAt, deletedAt, icon, onPress,
                 {/* Right side: status icons (cut/copy) and selection checkmark or expand arrow */}
                 <View style={[styles.rowCenter, { gap: 8 }]}>
                     {showDates && (
-                        <View style={{ alignItems: "flex-end" }}>
+                        <View style={[styles.rowCenter, { gap: 4 }]}>
+                            <FontAwesome name={dateIcon} size={10} color={colors.textHalfOpacity} />
                             <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
                                 {formatDate(displayDate)}
                             </Text>

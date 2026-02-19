@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ClipboardProvider } from "./context/ClipboardContext.js";
+import { SortModeProvider } from "./context/SortModeContext.js";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import StackNavigator from "./navigation/StackNavigator";
 import { setupDatabase } from "./database/schema.js";
@@ -34,9 +35,11 @@ export default function App() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
-                <ClipboardProvider>
-                    <StackNavigator />
-                </ClipboardProvider>
+                <SortModeProvider>
+                    <ClipboardProvider>
+                        <StackNavigator />
+                    </ClipboardProvider>
+                </SortModeProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>
     );

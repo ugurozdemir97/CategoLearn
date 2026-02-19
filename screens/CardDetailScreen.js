@@ -203,6 +203,7 @@ export default function CardDetailScreen({ route, navigation }) {
                         <ListButton
                             label={item.name}
                             updatedAt={item.updated_at}
+                            createdAt={item.created_at} 
                             context={item.context}
                             color={item.color}
                             icon="align-left"

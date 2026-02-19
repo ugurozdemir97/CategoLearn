@@ -135,6 +135,8 @@ export default function DeletedScreen({ navigation }) {
                         <ListButton
                             label={item.name}
                             deletedAt={item.deleted_at}
+                            updatedAt={item.updated_at}
+                            createdAt={item.created_at} 
                             color={item.color}
                             icon={getIcon(item.type)}
                             isSelected={isSelected(item)}

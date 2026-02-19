@@ -184,6 +184,7 @@ export default function HomeScreen({ navigation }) {
                             <ListButton
                                 label={item.name}
                                 updatedAt={item.updated_at}
+                                createdAt={item.created_at} 
                                 color={item.color}
                                 icon="folder"
                                 isSelected={isSelected(item)}
