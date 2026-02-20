@@ -84,9 +84,16 @@ export default function FolderScreen({ route, navigation }) {
 
     // Also reload on focus (when coming back from other screens)
     useEffect(() => {
-        const unsubscribe = navigation.addListener("focus", () => {loadItems()});
-        return unsubscribe;
-    }, [navigation]);
+    const unsubscribe = navigation.addListener("focus", () => {
+        // Always derive the current folder from route.params
+        const currentFolder = route.params?.folder;
+        if (currentFolder) {
+        loadItems(currentFolder.id);
+        }
+    });
+
+    return unsubscribe;
+    }, [navigation, route.params]);
 
     // Load all subfolders and cards inside this folder from the database
     const loadItems = async () => {
