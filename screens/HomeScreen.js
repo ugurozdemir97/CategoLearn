@@ -40,8 +40,7 @@ export default function HomeScreen({ navigation }) {
     const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
-    const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on header/footer size
-    const [headerHeight, setHeaderHeight] = useState(50);
+    const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on footer size
 
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
@@ -156,7 +155,6 @@ export default function HomeScreen({ navigation }) {
                 onSort={handleSort}
                 items={subjects}
                 setItems={setSubjects}
-                onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(subjects)}
             />

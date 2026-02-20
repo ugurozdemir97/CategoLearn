@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, FlatList, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -28,8 +28,8 @@ export default function SearchScreen({ navigation }) {
 
     // Bring all folders, cards, fields except deleted ones
     const loadAllData = async () => {
-        const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL");
-        const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL");
+        const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL AND is_system_folder = 0");
+        const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL AND is_system_card = 0");
         const fields =  await db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL");
         setAllItems([...folders, ...cards, ...fields]);  // Combine and store in state
     };

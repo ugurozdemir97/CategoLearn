@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { View, Text, FlatList } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, FlatList, BackHandler } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
 
 // Components
 import CircleButton from "../components/CircleButton.js";
@@ -44,12 +45,35 @@ export default function FolderScreen({ route, navigation }) {
     const [fields, setFields] = useState([]);                           // The fields of the card being created/edited
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
-    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on header/footer size
-    const [headerHeight, setHeaderHeight] = useState(50);
+    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
+
+    // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+
+                // Go back to parent folder instead of root
+                if (path.length > 1) {
+                    const parent = path[path.length - 2]; 
+                    navigation.setParams({folder: parent, path: path.slice(0, path.length - 1)});
+                    return true; // Prevent default back action
+                }
+
+                return false; // Allow default (exit to Home)
+
+            };
+
+            // Subscribe
+            const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+            // Cleanup
+            return () => subscription.remove();
+        }, [path, navigation])
+    );
 
     // Reload items when folder or path changes
     useEffect(() => {
@@ -183,7 +207,6 @@ export default function FolderScreen({ route, navigation }) {
                 onSort={handleSort}
                 items={items}
                 setItems={setItems}
-                onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(items)}
             />

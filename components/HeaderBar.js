@@ -23,7 +23,7 @@ const deletedSortModes = [
 ];
 
 // HeaderBar component with sort button and selection info
-export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items, setItems, onLayout, onCancelSelection, onSelectAll, isDeletedScreen = false}) {
+export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items, setItems, onCancelSelection, onSelectAll, isDeletedScreen = false}) {
 
     // Safe area insets for preventing overlap with navigation buttons/status bar
     const insets = useSafeAreaInsets();
@@ -61,7 +61,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     };
 
     return (
-        <View style={[styles.paddingHorizontal, styles.spaceBetween, styles.rowCenter,  { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: colors.bgPrimary }]} onLayout={onLayout}>
+        <View style={[styles.paddingHorizontal, styles.spaceBetween, styles.rowCenter,  { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: colors.bgPrimary }]}>
             
             {selectedCount > 0 ? (
                 <View style={[styles.rowCenter, styles.spaceBetween, {flex: 1}]}>

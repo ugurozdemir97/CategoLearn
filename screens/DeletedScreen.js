@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Styles and Colors
@@ -24,6 +25,7 @@ import { handleSort } from "../utils/handleSort.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
 export default function DeletedScreen({ navigation }) {
+    const insets = useSafeAreaInsets();            // For placing elements
     const [deletedItems, setDeletedItems] = useState([]);         // All deleted Items
     const [confirmVisible, setConfirmVisible] = useState(false);  // Show/Hide Confirmation Modal
     const [confirmAction, setConfirmAction] = useState(null);     // Confirm deletion or restore
@@ -150,7 +152,7 @@ export default function DeletedScreen({ navigation }) {
 
             <View style={{height: 10}}></View>
 
-            <View style={[styles.rowCenter, styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary, gap: 10}]}>
+            <View style={[styles.rowCenter, styles.paddingHorizontal, {backgroundColor: colors.bgSecondary, gap: 10, paddingBottom: insets.bottom + 15, paddingTop: 15}]}>
                 {selectedItems.length > 0 ? (
                     <>
                         <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>

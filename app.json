@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000"
+      "backgroundColor": "#020029"
     },
     "ios": {
       "supportsTablet": true
@@ -18,13 +18,18 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#020029"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ugur97.CategoLearn"
     },
     "plugins": [
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "99efa90e-d826-4af7-b85c-d7fb09a7da53"
+      }
+    }
   }
 }

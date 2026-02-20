@@ -44,8 +44,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const [expanded, setExpanded] = useState({});                       // Which fields are expanded to show their context
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
 
-    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on header/footer size
-    const [headerHeight, setHeaderHeight] = useState(50);
+    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
@@ -156,7 +155,6 @@ export default function CardDetailScreen({ route, navigation }) {
                 onSort={handleSort}
                 items={fields}
                 setItems={setFields}
-                onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(fields)}
             />
