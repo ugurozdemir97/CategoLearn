@@ -57,7 +57,7 @@ export default function FolderScreen({ route, navigation }) {
             const onBackPress = () => {
 
                 // Go back to parent folder instead of root
-                if (path.length > 1) {
+                if (path.length > 2) {
                     const parent = path[path.length - 2]; 
                     navigation.setParams({folder: parent, path: path.slice(0, path.length - 1)});
                     return true; // Prevent default back action
@@ -67,11 +67,8 @@ export default function FolderScreen({ route, navigation }) {
 
             };
 
-            // Subscribe
-            const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
-
-            // Cleanup
-            return () => subscription.remove();
+            const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);  // Subscribe
+            return () => subscription.remove();                                                   // Cleanup
         }, [path, navigation])
     );
 
