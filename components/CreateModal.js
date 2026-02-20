@@ -87,6 +87,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 return;
             }
 
+            console.log(localFields)
             const cardData = { type: "Card", name: validation.trimmed, fields: localFields, color: selectedColor };
             onCreate(cardData, mode);
         }

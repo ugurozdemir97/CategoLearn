@@ -3,7 +3,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
-const AVAILABLE_COLORS = [ null, "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d" ];
+const AVAILABLE_COLORS = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d", null ];
 
 // A modal for changing colors of the items
 export default function ColorModal({ visible, onClose, onSelect, selectedColor }) {

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SORT_MODE_KEY = "lastSortMode";
 const COLOR_ORDER_KEY = "lastColorOrder";
 const COLOR_SORT_PREF_KEY = "lastColorSortPreference";
-const DEFAULT_COLOR_ORDER = [ null, "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d" ];
+const DEFAULT_COLOR_ORDER = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d", null ];
 
 // Save last sort mode
 export async function saveSortMode(mode) {

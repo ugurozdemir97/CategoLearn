@@ -333,9 +333,7 @@ export async function copyCardRecursive(copiedCard, newFolderId) {
 export async function addField(cardId, name, context = null, color = null) {
     // Prevent creating fields inside system card (Restored Fields)
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
-    if (card && card.is_system_card === 1) {
-        throw new Error("Cannot create fields inside system cards");
-    }
+    if (card && card.is_system_card === 1) {throw new Error("Cannot create fields inside system cards");}
     
     const result = await db.runAsync(
         `INSERT INTO fields (parent_id, name, context, color, created_at, updated_at)

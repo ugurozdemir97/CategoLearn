@@ -27,7 +27,7 @@ import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopy
 
 // Database Queries and Storage
 import db from "../database/db.js";
-import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, getFields, deleteField } from "../database/queries.js";
+import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, updateField, getFields, deleteField } from "../database/queries.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
@@ -54,7 +54,9 @@ export default function FolderScreen({ route, navigation }) {
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
         React.useCallback(() => {
+            let isScreenFocused = true;
             const onBackPress = () => {
+                if (!isScreenFocused) return false;
 
                 // Go back to parent folder instead of root
                 if (path.length > 2) {
@@ -68,7 +70,10 @@ export default function FolderScreen({ route, navigation }) {
             };
 
             const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);  // Subscribe
-            return () => subscription.remove();                                                   // Cleanup
+            return () => {
+                isScreenFocused = false;
+                subscription.remove();
+            };                                    
         }, [path, navigation])
     );
 
@@ -109,9 +114,48 @@ export default function FolderScreen({ route, navigation }) {
             } else {
                 // Update card name, delete old fields and add new fields
                 await updateCard(editTarget.id, itemData.name, itemData.color);
-                const oldFields =                await getFields(editTarget.id);
-                for (const of of oldFields)      await deleteField(of.id);
-                for (const f of itemData.fields) await addField(editTarget.id, f.name, f.context);
+
+                // Smart field sync: update, add, or delete as needed
+                const oldFields = await getFields(editTarget.id);
+                const newFields = itemData.fields || [];
+                
+                // Track which old fields are still present
+                const processedOldFieldIds = new Set();
+                
+                // Process each new field
+                for (const newField of newFields) {
+                    if (newField.id) {
+
+                        // Existing field - check if it changed
+                        processedOldFieldIds.add(newField.id);
+                        const oldField = oldFields.find(f => f.id === newField.id);
+                        
+                        if (oldField) {
+
+                            // Check if anything actually changed
+                            const nameChanged = oldField.name !== newField.name;
+                            const contextChanged = (oldField.context || '') !== (newField.context || '');
+                            const colorChanged = (oldField.color || null) !== (newField.color || null);
+                            
+                            // Update only if something changed
+                            if (nameChanged || contextChanged || colorChanged) {
+                                await updateField(newField.id, newField.name, newField.context || null, newField.color || null);
+                            }
+                        }
+                    } else {
+
+                        // New field (no id) - create it
+                        await addField(editTarget.id, newField.name, newField.context || null, newField.color || null);
+                    }
+                }
+                
+                // Delete fields that were removed (exist in old but not in new)
+                for (const oldField of oldFields) {
+                    if (!processedOldFieldIds.has(oldField.id)) {
+                        // Field was removed - soft delete it
+                        await deleteField(oldField.id);
+                    }
+                }
             }
         }
 
