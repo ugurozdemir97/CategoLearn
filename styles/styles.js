@@ -27,7 +27,6 @@ export default StyleSheet.create({
     toolBarContainer: {
         borderRadius: 6,
         overflow: 'hidden',
-        minHeight: 200
     },
 
     // ALIGNMENT
@@ -130,13 +129,6 @@ export default StyleSheet.create({
     input: {
         borderRadius: 5,
         flex: 1
-    },
-
-    fieldInput: {
-        minHeight: 100,
-        maxHeight: 300,
-        flex: 0,
-        textAlignVertical: "top"
     },
 
     // Card detail fields

@@ -185,7 +185,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                             {isCard && (
                                 <View>
                                     {localFields.length > 0 && (
-                                        <ScrollView style={{ maxHeight: 370, width: "100%", marginBottom: 10  }}>
+                                        <ScrollView style={{ maxHeight: 300, width: "100%", marginBottom: 10  }}>
                                             {localFields.map((field, index) => {
                                                 const isLast = index === localFields.length - 1;
                                                 return (

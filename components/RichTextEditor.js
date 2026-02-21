@@ -14,21 +14,18 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
 
     // Only set initial content once when editor is ready
     useEffect(() => {
-        if (isReady && !hasSetInitialContent.current && !isInitializing.current && initialContent) {
+        if (isReady && !hasSetInitialContent.current && initialContent) {
             isInitializing.current = true;
-            setTimeout(() => {
-                editorRef.current?.setContentHTML(initialContent);
-                hasSetInitialContent.current = true;
-                isInitializing.current = false;
-            }, 50);
+            editorRef.current?.setContentHTML(initialContent);
+            hasSetInitialContent.current = true;
+            setTimeout(() => {isInitializing.current = false}, 50);
         }
     }, [isReady, initialContent]);
 
     // Only call onChange if editor is ready and not initializing
     const handleChange = (html) => {
-        if (isReady && !isInitializing.current && hasSetInitialContent.current) {
-            onChange(html);
-        }
+        if (isInitializing.current) return;
+        onChange(html);
     };
 
     // Get editor for toolbar
@@ -82,9 +79,17 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
                     placeholder={placeholder}
                     androidHardwareAccelerationDisabled={true}
                     useContainer={true}
-                    initialHeight={150}
+                    initialHeight={50}
                     editorInitializedCallback={() => setIsReady(true)}
-                    style={{minHeight: 150, backgroundColor: colors.bgSecondary}}
+                    style={{
+                        minHeight: 50, 
+                        backgroundColor: colors.bgSecondary,
+                        borderBottomLeftRadius: 6,   
+                        borderBottomRightRadius: 6,  
+                        borderTopLeftRadius: 0,       
+                        borderTopRightRadius: 0,  
+                        overflow: "hidden", 
+                    }}
                     editorStyle={{
                         backgroundColor: colors.bgSecondary,
                         color: colors.textSecondary,
