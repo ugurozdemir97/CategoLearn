@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { colors } from '../styles/colors.js';
-import styles from '../styles/styles.js';
 
 // Rich text editor
 export default function RichTextEditor({ initialContent, onChange, placeholder = "Context (optional)" }) {
@@ -40,7 +39,7 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     };
 
     return (
-        <View style={[styles.toolBarContainer]}>
+        <View style={{minHeight: 50, maxHeight: isFocused ? 240 : 200}}>
 
             {/* Toolbar - only show when ready AND focused */}
             {isReady && isFocused && (
@@ -52,7 +51,13 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
                     style={{
                         backgroundColor: colors.bgPrimary, 
                         borderBottomWidth: 1, 
-                        borderBottomColor: colors.accentLight + '30'
+                        borderBottomColor: colors.accentLight + '30',
+                        height: 40,
+                        borderBottomLeftRadius: 0,   
+                        borderBottomRightRadius: 0,  
+                        borderTopLeftRadius: 6,       
+                        borderTopRightRadius: 6,  
+                        overflow: 'hidden',
                     }}
                     actions={[
                         actions.setBold,
@@ -68,40 +73,40 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
             )}
             
             {/* Rich Text Editor */}
-            <ScrollView style={{maxHeight: 300}}>
-                <RichEditor
-                    ref={editorRef}
-                    initialContentHTML={initialContent || ''}
-                    onChange={handleChange}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
-                    onCursorPosition={() => {}}
-                    placeholder={placeholder}
-                    androidHardwareAccelerationDisabled={true}
-                    useContainer={true}
-                    initialHeight={50}
-                    editorInitializedCallback={() => setIsReady(true)}
-                    style={{
-                        minHeight: 50, 
-                        backgroundColor: colors.bgSecondary,
-                        borderBottomLeftRadius: 6,   
-                        borderBottomRightRadius: 6,  
-                        borderTopLeftRadius: 0,       
-                        borderTopRightRadius: 0,  
-                        overflow: "hidden", 
-                    }}
-                    editorStyle={{
-                        backgroundColor: colors.bgSecondary,
-                        color: colors.textSecondary,
-                        placeholderColor: colors.textHalfOpacity,
-                        contentCSSText: `
-                            font-family: system-ui; 
-                            color: ${colors.textSecondary}; 
-                            padding: 10px;
-                        `,
-                    }}
-                />
-            </ScrollView>
+            <RichEditor
+                ref={editorRef}
+                initialContentHTML={initialContent || ''}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onCursorPosition={() => {}}
+                placeholder={placeholder}
+                androidHardwareAccelerationDisabled={true}
+                useContainer={true}
+                initialHeight={50}
+                editorInitializedCallback={() => setIsReady(true)}
+                style={{
+                    minHeight: 50,
+                    maxHeight: 200,
+                    borderBottomLeftRadius: 6,   
+                    borderBottomRightRadius: 6,  
+                    borderTopLeftRadius: isFocused ? 0 : 6,       
+                    borderTopRightRadius: isFocused ? 0 : 6,  
+                    overflow: "hidden", 
+                }}
+                editorStyle={{
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textSecondary,
+                    placeholderColor: colors.textHalfOpacity,
+                    contentCSSText: `
+                        font-family: system-ui; 
+                        color: ${colors.textSecondary}; 
+                        padding: 10px;
+                        position: absolute; 
+                        top: 5; right: 10; bottom: 5; left: 10;
+                    `,
+                }}
+            />
         </View>
     );
 }

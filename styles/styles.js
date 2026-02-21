@@ -128,7 +128,7 @@ export default StyleSheet.create({
 
     input: {
         borderRadius: 5,
-        flex: 1
+        flex: 1,
     },
 
     // Card detail fields

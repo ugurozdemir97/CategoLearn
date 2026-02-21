@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, BackHandler } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
+import { FontAwesome } from "@expo/vector-icons";
 
 // Components
 import CircleButton from "../components/CircleButton.js";
@@ -20,15 +21,16 @@ import { colors } from "../styles/colors.js";
 // Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
+import { useSortMode } from "../context/SortModeContext.js";
 
 // Utils
+import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
 import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, updateField, getFields, deleteField } from "../database/queries.js";
-import { loadSortMode } from "../storage/sortPreference.js";
 
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
@@ -44,12 +46,14 @@ export default function FolderScreen({ route, navigation }) {
     const [createType, setCreateType] = useState(null);                 // Whether we are creating/editing a card or folder
     const [fields, setFields] = useState([]);                           // The fields of the card being created/edited
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
+    const [folderDate, setFolderDate] = useState(null);                 // Parent folder's creation/last edit date
 
     const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
+    const { sortMode } = useSortMode(); 
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -84,24 +88,25 @@ export default function FolderScreen({ route, navigation }) {
 
     // Also reload on focus (when coming back from other screens)
     useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-        // Always derive the current folder from route.params
-        const currentFolder = route.params?.folder;
-        if (currentFolder) {
-        loadItems(currentFolder.id);
-        }
-    });
+        const unsubscribe = navigation.addListener("focus", () => {
+            // Always derive the current folder from route.params
+            const currentFolder = route.params?.folder;
+            if (currentFolder) {
+                loadItems(currentFolder.id);
+            }
+        });
 
-    return unsubscribe;
-    }, [navigation, route.params]);
+        return unsubscribe;
+    }, [navigation, route.params, sortMode]);
 
     // Load all subfolders and cards inside this folder from the database
     const loadItems = async () => {
         const folders = await getFolders(folder.id);
         const cards = await getCards(folder.id);
         const result = [...folders, ...cards];
-        const lastMode = await loadSortMode();
-        handleSort(result, setItems, lastMode);
+        handleSort(result, setItems, sortMode);
+        if (sortMode === "Order by creation date") setFolderDate(folder.created_at);
+        else setFolderDate(folder.updated_at);
     };
 
     // Handle Create or Edit for both cards and folders
@@ -278,10 +283,12 @@ export default function FolderScreen({ route, navigation }) {
                 </Text>
 
                 {/* Created At pinned bottom-right */}
-                <Text style={[ styles.tinyText, {color: colors.textHalfOpacity, position: "absolute", right: 10, bottom: 5 }]}>
-                    Created At: {new Date(folder.created_at).toLocaleDateString("en-GB")}
-                </Text>
-                
+                <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
+                    <FontAwesome name={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
+                    <Text style={[ styles.tinyText, {color: colors.textHalfOpacity}]}>
+                        {formatDate(folderDate)}
+                    </Text>
+                </View>  
             </View>
 
             {/* Items */}
@@ -376,8 +383,10 @@ export default function FolderScreen({ route, navigation }) {
                 parentId={folder.id}
                 editTarget={editTarget}
                 onClose={() => {
-                    setModalVisible(false);
+                    setFields([]);
                     setEditTarget(null);
+                    clearSelection();
+                    setModalVisible(false);
                 }}
             />
 

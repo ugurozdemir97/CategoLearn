@@ -17,7 +17,7 @@ export default function BreadCrumb({ path, onNavigate }) {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.paddingHorizontal}
-            style={{backgroundColor: colors.bgBreadCurmb, maxHeight: 30}}
+            style={{backgroundColor: colors.bgBreadCurmb, minHeight: 30, maxHeight: 30}}
         >
             {path.map((node, index) => (
                 <View key={`${node.type}-${node.id}`} style={styles.rowCenter}>

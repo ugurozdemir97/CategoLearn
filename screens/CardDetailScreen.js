@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, FlatList } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
 
 // Components
 import CircleButton from "../components/CircleButton.js";
@@ -17,17 +18,18 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Context and Hooks
+import { useSortMode } from "../context/SortModeContext.js";
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 
 // Utils
+import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
 import { getFields, addField, updateField, deleteField } from "../database/queries.js";
-import { loadSortMode } from "../storage/sortPreference.js";
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
@@ -43,24 +45,27 @@ export default function CardDetailScreen({ route, navigation }) {
     const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
     const [expanded, setExpanded] = useState({});                       // Which fields are expanded to show their context
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
+    const [cardDate, setCardDate] = useState(null);                     // Parent card's creation/last edit date
 
     const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
+    const { sortMode } = useSortMode(); 
 
     // Load all fields inside this card when we are in this screen
     useEffect(() => {
         const unsubscribe = navigation.addListener("focus", () => {loadFields()});
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, sortMode]);
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
         const result = await getFields(card.id);
-        const lastMode = await loadSortMode();
-        handleSort(result, setFields, lastMode);
+        handleSort(result, setFields, sortMode);
+        if (sortMode === "Order by creation date") setCardDate(card.created_at);
+        else setCardDate(card.updated_at);
     };
 
     // Handle creating or editing a card
@@ -178,9 +183,12 @@ export default function CardDetailScreen({ route, navigation }) {
                 </Text>
 
                 {/* Created At pinned bottom-right */}
-                <Text style={[ styles.tinyText, {color: colors.textHalfOpacity, position: "absolute", right: 10, bottom: 5 }]}>
-                    Created At: {new Date(card.created_at).toLocaleDateString("en-GB")}
-                </Text>
+                <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
+                    <FontAwesome name={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
+                    <Text style={[ styles.tinyText, {color: colors.textHalfOpacity}]}>
+                        {formatDate(cardDate)}
+                    </Text>
+                </View>  
                 
             </View>
 
@@ -256,8 +264,10 @@ export default function CardDetailScreen({ route, navigation }) {
                 parentId={card.id}
                 editTarget={editTarget}
                 onClose={() => {
-                    setModalVisible(false);
+                    setFieldContext("");
+                    setEditTarget(null);
                     clearSelection();
+                    setModalVisible(false);
                 }}
             />
 

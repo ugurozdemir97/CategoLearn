@@ -152,7 +152,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
                 <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
                     <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
-                        <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.bgModal}]}>
 
                             {/* Title */}
                             <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>{title}</Text>
@@ -189,7 +189,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                             {localFields.map((field, index) => {
                                                 const isLast = index === localFields.length - 1;
                                                 return (
-                                                    <View key={index} style={[ styles.input, {backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10 }]}>
+                                                    <View key={index} style={{backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10, borderRadius: 6 }}>
+                                                        
                                                         <View style={[styles.centered, { flexDirection: "row" }]}>
                                                             <TextInput
                                                                 style={[ styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, flex: 1 }]}
@@ -209,14 +210,12 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                         </View>
 
                                                         {/* Rich Text Editor for field context */}
-                                                        <View style={{ padding: 10 }}>
-                                                            <RichTextEditor
-                                                                key={`field-${index}`}
-                                                                initialContent={field.context || ''}
-                                                                onChange={(html) => updateField(index, "context", html)}
-                                                                placeholder="Context (optional)"
-                                                            />
-                                                        </View>
+                                                        <RichTextEditor
+                                                            key={`field-${index}`}
+                                                            initialContent={field.context || ''}
+                                                            onChange={(html) => updateField(index, "context", html)}
+                                                            placeholder="Context (optional)"
+                                                        />
                                                     </View>
                                                 );
                                             })}
@@ -233,14 +232,12 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                             
                             {/* Rich Text Editor for single field */}
                             {isField && (
-                                <View style={{ marginBottom: 10 }}>
-                                    <RichTextEditor
-                                        key={`field-${editTarget?.id || 'new'}-${visible}`}
-                                        initialContent={localContext}
-                                        onChange={setLocalContext}
-                                        placeholder="Context (optional)"
-                                    />
-                                </View>
+                                <RichTextEditor
+                                    key={`field-${editTarget?.id || 'new'}-${visible}`}
+                                    initialContent={localContext}
+                                    onChange={setLocalContext}
+                                    placeholder="Context (optional)"
+                                />
                             )}
 
                             {/* Action Buttons */}

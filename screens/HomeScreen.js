@@ -16,6 +16,7 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Context and Hooks
+import { useSortMode } from "../context/SortModeContext.js";
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 
@@ -26,7 +27,6 @@ import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopy
 // Database Queries and Storage
 //import db from "../database/db.js";
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
-import { loadSortMode } from "../storage/sortPreference.js";
 
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
@@ -45,18 +45,18 @@ export default function HomeScreen({ navigation }) {
     // Handle selection and clipboard using custom hooks/context
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
+    const { sortMode } = useSortMode(); 
 
     // Call loadSubjects when we are in this screen
     useEffect(() => {
         const unsubscribe = navigation.addListener("focus", () => {loadSubjects()});
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, sortMode]);
 
     // Load all root folders (subjects) from the database
     const loadSubjects = async () => {
         const result = await getFolders(null); // already fetches parent_id IS NULL
-        const lastMode = await loadSortMode();
-        handleSort(result, setSubjects, lastMode);
+        handleSort(result, setSubjects, sortMode);
 
         //const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL");
         //const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL");
@@ -231,8 +231,9 @@ export default function HomeScreen({ navigation }) {
                 mode={editTarget ? "edit" : "create"}
                 editTarget={editTarget}
                 onClose={() => {
-                    setModalVisible(false);
                     setEditTarget(null);
+                    clearSelection();
+                    setModalVisible(false);
                 }}
             />
 

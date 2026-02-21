@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
-import { saveSortMode, loadSortMode } from "../storage/sortPreference.js";
+import { saveSortMode } from "../storage/sortPreference.js";
 import { useSortMode } from "../context/SortModeContext.js";
 
 const sortModes = [
@@ -28,7 +28,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     // Safe area insets for preventing overlap with navigation buttons/status bar
     const insets = useSafeAreaInsets();
     const [sortIndex, setSortIndex] = useState(0);
-    const { setSortMode } = useSortMode();
+    const { sortMode, setSortMode } = useSortMode();
     
     // Choose sort modes based on screen type
     const modes = isDeletedScreen ? deletedSortModes : sortModes;
@@ -36,8 +36,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     // Load last sort mode when component mounts
     useEffect(() => {
         (async () => {
-            const savedMode = await loadSortMode();
-            const index = modes.indexOf(savedMode);
+            const index = modes.indexOf(sortMode);
 
             if (index !== -1) {
                 setSortIndex(index);
@@ -48,7 +47,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
                 await saveSortMode(modes[0]);
             }
         })();
-    }, [isDeletedScreen]);
+    }, [isDeletedScreen, sortMode]);
 
     // Cycle through sort modes on button press
     const cycleSort = async () => {
