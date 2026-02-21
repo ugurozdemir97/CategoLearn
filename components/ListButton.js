@@ -4,6 +4,7 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 import { formatDate } from "../utils/formatTime.js";
 import { useSortMode } from "../context/SortModeContext.js";
+import RichTextDisplay from "./RichTextDisplay.js";
 
 // Items (Categories, Cards, and Fields)
 export default function ListButton({ label, updatedAt, deletedAt, createdAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
@@ -88,10 +89,10 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
 
             </TouchableOpacity>
 
-            {/* Expanded context (only for fields with context) */}
+            {/* Expanded context with rich text support */}
             {expanded && hasContext && (
                 <View style={[styles.contextArea, styles.paddingVertical, styles.paddingHorizontal, { backgroundColor: colors.bgSecondary }]}>
-                    <Text style={[styles.smallText, { color: colors.textSecondary }]}>{context}</Text>
+                    <RichTextDisplay content={context}/>
                 </View>
             )}
         </View>

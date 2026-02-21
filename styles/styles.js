@@ -24,6 +24,12 @@ export default StyleSheet.create({
         marginBottom: 15
     },
 
+    toolBarContainer: {
+        borderRadius: 6,
+        overflow: 'hidden',
+        minHeight: 200
+    },
+
     // ALIGNMENT
 
     spaceBetween: {justifyContent: "space-between"},
@@ -134,6 +140,7 @@ export default StyleSheet.create({
     },
 
     // Card detail fields
+
     contextArea: {
         width: "100%",
         paddingHorizontal: 15, 

@@ -5,6 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 // Components
 import ConfirmationModal from "./ConfirmationModal.js";
 import ColorModal from "./ColorModal.js";
+import RichTextEditor from "./RichTextEditor.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -40,8 +41,6 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     }, [visible]);
 
     // Handle Create or Edit action
-    // You can create cards (with/without fields) or folders
-    // You can edit cards (with/without their fields) or folder names
     const handleAction = async () => {
 
         // Validate the title
@@ -58,11 +57,10 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 return;
             }
 
-            // Check for field names and prevent creating a card with multiple fields sharing a same title
+            // Validate field names
             const fieldNames = localFields.map(f => f.name);
             let duplicatePair = null;
 
-             // Validate each field name
             for (const f of fieldNames) {
                 const fieldValidation = validateName(f, "Field");
                 if (!fieldValidation.valid) {
@@ -71,7 +69,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 }
             }
 
-            // Loop through names and find the first duplicate pair
+            // Find duplicate field names
             for (let i = 0; i < fieldNames.length; i++) {
                 for (let j = i + 1; j < fieldNames.length; j++) {
                     if (fieldNames[i] === fieldNames[j]) {
@@ -123,7 +121,6 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         onClose();
     };
 
-    // Card Creating Modal
     // Add field area
     const addField = () => setLocalFields([...localFields, { name: "", context: "" }]);
 
@@ -142,15 +139,10 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
     const confirmDeleteField = async () => {
         if (deleteIndex !== null) {
-
-            // Remove from local state
             const updated = [...localFields];
             updated.splice(deleteIndex, 1);
             setLocalFields(updated);
-
         }
-
-        // Reset Variables and Close Modal
         setDeleteIndex(null);
         setConfirmVisible(false);
     };
@@ -162,7 +154,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                     <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
                         <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
 
-                            {/* Edit/Create Card/Folder */}
+                            {/* Title */}
                             <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>{title}</Text>
 
                             {errorMessage ? (
@@ -216,14 +208,15 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                             <View style={[styles.dashedBorder, { borderColor: colors.accentLight, width: "100%", borderBottomWidth: 0 } ]}/>
                                                         </View>
 
-                                                        <TextInput
-                                                            style={[ styles.input, styles.fieldInput, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary } ]}
-                                                            placeholder="Context (optional)"
-                                                            placeholderTextColor={colors.textSecondary}
-                                                            value={field.context}
-                                                            onChangeText={(text) => updateField(index, "context", text)}
-                                                            multiline={true}
-                                                        />
+                                                        {/* Rich Text Editor for field context */}
+                                                        <View style={{ padding: 10 }}>
+                                                            <RichTextEditor
+                                                                key={`field-${index}`}
+                                                                initialContent={field.context || ''}
+                                                                onChange={(html) => updateField(index, "context", html)}
+                                                                placeholder="Context (optional)"
+                                                            />
+                                                        </View>
                                                     </View>
                                                 );
                                             })}
@@ -238,27 +231,26 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                 </View>
                             )}
                             
+                            {/* Rich Text Editor for single field */}
                             {isField && (
-                                <TextInput
-                                    style={[ styles.input, styles.fieldInput, styles.smallText, styles.paddingHorizontal, { backgroundColor: colors.bgSecondary, color: colors.textSecondary } ]}
-                                    placeholder="Context (optional)"
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={localContext}
-                                    onChangeText={setLocalContext}
-                                    multiline={true}
-                                />
+                                <View style={{ marginBottom: 10 }}>
+                                    <RichTextEditor
+                                        key={`field-${editTarget?.id || 'new'}-${visible}`}
+                                        initialContent={localContext}
+                                        onChange={setLocalContext}
+                                        placeholder="Context (optional)"
+                                    />
+                                </View>
                             )}
 
                             {/* Action Buttons */}
                             <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
-
                                 <TouchableOpacity onPress={onClose} style={[styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={handleAction} style={[styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? "Create" : "Save"}</Text>
                                 </TouchableOpacity>
-
                             </View>
                         </View>
                     </View>
