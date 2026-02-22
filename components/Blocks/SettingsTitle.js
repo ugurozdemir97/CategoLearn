@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
-import { colors } from "../styles/colors.js";
-import styles from "../styles/styles.js";
+import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
 export default function SectionBlock({ title, description }) {
     return (

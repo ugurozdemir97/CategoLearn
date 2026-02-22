@@ -1,6 +1,6 @@
 import { View, useWindowDimensions } from 'react-native';
 import RenderHtml from 'react-native-render-html';
-import { colors } from '../styles/colors.js';
+import { colors } from '../../styles/colors.js';
 
 // Display contexts with rich texts
 export default function RichTextDisplay({ content, style }) {

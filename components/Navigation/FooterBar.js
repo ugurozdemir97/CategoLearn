@@ -1,8 +1,8 @@
 import { View, TouchableOpacity, Text } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
 
 // Footer is for search, settings, deleted items, and paste items when clipboard has content. 
 // When items are selected, it switches to actions like delete, edit, cut, copy, and color.

@@ -1,6 +1,6 @@
 import { Modal, View, Text, TouchableOpacity, KeyboardAvoidingView } from "react-native";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
 
 // A simple information modal with customizable message, generally for Alerts
 export default function InformationModal({ visible, onClose, message, title = "Error" }) {

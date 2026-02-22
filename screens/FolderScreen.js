@@ -4,15 +4,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
-import CircleButton from "../components/CircleButton.js";
-import ListButton from "../components/ListButton.js";
-import CreateModal from "../components/CreateModal.js";
-import ColorModal from "../components/ColorModal.js";
-import ConfirmationModal from "../components/ConfirmationModal.js";
-import InformationModal from "../components/InformationModal.js";
-import BreadCrumb from "../components/BreadCrumb.js"
-import HeaderBar from "../components/HeaderBar.js";
-import FooterBar from "../components/FooterBar.js";
+import CircleButton from "../components/Buttons/CircleButton.js";
+import ListButton from "../components/Buttons/ListButton.js";
+import CreateModal from "../components/Modals/CreateModal.js";
+import ColorModal from "../components/Modals/ColorModal.js";
+import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
+import InformationModal from "../components/Modals/InformationModal.js";
+import HeaderBar from "../components/Navigation/HeaderBar.js";
+import FooterBar from "../components/Navigation/FooterBar.js";
+import BreadCrumb from "../components/Navigation/BreadCrumb.js"
 
 // Styles and Colors
 import styles from "../styles/styles.js";

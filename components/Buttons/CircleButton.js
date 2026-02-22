@@ -1,7 +1,7 @@
 import { TouchableOpacity } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
 
 // Reusable circular button
 export default function CircleButton({ icon, onPress }) {

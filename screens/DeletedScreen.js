@@ -8,9 +8,9 @@ import styles from "../styles/styles.js";
 import { colors } from "../styles/colors.js";
 
 // Components
-import HeaderBar from "../components/HeaderBar.js";
-import ListButton from "../components/ListButton.js";
-import ConfirmationModal from "../components/ConfirmationModal.js";
+import HeaderBar from "../components/Navigation/HeaderBar.js";
+import ListButton from "../components/Buttons/ListButton.js";
+import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 
 // Database Queries
 import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permanentlyDeleteCard, permanentlyDeleteField } from "../database/queries.js";

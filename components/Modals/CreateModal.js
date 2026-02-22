@@ -5,17 +5,17 @@ import { FontAwesome } from "@expo/vector-icons";
 // Components
 import ConfirmationModal from "./ConfirmationModal.js";
 import ColorModal from "./ColorModal.js";
-import RichTextEditor from "./RichTextEditor.js";
+import RichTextEditor from "../Editor/RichTextEditor.js";
 
 // Styles and Colors
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
 
 // Utils
-import { validateName } from "../utils/validation.js";
+import { validateName } from "../../utils/validation.js";
 
 // Database Queries
-import { getFolders, getCards, getFields } from "../database/queries.js";
+import { getFolders, getCards, getFields } from "../../database/queries.js";
 
 // For creating/editing both cards and folders, with dynamic fields for cards
 export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, color, isCard = false, isField = false, fields = [], context = "", mode = "create", parentId = null, editTarget = null}) {

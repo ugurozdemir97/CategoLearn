@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
-import ListButton from "../components/ListButton.js";
+import ListButton from "../components/Buttons/ListButton.js";
 
 // Database Queries
 import db from "../database/db.js";

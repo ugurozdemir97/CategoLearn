@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, Text } from "react-native";
-import { colors } from "../styles/colors.js";
-import styles from "../styles/styles.js";
+import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
 export default function RadioButton({ label, selected, onPress }) {
     return (

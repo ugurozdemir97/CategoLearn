@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { colors } from '../styles/colors.js';
+import { colors } from '../../styles/colors.js';
 
 // Rich text editor
 export default function RichTextEditor({ initialContent, onChange, placeholder = "Context (optional)" }) {

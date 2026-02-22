@@ -1,6 +1,6 @@
 import { Modal, View, Text, TouchableOpacity, KeyboardAvoidingView } from "react-native";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
 
 // A simple confirmation modal with customizable message and actions
 export default function ConfirmationModal({ visible, onCancel, onConfirm, message, title = "Confirm Action", confirmText = "Confirm", confirmColor = colors.danger}) {

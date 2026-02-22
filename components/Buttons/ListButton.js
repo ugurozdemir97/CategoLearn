@@ -1,10 +1,11 @@
 import { TouchableOpacity, Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
-import { formatDate } from "../utils/formatTime.js";
-import { useSortMode } from "../context/SortModeContext.js";
-import RichTextDisplay from "./RichTextDisplay.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
+import { useSortMode } from "../../context/SortModeContext.js";
+import RichTextDisplay from "../Editor/RichTextDisplay.js";
+import ScrollingText from "../Blocks/ScrollingText.js";
+import DateDisplay from "../Blocks/DateDisplay.js";
 
 // Items (Categories, Cards, and Fields)
 export default function ListButton({ label, updatedAt, deletedAt, createdAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
@@ -45,7 +46,7 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
     return (
         <View style={{alignItems: "center"}}>
             <TouchableOpacity
-                style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8}]}
+                style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8, gap: 10}]}
                 onPress={onPress}
                 onLongPress={onLongPress}
             >
@@ -53,24 +54,16 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
                 {/* Left color stripe */}
                 <View key={color} style={[styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: color || "transparent", borderColor: !color ? colors.bgPrimary : "transparent"}]}/>
 
+                {/* Label with folder icon and auto-scroll for long text */}
                 <View style={[styles.rowCenter, { flex: 1, marginLeft: 10 }]}>
                     <FontAwesome name={icon} size={18} color={colors.accentLight} style={{ marginRight: 14 }}/>
-
-                    {/* Label */}
-                    <Text style={[styles.smallText, { flex: 1, color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-                        {label}
-                    </Text>
+                    <ScrollingText text={label}/>
                 </View>
 
                 {/* Right side: status icons (cut/copy) and selection checkmark or expand arrow */}
-                <View style={[styles.rowCenter, { gap: 8 }]}>
+                <View style={[styles.rowCenter, { gap: 8, marginLeft: 30 }]}>
                     {showDates && (
-                        <View style={[styles.rowCenter, { gap: 4 }]}>
-                            <FontAwesome name={dateIcon} size={10} color={colors.textHalfOpacity} />
-                            <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
-                                {formatDate(displayDate)}
-                            </Text>
-                        </View>
+                        <DateDisplay date={displayDate} icon={dateIcon} />
                     )}
                     {status.isCut && (
                         <FontAwesome name="scissors" size={18} color={colors.accentLight} />

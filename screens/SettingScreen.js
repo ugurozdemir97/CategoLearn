@@ -6,8 +6,8 @@ import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatli
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
-import SectionBlock from "../components/SettingsTitle.js";
-import RadioButton from "../components/RadioButton.js";
+import SectionBlock from "../components/Blocks/SettingsTitle.js";
+import RadioButton from "../components/Buttons/RadioButton.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";

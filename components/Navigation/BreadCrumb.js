@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { colors } from "../styles/colors.js";
-import styles from "../styles/styles.js";
+import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
 export default function BreadCrumb({ path, onNavigate }) {
     const scrollViewRef = useRef(null);

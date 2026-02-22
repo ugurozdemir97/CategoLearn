@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
-import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
-import { saveSortMode } from "../storage/sortPreference.js";
-import { useSortMode } from "../context/SortModeContext.js";
+import styles from "../../styles/styles.js";
+import { colors } from "../../styles/colors.js";
+import { saveSortMode } from "../../storage/sortPreference.js";
+import { useSortMode } from "../../context/SortModeContext.js";
 
 const sortModes = [
     "Order alphabetically",
