@@ -5,7 +5,17 @@ import { colors } from '../../styles/colors.js';
 // Display contexts with rich texts
 export default function RichTextDisplay({ content }) {
     const { width } = useWindowDimensions();
-    return <RenderHtml contentWidth={width} source={{ html: content }} tagsStyles={tagsStyles}/>;
+    
+    return (
+        <RenderHtml 
+            contentWidth={width} 
+            source={{ html: content }} 
+            tagsStyles={tagsStyles}
+            enableExperimentalMarginCollapsing={true}
+            enableCSSInlineProcessing={true}
+            enderersProps={{span: {enableUserAgentStyles: true}}}
+        />
+    );
 }
 
 const tagsStyles = {
@@ -13,5 +23,6 @@ const tagsStyles = {
     b:      {fontWeight: 'bold'},
     i:      {fontStyle: 'italic'},
     u:      {textDecorationLine: 'underline'},
-    hr:     {width: "100%", borderTopWidth: 1, borderColor: colors.accentLight, height: 1, marginVertical: 10 }
+    hr:     {width: "100%", borderTopWidth: 1, borderColor: colors.accentLight, height: 1, marginVertical: 10 },
+    span:   {backgroundColor: 'inherit'}
 };

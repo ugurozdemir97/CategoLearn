@@ -9,6 +9,7 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     const editorRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [isHighlighted, setIsHighlighted] = useState(false);
     const isInitializing = useRef(false);
 
     // Only call onChange if editor is ready and not initializing
@@ -26,8 +27,15 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     };
 
     const highlightText = () => {
-        console.log("Text highlight")
-    }
+        if (isHighlighted) {
+            setIsHighlighted(false);
+            editorRef.current?.setHiliteColor("inherit");      
+
+        } else {
+            editorRef.current?.setHiliteColor('#f37900');
+            setIsHighlighted(true);
+        }
+    };
 
     const handleFocus = () => {
         setIsFocused(true);
@@ -38,7 +46,7 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     };
 
     const hrIcon = ({tintColor}) => <FontAwesome name="minus" size={18} color={tintColor} />
-    const hlIcon = ({tintColor}) => <FontAwesome5 name="highlighter" size={18} color={tintColor} />
+    const hlIcon = ({tintColor}) => <FontAwesome5 name="highlighter" size={18} color={isHighlighted ? colors.accent : tintColor} />
 
     return (
         <View style={{minHeight: 50, maxHeight: isFocused ? 240 : 200}}>
@@ -63,12 +71,12 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
                             actions.setBold,
                             actions.setItalic,
                             actions.setUnderline,
+                            "highlight",
                             actions.insertBulletsList,
                             actions.insertOrderedList,
                             actions.undo,
                             actions.redo,
-                            "addHR",
-                            "highlight"
+                            "addHR"
                         ]} 
                         iconMap={{ ["addHR"]: hrIcon, ["highlight"]: hlIcon }}
                         addHR={insertHorizontalLine}
