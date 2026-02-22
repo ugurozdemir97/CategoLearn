@@ -189,7 +189,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                             {localFields.map((field, index) => {
                                                 const isLast = index === localFields.length - 1;
                                                 return (
-                                                    <View key={index} style={{backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10, borderRadius: 6 }}>
+                                                    <View key={index} style={{backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10, borderRadius: 6, overflow: "hidden" }}>
                                                         
                                                         <View style={[styles.centered, { flexDirection: "row" }]}>
                                                             <TextInput
