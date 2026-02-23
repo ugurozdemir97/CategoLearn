@@ -52,7 +52,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             
             // Check duplicates in parent folder
             const existingCards = await getCards(parentId);
-            if (existingCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
+            const activeCards = existingCards.filter(c => !c.deleted_at); // Only non-deleted cards
+            if (activeCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
                 setErrorMessage(`A card named "${validation.trimmed}" already exists in this folder.`);
                 return;
             }
@@ -94,7 +95,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
             // Check duplicates in parent card
             const existingFields = await getFields(parentId);
-            if (existingFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+            const activeFields = existingFields.filter(f => !f.deleted_at); // Only non-deleted fields
+            if (activeFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
                 setErrorMessage(`A field named "${validation.trimmed}" already exists in this card.`);
                 return;
             }
@@ -108,7 +110,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
             // Check duplicates in parent folder (or root if parentId is null)
             const existingFolders = await getFolders(parentId);
-            if (existingFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+            const activeFolders = existingFolders.filter(f => !f.deleted_at); // Only non-deleted folders
+            if (activeFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
                 setErrorMessage(`A folder named "${validation.trimmed}" already exists here.`);
                 return;
             }

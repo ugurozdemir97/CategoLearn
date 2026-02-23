@@ -54,49 +54,45 @@ export async function setupDatabase() {
         );
     `);
 
-    // Create UNIQUE indexes that exclude system items
+    // Drop old indexes if they exist (to recreate with new WHERE clause)
+    await db.execAsync(`DROP INDEX IF EXISTS idx_unique_folders;`);
+    await db.execAsync(`DROP INDEX IF EXISTS idx_unique_cards;`);
+    await db.execAsync(`DROP INDEX IF EXISTS idx_unique_fields;`);
+
+    // Create UNIQUE indexes that exclude system items AND deleted items
     await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_folders 
+        CREATE UNIQUE INDEX idx_unique_folders 
         ON folders(parent_id, name) 
-        WHERE is_system_folder = 0;
+        WHERE is_system_folder = 0 AND deleted_at IS NULL;
     `);
 
     await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_cards 
+        CREATE UNIQUE INDEX idx_unique_cards 
         ON cards(parent_id, name) 
-        WHERE is_system_card = 0;
+        WHERE is_system_card = 0 AND deleted_at IS NULL;
     `);
 
     await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_fields 
-        ON fields(parent_id, name);
+        CREATE UNIQUE INDEX idx_unique_fields 
+        ON fields(parent_id, name)
+        WHERE deleted_at IS NULL;
     `);
 
     // Create Restored Items folder if it doesn't exist
-    const restoredItemsFolder = await db.getFirstAsync(
-        "SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL"
-    );
+    const restoredItemsFolder = await db.getFirstAsync("SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL");
     
     let restoredItemsFolderId;
     if (!restoredItemsFolder) {
-        const result = await db.runAsync(
-            "INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)"
-        );
+        const result = await db.runAsync("INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)");
         restoredItemsFolderId = result.lastInsertRowId;
     } else {
         restoredItemsFolderId = restoredItemsFolder.id;
     }
 
     // Create Restored Fields card if it doesn't exist
-    const restoredFieldsCard = await db.getFirstAsync(
-        "SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ?",
-        [restoredItemsFolderId]
-    );
+    const restoredFieldsCard = await db.getFirstAsync("SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ?", [restoredItemsFolderId]);
     
     if (!restoredFieldsCard) {
-        await db.runAsync(
-            "INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)",
-            [restoredItemsFolderId]
-        );
+        await db.runAsync("INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)", [restoredItemsFolderId]);
     }
 }

@@ -61,7 +61,7 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
                 </View>
 
                 {/* Right side: status icons (cut/copy) and selection checkmark or expand arrow */}
-                <View style={[styles.rowCenter, { gap: 8, marginLeft: 30 }]}>
+                <View style={[styles.rowCenter, { gap: 8, marginLeft: 10 }]}>
                     {showDates && (
                         <DateDisplay date={displayDate} icon={dateIcon} />
                     )}

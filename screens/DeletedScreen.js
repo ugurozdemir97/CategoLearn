@@ -11,6 +11,7 @@ import { colors } from "../styles/colors.js";
 import HeaderBar from "../components/Navigation/HeaderBar.js";
 import ListButton from "../components/Buttons/ListButton.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
+import InformationModal from "../components/Modals/InformationModal.js";
 
 // Database Queries
 import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permanentlyDeleteCard, permanentlyDeleteField } from "../database/queries.js";
@@ -29,6 +30,8 @@ export default function DeletedScreen({ navigation }) {
     const [deletedItems, setDeletedItems] = useState([]);         // All deleted Items
     const [confirmVisible, setConfirmVisible] = useState(false);  // Show/Hide Confirmation Modal
     const [confirmAction, setConfirmAction] = useState(null);     // Confirm deletion or restore
+    const [infoVisible, setInfoVisible] = useState(false);
+    const [infoMessage, setInfoMessage] = useState({ title: "", message: "" });
 
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
 
@@ -47,7 +50,14 @@ export default function DeletedScreen({ navigation }) {
     // Restore items
     const handleRestore = useCallback(async () => {
         if (selectedItems.length === 0) return;
-        await restoreMultipleItems(selectedItems);
+        
+        const anyRenamed = await restoreMultipleItems(selectedItems);
+        
+        if (anyRenamed) {
+            setInfoMessage({title: "Items Restored", message: "Some items were renamed because items with the same names already exist in the destination."});
+            setInfoVisible(true);
+        }
+        
         clearSelection();
         await loadDeletedItems();
     }, [selectedItems, clearSelection]);
@@ -96,6 +106,11 @@ export default function DeletedScreen({ navigation }) {
             default:
                 break;
         }
+    };
+
+    const handleCloseInfo = () => {
+        setInfoVisible(false);
+        setInfoMessage({ title: "", message: "" });
     };
 
     // Give icons to items
@@ -188,6 +203,14 @@ export default function DeletedScreen({ navigation }) {
                 confirmText="Delete Forever"
                 confirmColor={colors.danger}
             />
+
+            <InformationModal
+                visible={infoVisible}
+                onClose={handleCloseInfo}
+                title={infoMessage.title}
+                message={infoMessage.message}
+            />
+
         </View>
     );
 }

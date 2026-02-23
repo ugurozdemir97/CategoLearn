@@ -13,7 +13,7 @@ export async function addFolder(parentId, name, color = null) {
     }
     
     const result = await db.runAsync(
-        "INSERT INTO folders (parent_id, name, color) VALUES (?, ?, ?)",
+        "INSERT INTO folders (parent_id, name, color, created_at, updated_at) VALUES (?, ?, ?, (datetime('now', 'localtime')), (datetime('now', 'localtime')))",
         [parentId, name, color]
     );
     return result.lastInsertRowId;
@@ -90,7 +90,7 @@ export async function updateFolder(id, name, color = null) {
     
     return db.runAsync(
         `UPDATE folders
-         SET name = ?, color = ?, updated_at = (datetime('now', 'localtime'))
+         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [name, color, id]
     );
@@ -125,7 +125,7 @@ export async function deleteFolder(folderId) {
 
     // Mark only this folder as deleted (children remain active but hidden)
     await db.runAsync(
-        "UPDATE folders SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
+        "UPDATE folders SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         [folderId]
     );
 }
@@ -187,14 +187,14 @@ export async function moveFolder(id, newParentId) {
     if (newParentId === null) {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = NULL, updated_at = (datetime('now', 'localtime'))
+             SET parent_id = NULL, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [id]
         );
     } else {
         return db.runAsync(
             `UPDATE folders
-             SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
+             SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [newParentId, id]
         );
@@ -213,7 +213,7 @@ export async function addCard(folderId, name, color = null) {
     
     const result = await db.runAsync(
         `INSERT INTO cards (parent_id, name, color, created_at, updated_at)
-         VALUES (?, ?, ?, (datetime('now', 'localtime')), (datetime('now', 'localtime')))`,
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [folderId, name, color]
     );
     return result.lastInsertRowId;
@@ -258,7 +258,7 @@ export async function updateCard(id, name, color = null) {
     
     return db.runAsync(
         `UPDATE cards
-         SET name = ?, color = ?, updated_at = (datetime('now', 'localtime'))
+         SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [name, color, id]
     );
@@ -286,7 +286,7 @@ export async function deleteCard(cardId) {
 
     // Mark only card as deleted (fields remain active but hidden)
     await db.runAsync(
-        "UPDATE cards SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
+        "UPDATE cards SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         [cardId]
     );
 }
@@ -310,7 +310,7 @@ export async function permanentlyDeleteCard(cardId) {
 export async function moveCard(id, newFolderId) {
     return db.runAsync(
         `UPDATE cards
-         SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
+         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [newFolderId, id]
     );
@@ -333,11 +333,13 @@ export async function copyCardRecursive(copiedCard, newFolderId) {
 export async function addField(cardId, name, context = null, color = null) {
     // Prevent creating fields inside system card (Restored Fields)
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
-    if (card && card.is_system_card === 1) {throw new Error("Cannot create fields inside system cards");}
+    if (card && card.is_system_card === 1) {
+        throw new Error("Cannot create fields inside system cards");
+    }
     
     const result = await db.runAsync(
         `INSERT INTO fields (parent_id, name, context, color, created_at, updated_at)
-         VALUES (?, ?, ?, ?, (datetime('now', 'localtime')), (datetime('now', 'localtime')))`,
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [cardId, name, context, color]
     );
     return result.lastInsertRowId;
@@ -356,7 +358,7 @@ export async function getFields(cardId) {
 export async function updateField(id, name, context = null, color = null) {
     return db.runAsync(
         `UPDATE fields
-         SET name = ?, context = ?, color = ?, updated_at = (datetime('now', 'localtime'))
+         SET name = ?, context = ?, color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [name, context, color, id]
     );
@@ -365,7 +367,7 @@ export async function updateField(id, name, context = null, color = null) {
 // Soft delete field (marks as deleted)
 export async function deleteField(id) {
     return db.runAsync(
-        "UPDATE fields SET deleted_at = (datetime('now', 'localtime')) WHERE id = ?",
+        "UPDATE fields SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         [id]
     );
 }
@@ -379,13 +381,71 @@ export async function permanentlyDeleteField(id) {
 export async function moveField(id, newCardId) {
     return db.runAsync(
         `UPDATE fields
-         SET parent_id = ?, updated_at = (datetime('now', 'localtime'))
+         SET parent_id = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [newCardId, id]
     );
 }
 
 // ---------- TRASH / RESTORE ---------- //
+
+// Helper function to generate unique name if conflict exists
+async function generateUniqueName(baseName, parentId, tableName) {
+    // Check if the base name already has a number suffix like "Name (1)"
+    const numberPattern = /^(.+?)\s*\((\d+)\)$/;
+    const match = baseName.match(numberPattern);
+    
+    let coreName = baseName;
+    let startCounter = 1;
+    
+    if (match) {
+        // If it already has a number, extract the core name and start from that number
+        coreName = match[1];
+        startCounter = parseInt(match[2], 10);
+    }
+    
+    // First, check if the original name (with number) is available
+    const checkQuery = `
+        SELECT COUNT(*) as count FROM ${tableName} 
+        WHERE name = ? 
+        AND parent_id ${parentId === null ? 'IS NULL' : '= ?'}
+        AND deleted_at IS NULL
+    `;
+    const checkParams = parentId === null ? [baseName] : [baseName, parentId];
+    const originalCheck = await db.getFirstAsync(checkQuery, checkParams);
+    
+    if (originalCheck.count === 0) {
+        // Original name is available
+        return baseName;
+    }
+    
+    // Original name is taken, find next available number
+    let uniqueName = baseName;
+    let counter = startCounter;
+    let exists = true;
+
+    while (exists) {
+        uniqueName = `${coreName} (${counter})`;
+        
+        const query = `
+            SELECT COUNT(*) as count FROM ${tableName} 
+            WHERE name = ? 
+            AND parent_id ${parentId === null ? 'IS NULL' : '= ?'}
+            AND deleted_at IS NULL
+        `;
+        const params = parentId === null ? [uniqueName] : [uniqueName, parentId];
+        
+        const result = await db.getFirstAsync(query, params);
+        
+        if (result.count === 0) {
+            exists = false;
+        } else {
+            counter++;
+        }
+    }
+
+    return uniqueName;
+}
 
 // Get all deleted items (only top-level parents, not their children)
 export async function getDeletedItems() {
@@ -404,7 +464,7 @@ export async function getDeletedItems() {
 // Restore a folder (and all its children)
 export async function restoreFolder(folderId) {
     const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
-    if (!folder) return;
+    if (!folder) return false;
 
     // Check if parent exists and is not deleted
     let targetParentId = folder.parent_id;
@@ -419,17 +479,22 @@ export async function restoreFolder(folderId) {
         }
     }
 
+    // Generate unique name if conflict exists
+    const uniqueName = await generateUniqueName(folder.name, targetParentId, 'folders');
+
     // Restore this folder
     await db.runAsync(
-        "UPDATE folders SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
-        [targetParentId, folderId]
+        "UPDATE folders SET deleted_at = NULL, parent_id = ?, name = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
+        [targetParentId, uniqueName, folderId]
     );
+    
+    return uniqueName !== folder.name; // Return true if renamed
 }
 
 // Restore a card (and all its fields)
 export async function restoreCard(cardId) {
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
-    if (!card) return;
+    if (!card) return false;
 
     // Check if parent folder exists and is not deleted
     const parentFolder = await db.getFirstAsync(
@@ -443,17 +508,22 @@ export async function restoreCard(cardId) {
         targetFolderId = await getOrCreateRestoredItemsFolder();
     }
 
+    // Generate unique name if conflict exists
+    const uniqueName = await generateUniqueName(card.name, targetFolderId, 'cards');
+
     // Restore this card
     await db.runAsync(
-        "UPDATE cards SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
-        [targetFolderId, cardId]
+        "UPDATE cards SET deleted_at = NULL, parent_id = ?, name = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
+        [targetFolderId, uniqueName, cardId]
     );
+    
+    return uniqueName !== card.name; // Return true if renamed
 }
 
 // Restore a field
 export async function restoreField(fieldId) {
     const field = await db.getFirstAsync("SELECT * FROM fields WHERE id = ?", [fieldId]);
-    if (!field) return;
+    if (!field) return false;
 
     // Check if parent card exists and is not deleted
     const parentCard = await db.getFirstAsync(
@@ -461,22 +531,25 @@ export async function restoreField(fieldId) {
         [field.parent_id]
     );
 
+    let targetCardId = field.parent_id;
+    let wasRenamed = false;
+    
     if (!parentCard) {
         // Parent card doesn't exist or is deleted - move to "Restored Fields" card
         const restoredFolder = await getOrCreateRestoredItemsFolder();
-        const restoredCard = await getOrCreateRestoredFieldsCard(restoredFolder);
-        
-        await db.runAsync(
-            "UPDATE fields SET deleted_at = NULL, parent_id = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
-            [restoredCard, fieldId]
-        );
-    } else {
-        // Parent exists, restore normally
-        await db.runAsync(
-            "UPDATE fields SET deleted_at = NULL, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
-            [fieldId]
-        );
+        targetCardId = await getOrCreateRestoredFieldsCard(restoredFolder);
     }
+    
+    // Generate unique name if conflict exists
+    const uniqueName = await generateUniqueName(field.name, targetCardId, 'fields');
+    wasRenamed = uniqueName !== field.name;
+    
+    await db.runAsync(
+        "UPDATE fields SET deleted_at = NULL, parent_id = ?, name = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?",
+        [targetCardId, uniqueName, fieldId]
+    );
+    
+    return wasRenamed; // Return true if renamed
 }
 
 // Get or create "Restored Items" folder
@@ -514,8 +587,21 @@ export async function restoreMultipleItems(items) {
     const cards = items.filter(i => i.type === "Card");
     const fields = items.filter(i => i.type === "Field");
 
-    // Restore in order
-    for (const folder of folders) await restoreFolder(folder.id);
-    for (const card of cards) await restoreCard(card.id);
-    for (const field of fields) await restoreField(field.id);
+    let anyRenamed = false;
+    
+    // Restore in order and track if any were renamed
+    for (const folder of folders) {
+        const wasRenamed = await restoreFolder(folder.id);
+        if (wasRenamed) anyRenamed = true;
+    }
+    for (const card of cards) {
+        const wasRenamed = await restoreCard(card.id);
+        if (wasRenamed) anyRenamed = true;
+    }
+    for (const field of fields) {
+        const wasRenamed = await restoreField(field.id);
+        if (wasRenamed) anyRenamed = true;
+    }
+    
+    return anyRenamed; // Return true if any item was renamed
 }
