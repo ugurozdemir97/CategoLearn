@@ -13,6 +13,7 @@ import InformationModal from "../components/Modals/InformationModal.js";
 import HeaderBar from "../components/Navigation/HeaderBar.js";
 import FooterBar from "../components/Navigation/FooterBar.js";
 import BreadCrumb from "../components/Navigation/BreadCrumb.js"
+import DateDisplay from "../components/Blocks/DateDisplay.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -100,13 +101,14 @@ export default function FolderScreen({ route, navigation }) {
     }, [navigation, route.params, sortMode]);
 
     // Load all subfolders and cards inside this folder from the database
-    const loadItems = async () => {
-        const folders = await getFolders(folder.id);
-        const cards = await getCards(folder.id);
+    const loadItems = async (folderId = folder.id) => {
+        const folders = await getFolders(folderId);
+        const cards = await getCards(folderId);
         const result = [...folders, ...cards];
         handleSort(result, setItems, sortMode);
-        if (sortMode === "Order by creation date") setFolderDate(folder.created_at);
-        else setFolderDate(folder.updated_at);
+        const currentFolder = route.params?.folder || folder;
+        if (sortMode === "Order by creation date") setFolderDate(currentFolder.created_at);
+        else setFolderDate(currentFolder.updated_at);
     };
 
     // Handle Create or Edit for both cards and folders
@@ -278,16 +280,13 @@ export default function FolderScreen({ route, navigation }) {
             <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
                 
                 {/* Folder name centered */}
-                <Text style={[styles.bigText, { color: colors.textPrimary }]}>
-                    {folder.name}
-                </Text>
+                <Text style={[styles.bigText, { color: colors.textPrimary }]}>{folder.name}</Text>
 
-                {/* Created At pinned bottom-right */}
-                <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
-                    <FontAwesome name={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
-                    <Text style={[ styles.tinyText, {color: colors.textHalfOpacity}]}>
-                        {formatDate(folderDate)}
-                    </Text>
+                {/* Date display pinned bottom-right */}
+                <View style={{ position: "absolute", right: 10, bottom: 5 }}>
+                    {folderDate && (
+                        <DateDisplay date={folderDate} icon={sortMode === "Order by creation date" ? "plus-circle" : "pencil"}/>
+                    )}
                 </View>  
             </View>
 
@@ -326,7 +325,7 @@ export default function FolderScreen({ route, navigation }) {
                                         // Update params instead of pushing - instant navigation!
                                         navigation.setParams({
                                             folder: item,
-                                            path: [...path, { id: item.id, name: item.name, type: item.type }]
+                                            path: [...path, { id: item.id, name: item.name, type: item.type, created_at: item.created_at, updated_at: item.updated_at }]
                                         });
                                     } else {
                                         // Cards go to a different screen, so use navigate
