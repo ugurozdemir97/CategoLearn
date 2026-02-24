@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { View, Text, FlatList } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 // Components
 import CircleButton from "../components/Buttons/CircleButton.js";
 import ListButton from "../components/Buttons/ListButton.js";
+import DraggableListButton from "../components/Buttons/DraggableListButton.js";
 import CreateModal from "../components/Modals/CreateModal.js";
 import ColorModal from "../components/Modals/ColorModal.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
@@ -46,6 +48,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const [expanded, setExpanded] = useState({});                       // Which fields are expanded to show their context
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
     const [cardDate, setCardDate] = useState(null);                     // Parent card's creation/last edit date
+    const [customSortMode, setCustomSortMode] = useState(false);        // If we are in custom sort mode or not
 
     const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
@@ -100,7 +103,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
     // Footer action handlers for delete, edit, cut, copy, paste
-    // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
+    // These call the respective functions from utils/handleFooterActions.js with the right parameters for fields
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "fields");
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
@@ -150,6 +153,61 @@ export default function CardDetailScreen({ route, navigation }) {
         if (remaining.length === 0) setInfoVisible(false);
     };
 
+// ********************** CUSTOM SORT *************************** //
+    // 3. Add move functions (same as SettingsScreen):
+const moveItem = (direction) => {
+    setFields((prev) => {
+        const currentItems = [...prev];
+        // Find the index of the item to move
+        const targetIndex = currentIndex + direction;
+
+        if (targetIndex < 0 || targetIndex >= currentItems.length) return prev;
+
+        // Swap elements
+        [currentItems[currentIndex], currentItems[targetIndex]] = 
+        [currentItems[targetIndex], currentItems[currentIndex]];
+        
+        return currentItems;
+    });
+};
+
+// 4. Add drag end handler:
+const handleDragEnd = useCallback(({ data }) => {
+    setFields(data);
+}, []);
+
+// 5. Add save/cancel handlers:
+const handleSaveCustomOrder = async () => {
+    try {
+        // Save sort_index to database
+        for (let i = 0; i < fields.length; i++) {
+            const item = fields[i];
+            const newIndex = i * 100;
+            
+            // All items in HomeScreen are folders (type: "Category")
+            await db.runAsync(
+                "UPDATE fields SET sort_index = ? WHERE id = ?",
+                [newIndex, item.id]
+            );
+        }
+        
+        setCustomSortMode(false);
+        await loadFields(); // Reload with new order
+    } catch (error) {
+        console.error("Error saving custom order:", error);
+        setErrorMessages([{
+            type: "Save Failed",
+            message: "Failed to save custom order. Please try again."
+        }]);
+        setInfoVisible(true);
+    }
+};
+
+const handleCancelCustomOrder = () => {
+    setCustomSortMode(false);
+    loadFields(); // Reset to saved order
+};
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
 
@@ -162,6 +220,10 @@ export default function CardDetailScreen({ route, navigation }) {
                 setItems={setFields}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(fields)}
+                customSortMode={customSortMode}
+                onEnterCustomSort={() => setCustomSortMode(true)}
+                onSaveCustomSort={handleSaveCustomOrder}
+                onCancelCustomSort={handleCancelCustomOrder}
             />
 
             <BreadCrumb
@@ -199,8 +261,44 @@ export default function CardDetailScreen({ route, navigation }) {
                         No fields yet. Tap the plus button to add context!
                     </Text>
                 </View>
+            ) : customSortMode ? (
+                // Custom sort mode - draggable list
+                <DraggableFlatList
+                    data={fields}
+                    keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
+                    onDragEnd={handleDragEnd}
+                    activationDistance={8}
+                    style={{ marginTop: 8 }}
+                    renderItem={({ item, index, drag, isActive }) => (
+                        <ScaleDecorator activeScale={1.03}>
+                            <DraggableListButton
+                                item={item}
+                                index={index}
+                                totalItems={fields.length}
+                                drag={drag}
+                                isActive={isActive}
+                                onMoveUp={() => {
+                                    const newFields = [...fields];
+                                    if (index > 0) {
+                                        [newFields[index], newFields[index - 1]] = 
+                                        [newFields[index - 1], newFields[index]];
+                                        setFields(newFields);
+                                    }
+                                }}
+                                onMoveDown={() => {
+                                    const newFields = [...fields];
+                                    if (index < fields.length - 1) {
+                                        [newFields[index], newFields[index + 1]] = 
+                                        [newFields[index + 1], newFields[index]];
+                                        setFields(newFields);
+                                    }
+                                }}
+                            />
+                        </ScaleDecorator>
+                    )}
+                />
             ) : (
-
+                // Normal mode - regular list
                 <FlatList
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
@@ -218,14 +316,9 @@ export default function CardDetailScreen({ route, navigation }) {
                             status={getItemStatus(item.id, "Field")}
                             expanded={expanded[item.id]}
                             onPress={() => {
-
-                                // Toggle selection if in secondary select mode
-                                // Toggle Context expand/collapse on press
                                 if (secondarySelect) toggleSelection(item);
                                 else toggleExpand(item.id);
-
                             }}
-                            
                         />
                     )}
                 />

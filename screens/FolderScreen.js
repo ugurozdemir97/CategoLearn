@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, FlatList, BackHandler } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
-import { FontAwesome } from "@expo/vector-icons";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 // Components
 import CircleButton from "../components/Buttons/CircleButton.js";
 import ListButton from "../components/Buttons/ListButton.js";
+import DraggableListButton from "../components/Buttons/DraggableListButton.js";
 import CreateModal from "../components/Modals/CreateModal.js";
 import ColorModal from "../components/Modals/ColorModal.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
@@ -25,7 +26,6 @@ import { useSelection } from "../hooks/useSelection.js";
 import { useSortMode } from "../context/SortModeContext.js";
 
 // Utils
-import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
@@ -48,6 +48,7 @@ export default function FolderScreen({ route, navigation }) {
     const [fields, setFields] = useState([]);                           // The fields of the card being created/edited
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
     const [folderDate, setFolderDate] = useState(null);                 // Parent folder's creation/last edit date
+    const [customSortMode, setCustomSortMode] = useState(false);        // If we are in custom sort mode or not
 
     const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
 
@@ -181,7 +182,7 @@ export default function FolderScreen({ route, navigation }) {
         await loadItems();
     };
 
-    // Delete selected subjects (and everything inside them) after confirmation
+    // Delete selected items (and everything inside them) after confirmation
     const confirmDelete = async () => {
         if (deleteTarget?.items) {
             for (const item of deleteTarget.items) {
@@ -198,7 +199,7 @@ export default function FolderScreen({ route, navigation }) {
     };
 
     // Footer action handlers for delete, edit, cut, copy, paste
-    // These call the respective functions from utils/handleFooterActions.js with the right parameters for subjects
+    // These call the respective functions from utils/handleFooterActions.js with the right parameters for items
     const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "items");
     const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
     const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
@@ -252,6 +253,68 @@ export default function FolderScreen({ route, navigation }) {
         if (remaining.length === 0) setInfoVisible(false);
     };
 
+// ********************** CUSTOM SORT *************************** //
+    // 3. Add move functions (same as SettingsScreen):
+const moveItem = (direction) => {
+    setItems((prev) => {
+        const currentItems = [...prev];
+        // Find the index of the item to move
+        const targetIndex = currentIndex + direction;
+
+        if (targetIndex < 0 || targetIndex >= currentItems.length) return prev;
+
+        // Swap elements
+        [currentItems[currentIndex], currentItems[targetIndex]] = 
+        [currentItems[targetIndex], currentItems[currentIndex]];
+        
+        return currentItems;
+    });
+};
+
+// 4. Add drag end handler:
+const handleDragEnd = useCallback(({ data }) => {
+    setItems(data);
+}, []);
+
+// 5. Add save/cancel handlers:
+const handleSaveCustomOrder = async () => {
+    try {
+        // Save sort_index to database
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const newIndex = i * 100;
+            
+            // All items in HomeScreen are folders (type: "Category")
+            if (item.type === "Category") {
+                await db.runAsync(
+                    "UPDATE folders SET sort_index = ? WHERE id = ?",
+                    [newIndex, item.id]
+                );
+            } else if (item.type === "Card") {
+                await db.runAsync(
+                    "UPDATE cards SET sort_index = ? WHERE id = ?",
+                    [newIndex, item.id]
+                );
+            }
+        }
+        
+        setCustomSortMode(false);
+        await loadItems(); // Reload with new order
+    } catch (error) {
+        console.error("Error saving custom order:", error);
+        setErrorMessages([{
+            type: "Save Failed",
+            message: "Failed to save custom order. Please try again."
+        }]);
+        setInfoVisible(true);
+    }
+};
+
+const handleCancelCustomOrder = () => {
+    setCustomSortMode(false);
+    loadItems(); // Reset to saved order
+};
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
 
@@ -264,6 +327,10 @@ export default function FolderScreen({ route, navigation }) {
                 setItems={setItems}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(items)}
+                customSortMode={customSortMode}
+                onEnterCustomSort={() => setCustomSortMode(true)}
+                onSaveCustomSort={handleSaveCustomOrder}
+                onCancelCustomSort={handleCancelCustomOrder}
             />
 
             <BreadCrumb
@@ -299,8 +366,44 @@ export default function FolderScreen({ route, navigation }) {
                         or Folders to Organize Your Learning!
                     </Text>
                 </View>
+            ) : customSortMode ? (
+                // Custom sort mode - draggable list
+                <DraggableFlatList
+                    data={items}
+                    keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
+                    onDragEnd={handleDragEnd}
+                    activationDistance={8}
+                    style={{ marginTop: 8 }}
+                    renderItem={({ item, index, drag, isActive }) => (
+                        <ScaleDecorator activeScale={1.03}>
+                            <DraggableListButton
+                                item={item}
+                                index={index}
+                                totalItems={items.length}
+                                drag={drag}
+                                isActive={isActive}
+                                onMoveUp={() => {
+                                    const newItems = [...items];
+                                    if (index > 0) {
+                                        [newItems[index], newItems[index - 1]] = 
+                                        [newItems[index - 1], newItems[index]];
+                                        setItems(newItems);
+                                    }
+                                }}
+                                onMoveDown={() => {
+                                    const newItems = [...items];
+                                    if (index < items.length - 1) {
+                                        [newItems[index], newItems[index + 1]] = 
+                                        [newItems[index + 1], newItems[index]];
+                                        setItems(newItems);
+                                    }
+                                }}
+                            />
+                        </ScaleDecorator>
+                    )}
+                />
             ) : (
-
+                // Normal mode - regular list
                 <FlatList
                     data={items}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
@@ -316,19 +419,14 @@ export default function FolderScreen({ route, navigation }) {
                             onLongPress={() => toggleSelection(item)}
                             status={getItemStatus(item.id, item.type)}
                             onPress={() => {
-
-                                // Toggle selection if in secondary select mode
-                                // Navigate to Folder or CardDetail screen on press
                                 if (secondarySelect) toggleSelection(item);  
                                 else {
                                     if (item.type === "Category") {
-                                        // Update params instead of pushing - instant navigation!
                                         navigation.setParams({
                                             folder: item,
                                             path: [...path, { id: item.id, name: item.name, type: item.type, created_at: item.created_at, updated_at: item.updated_at }]
                                         });
                                     } else {
-                                        // Cards go to a different screen, so use navigate
                                         navigation.navigate("CardDetail", {
                                             card: item,
                                             path: [...path, { id: item.id, name: item.name, type: item.type }],
@@ -336,7 +434,6 @@ export default function FolderScreen({ route, navigation }) {
                                     }
                                 }  
                             }}
-
                         />
                     )}
                 />

@@ -53,10 +53,23 @@ export async function handleSort(items, setItems, mode, isDeletedScreen = false)
                     return 0;
                 });
                 break;
+                
+            case "Custom order":
+
+                // Sort by sort_index (nulls items at the end)
+                // If both of them are null use creation date to sort
+                sorted.sort((a, b) => {
+                    if (a.sort_index !== null && b.sort_index !== null) return a.sort_index - b.sort_index;
+                    if (a.sort_index !== null) return -1;
+                    if (b.sort_index !== null) return 1;
+                    return new Date(b.created_at) - new Date(a.created_at);  
+                });
+            break;
 
             default:
                 break;
         }
+        
         return sorted;
     };
 

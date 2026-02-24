@@ -1,11 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SORT_MODE_KEY = "lastSortMode";
+const DELETED_SORT_MODE_KEY = "lastDeletedSortMode";
 const COLOR_ORDER_KEY = "lastColorOrder";
 const COLOR_SORT_PREF_KEY = "lastColorSortPreference";
 const DEFAULT_COLOR_ORDER = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d", null ];
 
-// Save last sort mode
+// Save last sort mode (for normal screens: Home, Folder, CardDetail)
 export async function saveSortMode(mode) {
     try {
         await AsyncStorage.setItem(SORT_MODE_KEY, mode);
@@ -14,14 +15,34 @@ export async function saveSortMode(mode) {
     }
 }
 
-// Load last sort mode
+// Load last sort mode (for normal screens)
 export async function loadSortMode() {
     try {
         const mode = await AsyncStorage.getItem(SORT_MODE_KEY);
-        return mode || "Order alphabetically";
+        return mode || "Order by edit time"; // Default: edit time
     } catch (e) {
         console.error("Failed to load sort mode", e);
-        return "Order alphabetically";
+        return "Order by edit time";
+    }
+}
+
+// Save last sort mode for deleted screen
+export async function saveDeletedSortMode(mode) {
+    try {
+        await AsyncStorage.setItem(DELETED_SORT_MODE_KEY, mode);
+    } catch (e) {
+        console.error("Failed to save deleted sort mode", e);
+    }
+}
+
+// Load last sort mode for deleted screen
+export async function loadDeletedSortMode() {
+    try {
+        const mode = await AsyncStorage.getItem(DELETED_SORT_MODE_KEY);
+        return mode || "Order by deletion time"; // Default: deletion time
+    } catch (e) {
+        console.error("Failed to load deleted sort mode", e);
+        return "Order by deletion time";
     }
 }
 

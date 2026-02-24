@@ -30,7 +30,7 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
     if (sortMode === "Order by deletion time" && deletedAt) {
         displayDate = deletedAt;
         dateIcon = "trash-o";
-    } else if (sortMode === "Order by creation date" && createdAt) {
+    } else if (sortMode === "Order by creation date" && createdAt || sortMode === "Custom order" && createdAt) {
         displayDate = createdAt;
         dateIcon = "plus-circle";
     } else if (sortMode === "Order by edit time" && updatedAt) {

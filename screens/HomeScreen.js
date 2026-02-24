@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { View, Text, FlatList } from "react-native";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 // Components
 import CircleButton from "../components/Buttons/CircleButton.js";
 import ListButton from "../components/Buttons/ListButton.js";
+import DraggableListButton from "../components/Buttons/DraggableListButton.js";
 import CreateModal from "../components/Modals/CreateModal.js";
 import ColorModal from "../components/Modals/ColorModal.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
@@ -25,8 +27,11 @@ import { handleSort } from "../utils/handleSort.js";
 import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
-//import db from "../database/db.js";
+import db from "../database/db.js";
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
+
+// Storage
+import { loadSortMode } from "../storage/sortPreference.js";
 
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
@@ -39,6 +44,7 @@ export default function HomeScreen({ navigation }) {
     const [infoVisible, setInfoVisible] = useState(false);              // Show or Hide information modal for alerts
     const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
     const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
+    const [customSortMode, setCustomSortMode] = useState(false);        // If we are in custom sort mode or not
 
     const [footerHeight, setFooterHeight] = useState(70);           // These are used to adjust placing of elements based on footer size
 
@@ -56,7 +62,8 @@ export default function HomeScreen({ navigation }) {
     // Load all root folders (subjects) from the database
     const loadSubjects = async () => {
         const result = await getFolders(null); // already fetches parent_id IS NULL
-        handleSort(result, setSubjects, sortMode);
+        const lastMode = await loadSortMode();
+        handleSort(result, setSubjects, lastMode);
 
         //const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL");
         //const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL");
@@ -145,6 +152,62 @@ export default function HomeScreen({ navigation }) {
         if (remaining.length === 0) setInfoVisible(false);
     };
 
+
+// ********************** CUSTOM SORT *************************** //
+    // 3. Add move functions (same as SettingsScreen):
+const moveItem = (direction) => {
+    setSubjects((prev) => {
+        const currentItems = [...prev];
+        // Find the index of the item to move
+        const targetIndex = currentIndex + direction;
+
+        if (targetIndex < 0 || targetIndex >= currentItems.length) return prev;
+
+        // Swap elements
+        [currentItems[currentIndex], currentItems[targetIndex]] = 
+        [currentItems[targetIndex], currentItems[currentIndex]];
+        
+        return currentItems;
+    });
+};
+
+// 4. Add drag end handler:
+const handleDragEnd = useCallback(({ data }) => {
+    setSubjects(data);
+}, []);
+
+// 5. Add save/cancel handlers:
+const handleSaveCustomOrder = async () => {
+    try {
+        // Save sort_index to database
+        for (let i = 0; i < subjects.length; i++) {
+            const item = subjects[i];
+            const newIndex = i * 100;
+            
+            // All items in HomeScreen are folders (type: "Category")
+            await db.runAsync(
+                "UPDATE folders SET sort_index = ? WHERE id = ?",
+                [newIndex, item.id]
+            );
+        }
+        
+        setCustomSortMode(false);
+        await loadSubjects(); // Reload with new order
+    } catch (error) {
+        console.error("Error saving custom order:", error);
+        setErrorMessages([{
+            type: "Save Failed",
+            message: "Failed to save custom order. Please try again."
+        }]);
+        setInfoVisible(true);
+    }
+};
+
+const handleCancelCustomOrder = () => {
+    setCustomSortMode(false);
+    loadSubjects(); // Reset to saved order
+};
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
 
@@ -157,6 +220,10 @@ export default function HomeScreen({ navigation }) {
                 setItems={setSubjects}
                 onCancelSelection={() => clearSelection()}
                 onSelectAll={() => selectAll(subjects)}
+                customSortMode={customSortMode}
+                onEnterCustomSort={() => setCustomSortMode(true)}
+                onSaveCustomSort={handleSaveCustomOrder}
+                onCancelCustomSort={handleCancelCustomOrder}
             />
 
             {/* Subjects */}
@@ -174,31 +241,70 @@ export default function HomeScreen({ navigation }) {
                         </Text>
                     </View>
 
-                    <FlatList
-                        data={subjects}
-                        keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                        style={{ marginTop: 8 }}
-                        renderItem={({ item }) => (
-                            <ListButton
-                                label={item.name}
-                                updatedAt={item.updated_at}
-                                createdAt={item.created_at} 
-                                color={item.color}
-                                icon="folder"
-                                isSelected={isSelected(item)}
-                                onLongPress={() => toggleSelection(item)}
-                                status={getItemStatus(item.id, "Category")}  // Is the item currently cut or copied
-                                onPress={() => {
+                    {customSortMode ? (
 
-                                    // Toggle selection if in secondary select mode
-                                    // Otherwise, navigate to Folder screen to see contents of the subject
-                                    if (secondarySelect) toggleSelection(item);                         
-                                    else navigation.navigate("Folder", {folder: item, path: [{ id: null, name: "Subjects", type: "Category" }, { id: item.id, name: item.name, type: item.type, created_at: item.created_at, updated_at: item.updated_at }]});
-                                }}
+                        // Custom sort mode - draggable list
+                        <DraggableFlatList
+                            data={subjects}
+                            keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
+                            onDragEnd={handleDragEnd}
+                            activationDistance={8}
+                            style={{ marginTop: 8 }}
+                            renderItem={({ item, index, drag, isActive }) => (
+                                <ScaleDecorator activeScale={1.03}>
+                                    <DraggableListButton
+                                        item={item}
+                                        index={index}
+                                        totalItems={subjects.length}
+                                        drag={drag}
+                                        isActive={isActive}
+                                        onMoveUp={() => {
+                                            const newItems = [...subjects];
+                                            if (index > 0) {
+                                                [newItems[index], newItems[index - 1]] = 
+                                                [newItems[index - 1], newItems[index]];
+                                                setSubjects(newItems);
+                                            }
+                                        }}
+                                        onMoveDown={() => {
+                                            const newItems = [...subjects];
+                                            if (index < subjects.length - 1) {
+                                                [newItems[index], newItems[index + 1]] = 
+                                                [newItems[index + 1], newItems[index]];
+                                                setSubjects(newItems);
+                                            }
+                                        }}
+                                    />
+                                </ScaleDecorator>
+                            )}
+                        />
+                    ) : (
+                        <FlatList
+                            data={subjects}
+                            keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
+                            style={{ marginTop: 8 }}
+                            renderItem={({ item }) => (
+                                <ListButton
+                                    label={item.name}
+                                    updatedAt={item.updated_at}
+                                    createdAt={item.created_at} 
+                                    color={item.color}
+                                    icon="folder"
+                                    isSelected={isSelected(item)}
+                                    onLongPress={() => toggleSelection(item)}
+                                    status={getItemStatus(item.id, "Category")}  // Is the item currently cut or copied
+                                    onPress={() => {
 
-                            />
-                        )}
-                    />
+                                        // Toggle selection if in secondary select mode
+                                        // Otherwise, navigate to Folder screen to see contents of the subject
+                                        if (secondarySelect) toggleSelection(item);                         
+                                        else navigation.navigate("Folder", {folder: item, path: [{ id: null, name: "Subjects", type: "Category" }, { id: item.id, name: item.name, type: item.type, created_at: item.created_at, updated_at: item.updated_at }]});
+                                    }}
+
+                                />
+                            )}
+                        />
+                    )}
                 </>
             )}
 
