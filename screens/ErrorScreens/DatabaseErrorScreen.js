@@ -1,8 +1,9 @@
 import { View, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import styles from "../../styles/styles.js";
 import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
+// If there are any problem with the database show this screen
 export default function DbErrorScreen({ error }) {
     return (
         <SafeAreaProvider>

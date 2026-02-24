@@ -1,24 +1,19 @@
 import { useRef, useEffect } from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity } from "react-native";
 import { colors } from "../../styles/colors.js";
 import styles from "../../styles/styles.js";
 
+// Bread crumb links are the the link you generally see on navbars. 
+// For example "Roots > Folder A > Parent B > Current Folder"
 export default function BreadCrumb({ path, onNavigate }) {
-    const scrollViewRef = useRef(null);
 
     // Auto-scroll to the end whenever path changes
-    useEffect(() => {
-        if (scrollViewRef.current) scrollViewRef.current.scrollToEnd({ animated: true });
-    }, [path]);
+    const scrollViewRef = useRef(null); 
+    useEffect(() => {if (scrollViewRef.current) scrollViewRef.current.scrollToEnd({ animated: true })}, [path]);
 
+    // Make current folder different color, and add "/" between folders except the last one
     return (
-        <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.paddingHorizontal}
-            style={{backgroundColor: colors.bgBreadCurmb, minHeight: 30, maxHeight: 30}}
-        >
+        <ScrollView ref={scrollViewRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.paddingHorizontal} style={{backgroundColor: colors.bgBreadCurmb, minHeight: 30, maxHeight: 30}}>
             {path.map((node, index) => (
                 <View key={`${node.type}-${node.id}`} style={styles.rowCenter}>
                     <TouchableOpacity onPress={() => onNavigate(node)} activeOpacity={0.7} style={styles.crumbButton}>
@@ -28,7 +23,7 @@ export default function BreadCrumb({ path, onNavigate }) {
                     </TouchableOpacity>
                     
                     {index < path.length - 1 && (
-                        <Text style={[styles.tinyText, {color: colors.textHalfOpacity, marginHorizontal: 8}]}>/</Text>
+                        <Text style={[styles.tinyText, {color: colors.textHalfOpacity, marginHorizontal: 1}]}>/</Text>
                     )}
                 </View>
             ))}

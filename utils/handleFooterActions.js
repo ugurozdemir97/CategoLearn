@@ -1,6 +1,6 @@
 import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive, getFolders, getCards } from "../database/queries.js";
     
-// Delete selected
+// Delete selected items
 export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, itemLabel = "items") {
     if (selectedItems.length === 0) return;
     const message =
@@ -15,15 +15,11 @@ export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmV
 export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setCreateType, setFields, setFieldContext) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
-        setEditTarget(item);                    // Store the item being edited  
-        setCreateType?.(item.type);             // For folder screen, set the type (card or category) in the modal
-        setFieldContext?.(item.context);        // Context of the field for the CardDetailScreen
-        if (item.type === "Card") {
-            setFields?.(await getFields(item.id));  // Set fields of the card for card editing
-        }
-
+        setEditTarget(item);                                              // Store the item being edited  
+        setCreateType?.(item.type);                                       // For folder screen, set the type (card or category) in the modal
+        setFieldContext?.(item.context);                                  // Context of the field for the CardDetailScreen
+        if (item.type === "Card") setFields?.(await getFields(item.id));  // Set fields of the card for card editing
         setModalVisible(true);
-
     } else {
         return [{ type: "Edit Error", message: "You can only edit one item at a time."}];
     }
@@ -41,10 +37,11 @@ export function handleCopySelected(selectedItems, copyFn, clearSelection) {
     clearSelection();
 }
 
+// Paste Items
 export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn) {
     if (clipboard.length === 0) return [];
 
-    let errorMessages = new Map(); // Use this to show error messages with information modal in screens
+    let errorMessages = new Map();  // Use this to show error messages with information modal in screens
 
     for (const item of clipboard) {
 
@@ -55,6 +52,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
                 continue;
             }
 
+            // Check if a field with the same name already exist in the card
             const existingFields = await getFields(node.id);
             if (existingFields.some(f => f.name === item.name)) {
                 errorMessages.set("Duplicate Name", `A field named "${item.name}" already exists in this card.`);
@@ -72,6 +70,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
                 continue;
             }
 
+            // Check if a card with the same name already exist in the folder
             const existingCards = await getCards(node.id);
             if (existingCards.some(c => c.name === item.name)) {
                 errorMessages.set("Duplicate Name", `A card named "${item.name}" already exists in this folder.`);
@@ -89,7 +88,10 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
                 continue;
             }
 
+            // If we are trying to paste folders to the root
             if (node === null) {
+
+                // Check if a folder with the same name already exist in the root
                 const rootFolders = await getFolders(null);
                 if (rootFolders.some(f => f.name === item.name)) {
                     errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists at root.`);
@@ -99,14 +101,15 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
                 if (clipboardMode === "cut")       await moveFolder(item.id, null);
                 else if (clipboardMode === "copy") await copyFolderRecursive(item.id, null);
 
+            // If we are pasting it inside another folder, prevent pasting a folder into its own children
             } else {
 
-                // Prevent pasting a folder into its own children
                 if (await isDescendant(item.id, node.id)) {
                     errorMessages.set("Not Allowed", "You cannot paste a folder into its own descendant.");
                     continue;
                 }
 
+                // Check if a folder with the same name already exist in the folder
                 const siblingFolders = await getFolders(node.id);
                 if (siblingFolders.some(f => f.name === item.name)) {
                     errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists here.`);
@@ -122,6 +125,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
     clearClipboard();
     await loadFn();
 
+    // Return error messages if any
     return Array.from(errorMessages.entries()).map(([type, message]) => ({ type, message }));
 
 }

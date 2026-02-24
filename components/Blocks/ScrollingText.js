@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 
-import styles from "../../styles/styles.js";
+// Styles
 import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
-// Scroll through long texts
+// Component that automatically scrolls long titles or just display them as they are
+// Allows users to read whole title and prevent the title to have more than one line
 export default function ScrollingText({ text }) {
-    const [isLong, setIsLong] = useState(false);
-    const [textWidth, setTextWidth] = useState(0);
-    const [containerWidth, setContainerWidth] = useState(0);
+    const [isLong, setIsLong] = useState(false);                    // Is the text long enough to scroll
+    const [textWidth, setTextWidth] = useState(0);                  // Text's width
+    const [containerWidth, setContainerWidth] = useState(0);        // The empty space for the text
     const scrollAnimation = useRef(new Animated.Value(0)).current;
 
     // Get container width
@@ -28,35 +30,24 @@ export default function ScrollingText({ text }) {
     // Start scrolling animation if text is long
     useEffect(() => {
         if (isLong) {
-            const scrollDistance = textWidth - containerWidth;
+            const scrollDistance = textWidth - containerWidth;  // Required scroll distance
             
-            // Wait 1 second, scroll, wait 1 second, reset, repeat
+            // Wait 3 second, scroll, wait 2 second, reset, repeat
             const animate = () => {
                 Animated.sequence([
-                    Animated.delay(2000),                  // Wait at start
-                    Animated.timing(scrollAnimation, {
-                        toValue: -scrollDistance - 10,     // Scroll left (with extra padding)
-                        duration: scrollDistance * 20,     // Speed: 20ms per pixel
-                        useNativeDriver: true,
-                    }),
-                    
-                    Animated.delay(3000),                  // Wait at end
-                    Animated.timing(scrollAnimation, {
-                        toValue: 0,                        // Reset to start
-                        duration: 500,                     // Restart in 300 ms
-                        useNativeDriver: true,
-                    }),
-                ]).start(() => animate());                 // Loop
+                    Animated.delay(3000),
+                    Animated.timing(scrollAnimation, { toValue: -scrollDistance - 10, duration: scrollDistance * 20, useNativeDriver: true}), 
+                    Animated.delay(2000),
+                    Animated.timing(scrollAnimation, {toValue: 0, duration: 500, useNativeDriver: true}),
+                ]).start(() => animate());
             };
-
             animate();
         } else {
             scrollAnimation.setValue(0);
         }
 
-        return () => {
-            scrollAnimation.stopAnimation();
-        };
+        return () => scrollAnimation.stopAnimation();
+
     }, [isLong, textWidth, containerWidth, scrollAnimation]);
 
     return (
