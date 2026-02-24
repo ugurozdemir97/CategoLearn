@@ -1,50 +1,82 @@
-import { TouchableOpacity, Text, View } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
 import { Pressable as GHPressable } from "react-native-gesture-handler";
 import { FontAwesome } from "@expo/vector-icons";
-import styles from "../../styles/styles.js";
-import { colors } from "../../styles/colors.js";
+
+// Components
 import ScrollingText from "../Blocks/ScrollingText.js";
 
-// Draggable version of ListButton for custom sorting
-export default function DraggableListButton({ item, index, totalItems, drag, isActive, onMoveUp, onMoveDown }) {
-    
-    const getIcon = (type) => {
-        if (type === "Category") return "folder";
-        if (type === "Card") return "file-text-o";
+// Styles
+import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
+
+// Draggable version of List Button used for ordering colors in settings screen and ordering items in custom order mode
+export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, item, colorNames }) {
+
+    const getIcon = (t) => {
+        if (t === "Category") return "folder";
+        if (t === "Card") return "file-text-o";
         return "align-left";
     };
 
+    // Is it color drag list or item drag list
+    const isColorMode = !!colorNames;
+
     return (
-        <View style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, { marginTop: 8, gap: 10, backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard, borderWidth: 1, borderColor: isActive ? colors.accentLight : "transparent", }]}>
-
-            {/* Left: Color stripe + Icon + Drag handle + Name */}
-            <TouchableOpacity onLongPress={drag} delayLongPress={150} activeOpacity={1} style={[styles.rowCenter, { flex: 1, gap: 10 }]}>
-
-                {/* Color stripe */}
-                <View style={[styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: item.color || "transparent", borderColor: ! item.color ? colors.bgPrimary : "transparent"}]}/>
-
-                {/* Icon */}
-                <FontAwesome name={getIcon(item.type)} size={18} color={colors.accentLight}/>
-
-                {/* Drag dots */}
-                <View style={styles.dragDots}>
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <View key={i} style={[styles.dragDot, { backgroundColor: colors.textHalfOpacity }]}/>
-                    ))}
-                </View>
-
-                {/* Name with auto-scroll */}
-                <ScrollingText text={item.name} />
+        <View style={[styles.colorRow, styles.rowCenter, { backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard, borderWidth: 1, borderColor: isActive ? colors.accentLight : "transparent" }]}>
+        
+            {/* Color Box, Drag Handle, Item/Color name, Hex Code in Color mode */}
+            <TouchableOpacity onLongPress={drag} delayLongPress={150} activeOpacity={1} style={[styles.rowCenter, { gap: 10, flex: 1 }]}>
+                
+                {isColorMode ? (
+                    // Color Box, Drag Handle, Color Name, Color Hex Code
+                    <>
+                        <View style={[styles.colorBox, !item && styles.dashedBorder, {backgroundColor: item || "transparent", borderColor: item ? "transparent" : colors.textHalfOpacity }]}/>
+                        <View style={styles.dragDots}>
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                                <View key={i} style={[styles.dragDot, { backgroundColor: colors.textHalfOpacity }]}/>
+                            ))}
+                        </View>
+                        <Text style={[styles.smallText, { color: colors.textPrimary, flex: 1 }]}>{colorNames[item] ?? item ?? "None"}</Text>
+                        {item && (<Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>{item}</Text>)}
+                    </>
+                ) : (
+                    // Color Box, Drag Handle, Item Icon, Item Name
+                    <>
+                        <View style={[styles.colorBox, !item.color && styles.dashedBorder, {backgroundColor: item.color || "transparent", borderColor: item.color ? "transparent" : colors.textHalfOpacity }]}/>
+                        <View style={styles.dragDots}>
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                                <View key={i} style={[styles.dragDot, { backgroundColor: colors.textHalfOpacity }]}/>
+                            ))}
+                        </View>
+                        <FontAwesome name={getIcon(item.type)} size={18} color={colors.accentLight}/>
+                        <ScrollingText text={item.name}/>
+                    </>
+                )}
 
             </TouchableOpacity>
 
-            {/* Right: Arrow buttons */}
+            {/* Arrow buttons */}
             <View style={[styles.rowCenter, { gap: 4 }]}>
-                <GHPressable onPress={onMoveUp} disabled={index === 0} style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}]}>
-                    <FontAwesome name="arrow-up" size={15} color={index === 0 ? colors.textHalfOpacity : colors.textPrimary} />
+                <GHPressable
+                    onPress={onMoveUp}
+                    disabled={index === 0}
+                    style={({ pressed }) => [
+                        styles.arrowButton, styles.centered, 
+                        {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}
+                    ]}
+                >
+                    <FontAwesome name="arrow-up" size={15} color={index === 0 ? colors.textHalfOpacity : colors.textPrimary}/>
                 </GHPressable>
-                <GHPressable onPress={onMoveDown} disabled={index === totalItems - 1} style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}]}>
-                    <FontAwesome name="arrow-down" size={15} color={index === totalItems - 1 ? colors.textHalfOpacity : colors.textPrimary} />
+
+                <GHPressable
+                    onPress={onMoveDown}
+                    disabled={index === totalItems - 1}
+                    style={({ pressed }) => [
+                        styles.arrowButton, styles.centered,
+                        {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}
+                    ]}
+                >
+                    <FontAwesome name="arrow-down" size={15} color={index === totalItems - 1 ? colors.textHalfOpacity : colors.textPrimary}/>
                 </GHPressable>
             </View>
         </View>

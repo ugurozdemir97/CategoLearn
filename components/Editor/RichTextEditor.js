@@ -26,25 +26,22 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
         editorRef.current?.insertHTML(`<hr style="border: 1px solid ${colors.accentLight}; width: 100%; display: block;"/><br/>`);
     };
 
+    // We only show the toolbar when the text editor is focused
+    const handleFocus = () => {setIsFocused(true)};
+    const handleBlur  = () => {setIsFocused(false)};
+
+    // Custom action to highlight text
     const highlightText = () => {
         if (isHighlighted) {
             setIsHighlighted(false);
             editorRef.current?.setHiliteColor("inherit");      
-
         } else {
             editorRef.current?.setHiliteColor('#f37900');
             setIsHighlighted(true);
         }
     };
 
-    const handleFocus = () => {
-        setIsFocused(true);
-    };
-
-    const handleBlur = () => {
-        setIsFocused(false);
-    };
-
+    // Custom button icons
     const hrIcon = ({tintColor}) => <FontAwesome name="minus" size={18} color={tintColor} />
     const hlIcon = ({tintColor}) => <FontAwesome5 name="highlighter" size={18} color={isHighlighted ? colors.accent : tintColor} />
 

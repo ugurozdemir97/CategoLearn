@@ -268,31 +268,29 @@ const handleCancelCustomOrder = () => {
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     onDragEnd={handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 8, paddingHorizontal: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
-                                item={item}
-                                index={index}
-                                totalItems={fields.length}
-                                drag={drag}
-                                isActive={isActive}
-                                onMoveUp={() => {
-                                    const newFields = [...fields];
-                                    if (index > 0) {
-                                        [newFields[index], newFields[index - 1]] = 
-                                        [newFields[index - 1], newFields[index]];
-                                        setFields(newFields);
-                                    }
-                                }}
-                                onMoveDown={() => {
-                                    const newFields = [...fields];
-                                    if (index < fields.length - 1) {
-                                        [newFields[index], newFields[index + 1]] = 
-                                        [newFields[index + 1], newFields[index]];
-                                        setFields(newFields);
-                                    }
-                                }}
+                            item={item}
+                            index={index}
+                            totalItems={fields.length}
+                            drag={drag}
+                            isActive={isActive}
+                            onMoveUp={() => {
+                                const newFields = [...fields];
+                                if (index > 0) {
+                                [newFields[index], newFields[index - 1]] = [newFields[index - 1], newFields[index]];
+                                setFields(newFields);
+                                }
+                            }}
+                            onMoveDown={() => {
+                                const newFields = [...fields];
+                                if (index < fields.length - 1) {
+                                [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
+                                setFields(newFields);
+                                }
+                            }}
                             />
                         </ScaleDecorator>
                     )}

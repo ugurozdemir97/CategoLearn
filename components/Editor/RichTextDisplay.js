@@ -1,4 +1,4 @@
-import { View, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { colors } from '../../styles/colors.js';
 

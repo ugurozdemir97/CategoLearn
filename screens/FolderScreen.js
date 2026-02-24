@@ -373,32 +373,30 @@ const handleCancelCustomOrder = () => {
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                     onDragEnd={handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 8, paddingHorizontal: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
-                                item={item}
-                                index={index}
-                                totalItems={items.length}
-                                drag={drag}
-                                isActive={isActive}
-                                onMoveUp={() => {
-                                    const newItems = [...items];
-                                    if (index > 0) {
-                                        [newItems[index], newItems[index - 1]] = 
-                                        [newItems[index - 1], newItems[index]];
-                                        setItems(newItems);
-                                    }
-                                }}
-                                onMoveDown={() => {
-                                    const newItems = [...items];
-                                    if (index < items.length - 1) {
-                                        [newItems[index], newItems[index + 1]] = 
-                                        [newItems[index + 1], newItems[index]];
-                                        setItems(newItems);
-                                    }
-                                }}
-                            />
+  item={item}
+  index={index}
+  totalItems={items.length}
+  drag={drag}
+  isActive={isActive}
+  onMoveUp={() => {
+    const newItems = [...items];
+    if (index > 0) {
+      [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
+      setItems(newItems);
+    }
+  }}
+  onMoveDown={() => {
+    const newItems = [...items];
+    if (index < items.length - 1) {
+      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+      setItems(newItems);
+    }
+  }}
+/>
                         </ScaleDecorator>
                     )}
                 />

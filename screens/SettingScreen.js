@@ -8,6 +8,7 @@ import { FontAwesome } from "@expo/vector-icons";
 // Components
 import SectionBlock from "../components/Blocks/SettingsTitle.js";
 import RadioButton from "../components/Buttons/RadioButton.js";
+import DraggableListButton from "../components/Buttons/DraggableListButton.js"
 import InformationModal from "../components/Modals/InformationModal.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 
@@ -143,52 +144,16 @@ export default function SettingsScreen() {
                     style={styles.paddingHorizontal}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
-                            <View style={[styles.colorRow, styles.rowCenter, { 
-                                backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard,
-                                borderColor: isActive ? colors.accentLight : "transparent"
-                            }]}>
-
-                                {/* Drag handle + color swatch */}
-                                <TouchableOpacity onLongPress={drag} delayLongPress={150} activeOpacity={1} style={[styles.rowCenter, {gap: 10, flex: 1}]}>
-                                    <View style={[ styles.colorBox, !item && styles.dashedBorder, 
-                                        {backgroundColor: item || "transparent", 
-                                        borderColor: item ? "transparent" : colors.textHalfOpacity} 
-                                    ]}/>
-                                  
-                                    <View style={styles.dragDots}>
-                                        {[0,1,2,3,4,5].map((i) => (
-                                          <View key={i} style={[styles.dragDot, {backgroundColor: colors.textHalfOpacity}]} />
-                                        ))}
-                                    </View>
-
-                                    <Text style={[styles.smallText, {color: colors.textPrimary, flex: 1}]}>
-                                        {COLOR_NAMES[item] ?? item ?? "None"}
-                                    </Text>
-
-                                    {item && (
-                                        <Text style={[styles.tinyText, {color: colors.textHalfOpacity}]}>{item}</Text>
-                                    )}
-                                </TouchableOpacity>
-
-                                {/* Arrow buttons */}
-                                <View style={[styles.rowCenter, { gap: 4 }]}>
-                                    <GHPressable
-                                      onPress={() => moveColor(item, -1)}
-                                      disabled={index === 0}
-                                      style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary} ]}
-                                    >
-                                          <FontAwesome name="arrow-up" size={15} color={colors.textPrimary} />
-                                    </GHPressable>
-                                    
-                                    <GHPressable
-                                      onPress={() => moveColor(item, 1)}
-                                      disabled={index === colorOrder.length - 1}
-                                      style={({ pressed }) => [ styles.arrowButton, styles.centered, {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary} ]}
-                                    >
-                                          <FontAwesome name="arrow-down" size={15} color={colors.textPrimary} />
-                                    </GHPressable>
-                              </View>
-                          </View>
+                            <DraggableListButton
+                                item={item}
+                                index={index}
+                                totalItems={colorOrder.length}
+                                drag={drag}
+                                isActive={isActive}
+                                onMoveUp={() => moveColor(item, -1)}
+                                onMoveDown={() => moveColor(item, 1)}
+                                colorNames={COLOR_NAMES}
+                            />
                         </ScaleDecorator>
                     )}
                 />

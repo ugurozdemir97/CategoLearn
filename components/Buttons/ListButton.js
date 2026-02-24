@@ -1,11 +1,17 @@
-import { TouchableOpacity, Text, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import styles from "../../styles/styles.js";
+
+// Styles
 import { colors } from "../../styles/colors.js";
-import { useSortMode } from "../../context/SortModeContext.js";
+import styles from "../../styles/styles.js";
+
+// Components
 import RichTextDisplay from "../Editor/RichTextDisplay.js";
 import ScrollingText from "../Blocks/ScrollingText.js";
 import DateDisplay from "../Blocks/DateDisplay.js";
+
+// Contexts
+import { useSortMode } from "../../context/SortModeContext.js";
 
 // Items (Categories, Cards, and Fields)
 export default function ListButton({ label, updatedAt, deletedAt, createdAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {

@@ -52,8 +52,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             
             // Check duplicates in parent folder
             const existingCards = await getCards(parentId);
-            const activeCards = existingCards.filter(c => !c.deleted_at); // Only non-deleted cards
-            if (activeCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
+            if (existingCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
                 setErrorMessage(`A card named "${validation.trimmed}" already exists in this folder.`);
                 return;
             }
@@ -95,8 +94,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
             // Check duplicates in parent card
             const existingFields = await getFields(parentId);
-            const activeFields = existingFields.filter(f => !f.deleted_at); // Only non-deleted fields
-            if (activeFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+            if (existingFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
                 setErrorMessage(`A field named "${validation.trimmed}" already exists in this card.`);
                 return;
             }
@@ -110,8 +108,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
             // Check duplicates in parent folder (or root if parentId is null)
             const existingFolders = await getFolders(parentId);
-            const activeFolders = existingFolders.filter(f => !f.deleted_at); // Only non-deleted folders
-            if (activeFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+            if (existingFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
                 setErrorMessage(`A folder named "${validation.trimmed}" already exists here.`);
                 return;
             }
@@ -140,6 +137,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         setConfirmVisible(true);
     };
 
+    // Set fields after deletion and hide confirmation modal
     const confirmDeleteField = async () => {
         if (deleteIndex !== null) {
             const updated = [...localFields];
@@ -176,8 +174,10 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                 />
                                 <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
                                     <FontAwesome name="paint-brush" size={20} color={
-                                        selectedColor === "#FFFFFF" || selectedColor === "#ffdd00" || selectedColor === "#00e19d"
-                                            ? "#000000"
+                                            selectedColor === "#FFFFFF" || 
+                                            selectedColor === "#ffdd00" || 
+                                            selectedColor === "#00e19d" 
+                                            ? "#000000" 
                                             : colors.textPrimary
                                         } 
                                     />
@@ -233,7 +233,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                 </View>
                             )}
                             
-                            {/* Rich Text Editor for single field */}
+                            {/* Rich Text Editor for single field creation/edit */}
                             {isField && (
                                 <RichTextEditor
                                     key={`field-${editTarget?.id || 'new'}-${visible}`}

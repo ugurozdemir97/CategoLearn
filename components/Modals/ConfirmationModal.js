@@ -1,13 +1,13 @@
 import { Modal, View, Text, TouchableOpacity, KeyboardAvoidingView } from "react-native";
-import styles from "../../styles/styles.js";
 import { colors } from "../../styles/colors.js";
+import styles from "../../styles/styles.js";
 
-// A simple confirmation modal with customizable message and actions
+// A simple confirmation modal with customisable message and actions
 export default function ConfirmationModal({ visible, onCancel, onConfirm, message, title = "Confirm Action", confirmText = "Confirm", confirmColor = colors.danger}) {
     
     return (
         <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onCancel}>
-                <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
                 <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
                     <View style={[styles.modalContent, { backgroundColor: colors.bgModal }]}>
 
