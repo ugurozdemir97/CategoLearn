@@ -3,14 +3,15 @@ import { loadSortMode, loadDeletedSortMode } from "../storage/sortPreference.js"
 
 const SortModeContext = createContext();
 
+// Update Sort Mode Across Screens
 export function SortModeProvider({ children }) {
-    const [sortMode, setSortMode] = useState("Order by edit time");
-    const [deletedSortMode, setDeletedSortMode] = useState("Order by deletion time");
+    const [sortMode, setSortMode] = useState("Order by edit time");                    // Default sort mode
+    const [deletedSortMode, setDeletedSortMode] = useState("Order by deletion time");  // Default DeletedScreen Sort mode
 
-    // Load initial sort modes
+    // Load last preferred sort modes
     useEffect(() => {
         (async () => {
-            const normalMode = await loadSortMode();
+            const normalMode =  await loadSortMode();
             const deletedMode = await loadDeletedSortMode();
             setSortMode(normalMode);
             setDeletedSortMode(deletedMode);
@@ -18,12 +19,7 @@ export function SortModeProvider({ children }) {
     }, []);
 
     return (
-        <SortModeContext.Provider value={{ 
-            sortMode, 
-            setSortMode,
-            deletedSortMode,
-            setDeletedSortMode
-        }}>
+        <SortModeContext.Provider value={{ sortMode, setSortMode, deletedSortMode, setDeletedSortMode }}>
             {children}
         </SortModeContext.Provider>
     );
@@ -31,8 +27,6 @@ export function SortModeProvider({ children }) {
 
 export function useSortMode() {
     const context = useContext(SortModeContext);
-    if (!context) {
-        throw new Error("useSortMode must be used within SortModeProvider");
-    }
+    if (!context) throw new Error("useSortMode must be used within SortModeProvider");
     return context;
 }

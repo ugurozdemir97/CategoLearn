@@ -11,7 +11,6 @@ export function ClipboardProvider({ children }) {
     const [cutItemIds, setCutItemIds] = useState([]);             // Array of item IDs that are currently cut (used for UI feedback)
     const [copiedItemIds, setCopiedItemIds] = useState([]);       // Array of item IDs that are currently copied (used for UI feedback)
 
-
     const cut = (items) => {
         setClipboard([...items]);                                  // Store the items being cut in the clipboard state    
         setClipboardMode("cut");                                   // Set mode to 'cut' so that paste operations know how to handle these items    

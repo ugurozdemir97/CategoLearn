@@ -2,11 +2,11 @@ import db from "./db";
 
 export async function setupDatabase() {
     // Drop old tables if you want a clean reset
-    //await db.execAsync("DROP TABLE IF EXISTS fields");
-    //await db.execAsync("DROP TABLE IF EXISTS cards");
-    //await db.execAsync("DROP TABLE IF EXISTS folders");
+    // await db.execAsync("DROP TABLE IF EXISTS fields");
+    // await db.execAsync("DROP TABLE IF EXISTS cards");
+    // await db.execAsync("DROP TABLE IF EXISTS folders");
 
-    // Folders table (subjects + categories unified)
+    // Folders table (categories)
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS folders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,6 +15,7 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Category',
             is_system_folder INTEGER DEFAULT 0,
+            sort_index INTEGER DEFAULT NULL,
             created_at DATETIME DEFAULT (datetime('now', 'localtime')),
             updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
@@ -22,7 +23,7 @@ export async function setupDatabase() {
         );
     `);
 
-    // Cards table (must belong to a folder, never root)
+    // Cards table (must belong to a folder, parent_id can not be null)
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS cards (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +32,7 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Card',
             is_system_card INTEGER DEFAULT 0,
+            sort_index INTEGER DEFAULT NULL,
             created_at DATETIME DEFAULT (datetime('now', 'localtime')),
             updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
@@ -38,7 +40,7 @@ export async function setupDatabase() {
         );
     `);
 
-    // Fields table (extra content for cards)
+    // Fields table (must belong to a card, parent_id can not be null)
     await db.execAsync(`
         CREATE TABLE IF NOT EXISTS fields (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +49,7 @@ export async function setupDatabase() {
             color TEXT,
             type TEXT DEFAULT 'Field',
             context TEXT,
+            sort_index INTEGER DEFAULT NULL,
             created_at DATETIME DEFAULT (datetime('now', 'localtime')),
             updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
             deleted_at DATETIME DEFAULT NULL,
@@ -54,70 +57,30 @@ export async function setupDatabase() {
         );
     `);
 
-    // Create UNIQUE indexes that exclude system items AND deleted items
-    // Note: SQLite doesn't support modifying existing indexes, so if the WHERE clause changes,
-    // you'll need to manually DROP and recreate them once
-    await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_folders 
-        ON folders(parent_id, name) 
-        WHERE is_system_folder = 0 AND deleted_at IS NULL;
-    `);
+    // These unique indexes are used for preventing items with the same name and type exist under the same parent
+    // Deleted items and system folders doesn't count. So a user can create a folder called "Restored Items" without conflicting with the
+    // system folder. Also a user can create a folder called "A" even if there is another folder called "A" which is deleted
+    await db.execAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_folders ON folders(parent_id, name) WHERE is_system_folder = 0 AND deleted_at IS NULL;`);
+    await db.execAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_cards ON cards(parent_id, name) WHERE is_system_card = 0 AND deleted_at IS NULL;`);
+    await db.execAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_fields ON fields(parent_id, name) WHERE deleted_at IS NULL;`);
 
-    await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_cards 
-        ON cards(parent_id, name) 
-        WHERE is_system_card = 0 AND deleted_at IS NULL;
-    `);
-
-    await db.execAsync(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_fields 
-        ON fields(parent_id, name)
-        WHERE deleted_at IS NULL;
-    `);
-
-    // Add sort_index columns if they don't exist
-    // SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we check first
-    const foldersInfo = await db.getAllAsync("PRAGMA table_info(folders)");
-    const cardsInfo = await db.getAllAsync("PRAGMA table_info(cards)");
-    const fieldsInfo = await db.getAllAsync("PRAGMA table_info(fields)");
-    
-    if (!foldersInfo.some(col => col.name === 'sort_index')) {
-        await db.execAsync(`ALTER TABLE folders ADD COLUMN sort_index INTEGER DEFAULT NULL;`);
-    }
-    
-    if (!cardsInfo.some(col => col.name === 'sort_index')) {
-        await db.execAsync(`ALTER TABLE cards ADD COLUMN sort_index INTEGER DEFAULT NULL;`);
-    }
-    
-    if (!fieldsInfo.some(col => col.name === 'sort_index')) {
-        await db.execAsync(`ALTER TABLE fields ADD COLUMN sort_index INTEGER DEFAULT NULL;`);
-    }
+    // Get Restored Items folder
+    let restoredItemsFolderId;
+    const restoredItemsFolder = await db.getFirstAsync("SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL");
 
     // Create Restored Items folder if it doesn't exist
-    const restoredItemsFolder = await db.getFirstAsync(
-        "SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL"
-    );
-    
-    let restoredItemsFolderId;
     if (!restoredItemsFolder) {
-        const result = await db.runAsync(
-            "INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)"
-        );
+        const result = await db.runAsync("INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)");
         restoredItemsFolderId = result.lastInsertRowId;
     } else {
         restoredItemsFolderId = restoredItemsFolder.id;
     }
 
+    // Get Restored Fields card
+    const restoredFieldsCard = await db.getFirstAsync("SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ?", [restoredItemsFolderId]);
+
     // Create Restored Fields card if it doesn't exist
-    const restoredFieldsCard = await db.getFirstAsync(
-        "SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ?",
-        [restoredItemsFolderId]
-    );
-    
     if (!restoredFieldsCard) {
-        await db.runAsync(
-            "INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)",
-            [restoredItemsFolderId]
-        );
+        await db.runAsync("INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)", [restoredItemsFolderId]);
     }
 }

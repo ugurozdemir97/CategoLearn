@@ -1,35 +1,33 @@
 {
-  "expo": {
-    "name": "CategoLearn",
-    "slug": "CategoLearn",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#020029"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#020029"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.ugur97.CategoLearn"
-    },
-    "plugins": [
-      "expo-sqlite"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "99efa90e-d826-4af7-b85c-d7fb09a7da53"
-      }
+    "expo": {
+        "name": "CategoLearn",
+        "slug": "CategoLearn",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/splash-icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#020029"
+        },
+        "ios": {
+            "supportsTablet": true
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#020029"
+            },
+            "edgeToEdgeEnabled": true,
+            "package": "com.ugur97.CategoLearn"
+        },
+        "plugins": ["expo-sqlite"],
+        "extra": {
+            "eas": {
+                "projectId": "99efa90e-d826-4af7-b85c-d7fb09a7da53"
+            }
+        }
     }
-  }
 }

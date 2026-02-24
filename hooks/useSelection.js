@@ -2,9 +2,7 @@ import { useState, useCallback } from "react";
 
 // Select and Unselect items
 export function useSelection() {
-
-    // Store selected items
-    const [selectedItems, setSelectedItems] = useState([]);
+    const [selectedItems, setSelectedItems] = useState([]);  // Store selected items
 
     // If true, we can select other items just by tapping on them once
     const secondarySelect = selectedItems.length > 0;

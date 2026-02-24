@@ -11,6 +11,7 @@ import DeletedScreen from "../screens/DeletedScreen";
 
 const Stack = createNativeStackNavigator();
 
+// All Screens
 function StackNavigator() {
     return (
         <NavigationContainer>

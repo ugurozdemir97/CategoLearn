@@ -1,18 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SORT_MODE_KEY = "lastSortMode";
-const DELETED_SORT_MODE_KEY = "lastDeletedSortMode";
-const COLOR_ORDER_KEY = "lastColorOrder";
-const COLOR_SORT_PREF_KEY = "lastColorSortPreference";
+const SORT_MODE_KEY =         "lastSortMode";             // Last sort mode preference
+const DELETED_SORT_MODE_KEY = "lastDeletedSortMode";      // Last sort mode preference for DeletedScreen
+const COLOR_ORDER_KEY =       "lastColorOrder";           // Prefered Color Order
+const COLOR_SORT_PREF_KEY =   "lastColorSortPreference";  // Prefered order (last edit time / alphabetically) between the same color items
 const DEFAULT_COLOR_ORDER = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d", null ];
 
 // Save last sort mode (for normal screens: Home, Folder, CardDetail)
 export async function saveSortMode(mode) {
-    try {
-        await AsyncStorage.setItem(SORT_MODE_KEY, mode);
-    } catch (e) {
-        console.error("Failed to save sort mode", e);
-    }
+    try       {await AsyncStorage.setItem(SORT_MODE_KEY, mode)} 
+    catch (e) {console.error("Failed to save sort mode", e)}
 }
 
 // Load last sort mode (for normal screens)
@@ -28,11 +25,8 @@ export async function loadSortMode() {
 
 // Save last sort mode for deleted screen
 export async function saveDeletedSortMode(mode) {
-    try {
-        await AsyncStorage.setItem(DELETED_SORT_MODE_KEY, mode);
-    } catch (e) {
-        console.error("Failed to save deleted sort mode", e);
-    }
+    try {await AsyncStorage.setItem(DELETED_SORT_MODE_KEY, mode)} 
+    catch (e) {console.error("Failed to save deleted sort mode", e)}
 }
 
 // Load last sort mode for deleted screen
@@ -48,11 +42,8 @@ export async function loadDeletedSortMode() {
 
 // Save preferred color order
 export async function saveColorOrder(order) {
-    try {
-        await AsyncStorage.setItem(COLOR_ORDER_KEY, JSON.stringify(order));
-    } catch (e) {
-        console.error("Failed to save color order", e);
-    }
+    try {await AsyncStorage.setItem(COLOR_ORDER_KEY, JSON.stringify(order))} 
+    catch (e) {console.error("Failed to save color order", e)}
 }
 
 // Load preferred color order
@@ -68,11 +59,8 @@ export async function loadColorOrder() {
 
 // Save color sort preference (Last edit time or alphabetically)
 export async function saveColorSortPreference(pref) {
-    try {
-        await AsyncStorage.setItem(COLOR_SORT_PREF_KEY, pref);
-    } catch (e) {
-        console.error("Failed to save color sort preference", e);
-    }
+    try {await AsyncStorage.setItem(COLOR_SORT_PREF_KEY, pref)} 
+    catch (e) {console.error("Failed to save color sort preference", e)}
 }
 
 // Load color sort preference

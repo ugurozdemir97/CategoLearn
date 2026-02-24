@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+// Contexts
 import { ClipboardProvider } from "./context/ClipboardContext.js";
 import { SortModeProvider } from "./context/SortModeContext.js";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Navigation and Screens
 import StackNavigator from "./navigation/StackNavigator";
-import { setupDatabase } from "./database/schema.js";
 import DbErrorScreen from   "./screens/ErrorScreens/DatabaseErrorScreen.js";
 import DbLoadingScreen from "./screens/ErrorScreens/DatabaseLoadingScreen.js";
+
+// Database Setup
+import { setupDatabase } from "./database/schema.js";
 
 // Main App
 export default function App() {
@@ -30,14 +36,13 @@ export default function App() {
     if (dbError)  return <DbErrorScreen error={dbError}/>;   // Show error message if DB initialization fails
     if (!dbReady) return <DbLoadingScreen/>;                 // Show loading spinner until DB is ready
 
-
     // Render app only when DB is ready
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <SortModeProvider>
                     <ClipboardProvider>
-                        <StackNavigator />
+                        <StackNavigator/>
                     </ClipboardProvider>
                 </SortModeProvider>
             </SafeAreaProvider>
