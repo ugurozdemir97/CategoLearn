@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, FlatList } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
@@ -13,7 +13,7 @@ import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 import InformationModal from "../components/Modals/InformationModal.js";
 import HeaderBar from "../components/Navigation/HeaderBar.js";
 import FooterBar from "../components/Navigation/FooterBar.js";
-import BreadCrumb from "../components/Navigation/BreadCrumb.js"
+import BreadCrumb from "../components/Navigation/BreadCrumb.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -23,6 +23,9 @@ import { colors } from "../styles/colors.js";
 import { useSortMode } from "../context/SortModeContext.js";
 import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
+import { useModalStates } from "../hooks/useModalStates.js";
+import { useCustomSort } from "../hooks/useCustomSort.js";
+import { useFooterActions } from "../hooks/useFooterActions.js";
 
 // Utils
 import { formatDate } from "../utils/formatTime.js";
@@ -35,33 +38,19 @@ import { getFields, addField, updateField, deleteField } from "../database/queri
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
-    const { card, path } = route.params;                                // Card is the parent card of the fields we see here
-    const [fields, setFields] = useState([]);                           // Fields are the fields inside this card
-    const [fieldContext, setFieldContext] = useState("");               // Context of the field being edited
-    const [editTarget, setEditTarget] = useState(null);                 // Edited Field
-    const [deleteTarget, setDeleteTarget] = useState(null);             // The field(s) being deleted. 
-    const [errorMessages, setErrorMessages] = useState([]);             // Error messages to display
-    const [modalVisible, setModalVisible] = useState(false);            // Show or Hide modal for creating/editing fields
-    const [confirmVisible, setConfirmVisible] = useState(false);        // Show or Hide confirmation modal for deletions
-    const [infoVisible, setInfoVisible] = useState(false);              // Show or Hide information modal for alerts
-    const [colorModalVisible, setColorModalVisible] = useState(false);  // Show or Hide color modal for alerts
-    const [expanded, setExpanded] = useState({});                       // Which fields are expanded to show their context
-    const [selectedColor, setSelectedColor] = useState(null);           // The color we want when we are editing colors
-    const [cardDate, setCardDate] = useState(null);                     // Parent card's creation/last edit date
-    const [customSortMode, setCustomSortMode] = useState(false);        // If we are in custom sort mode or not
+    const { card, path } = route.params;
+    const [fields, setFields] = useState([]);
+    const [fieldContext, setFieldContext] = useState("");
+    const [expanded, setExpanded] = useState({});
+    const [cardDate, setCardDate] = useState(null);
+    const [footerHeight, setFooterHeight] = useState(60);
 
-    const [footerHeight, setFooterHeight] = useState(60);               // These are used to adjust placing of elements based on footer size
-
-    // Handle selection and clipboard using custom hooks/context
+    // Custom hooks for state management
+    const modals = useModalStates();
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
-    const { sortMode } = useSortMode(); 
-
-    // Load all fields inside this card when we are in this screen
-    useEffect(() => {
-        const unsubscribe = navigation.addListener("focus", () => {loadFields()});
-        return unsubscribe;
-    }, [navigation, sortMode]);
+    const { sortMode } = useSortMode();
+    const footerActions = useFooterActions({ selectedItems, clearSelection, openDeleteModal: modals.openDeleteModal, setEditTarget: modals.setEditTarget, openCreateModal: modals.openCreateModal, openInfoModal: modals.openInfoModal, clipboard, clipboardMode, cut, copy, clearClipboard, reloadItems: loadFields, parent: card, itemLabel: "fields", setFieldContext});
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
@@ -71,145 +60,75 @@ export default function CardDetailScreen({ route, navigation }) {
         else setCardDate(card.updated_at);
     };
 
-    // Handle creating or editing a card
+    // Custom sort hook (must come after loadFields is defined)
+    const customSort = useCustomSort(
+        fields,
+        setFields,
+        loadFields,
+        modals.setErrorMessages,
+        () => modals.openInfoModal(modals.errorMessages)
+    );
+
+    // Load fields when screen is focused
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("focus", () => {
+            loadFields();
+        });
+        return unsubscribe;
+    }, [navigation, sortMode]);
+
+    // Handle creating or editing a field
     const handleField = async (editedField, mode) => {
+        if (mode === "create") await addField(card.id, editedField.name, editedField.context, editedField.color);
+        else                   await updateField(modals.editTarget?.id, editedField.name, editedField.context, editedField.color);
 
-        // Add or Update Field
-        if (mode === "create") await addField(card.id, editedField.name, editedField.context, editedField.color)
-        else                   await updateField(editTarget?.id, editedField.name, editedField.context, editedField.color);
-
-        // Reset modal and reload fields
         setFieldContext("");
-        setEditTarget(null);
+        modals.closeCreateModal();
         clearSelection();
-        setModalVisible(false);
         await loadFields();
     };
 
     // Delete selected field(s) after confirmation
     const confirmDelete = async () => {
-        if (deleteTarget?.items) {
-            for (const item of deleteTarget.items) if (item.id) await deleteField(item.id);
+        if (modals.deleteTarget?.items) {
+            for (const item of modals.deleteTarget.items) {
+                if (item.id) await deleteField(item.id);
+            }
             await loadFields();
         }
 
-        // After deletion, reset states
+        modals.closeDeleteModal();
         clearSelection();
-        setDeleteTarget(null);
-        setConfirmVisible(false);
     };
 
     // Toggle expand/collapse of field to show/hide context
     const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    // Footer action handlers for delete, edit, cut, copy, paste
-    // These call the respective functions from utils/handleFooterActions.js with the right parameters for fields
-    const handleDeleteSelectedWrapper = () => handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, "fields");
-    const handleCutSelectedWrapper = () =>    handleCutSelected(selectedItems, cut, clearSelection);
-    const handleCopySelectedWrapper = () =>   handleCopySelected(selectedItems, copy, clearSelection);
-    const handlePasteWrapper = async () => {
-        const result = await handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
-        if (result.length > 0) {
-            setErrorMessages(result);
-            setInfoVisible(true);
-        }
-    };
-    const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, setEditTarget, setModalVisible, null, null, setFieldContext);
-        if (result.length > 0) {
-            setErrorMessages(result);
-            setInfoVisible(true);
-        }
-    }  
-
-    // Change the colors of selected items
+    // Change colors of selected items
     const applyColorToSelected = async (color) => {
         for (const item of selectedItems) await updateField(item.id, item.name, item.context, color);
         await loadFields();
         clearSelection();
     };
 
-    // Call the right handler based on action from FooterBar
+    // Handle footer actions
     const handleAction = (action) => {
         switch (action) {
-            case "delete": handleDeleteSelectedWrapper(); break;
-            case "cut": handleCutSelectedWrapper(); break;
-            case "copy": handleCopySelectedWrapper(); break;
-            case "paste": handlePasteWrapper(); break;
+            case "delete":         footerActions.handleDelete(); break;
+            case "cut":            footerActions.handleCut(); break;
+            case "copy":           footerActions.handleCopy(); break;
+            case "paste":          footerActions.handlePasteAction(); break;
             case "clearClipboard": clearClipboard(); break;
-            case "color": if (selectedItems.length === 0) return; setColorModalVisible(true); break;
-            case "settings": navigation.navigate("Settings"); break;
-            case "search": navigation.navigate("Search"); break;
-            case "deleted": navigation.navigate("Deleted"); break;
+            case "color":          if (selectedItems.length === 0) return; modals.openColorModal(); break;
+            case "settings":       navigation.navigate("Settings"); break;
+            case "search":         navigation.navigate("Search"); break;
+            case "deleted":        navigation.navigate("Deleted"); break;
             default: break;
         }
     };
 
-    // Show error messages
-    const handleCloseInfo = () => {
-        const remaining = [...errorMessages];
-        remaining.shift();
-        setErrorMessages(remaining);
-        if (remaining.length === 0) setInfoVisible(false);
-    };
-
-// ********************** CUSTOM SORT *************************** //
-    // 3. Add move functions (same as SettingsScreen):
-const moveItem = (direction) => {
-    setFields((prev) => {
-        const currentItems = [...prev];
-        // Find the index of the item to move
-        const targetIndex = currentIndex + direction;
-
-        if (targetIndex < 0 || targetIndex >= currentItems.length) return prev;
-
-        // Swap elements
-        [currentItems[currentIndex], currentItems[targetIndex]] = 
-        [currentItems[targetIndex], currentItems[currentIndex]];
-        
-        return currentItems;
-    });
-};
-
-// 4. Add drag end handler:
-const handleDragEnd = useCallback(({ data }) => {
-    setFields(data);
-}, []);
-
-// 5. Add save/cancel handlers:
-const handleSaveCustomOrder = async () => {
-    try {
-        // Save sort_index to database
-        for (let i = 0; i < fields.length; i++) {
-            const item = fields[i];
-            const newIndex = i * 100;
-            
-            // All items in HomeScreen are folders (type: "Category")
-            await db.runAsync(
-                "UPDATE fields SET sort_index = ? WHERE id = ?",
-                [newIndex, item.id]
-            );
-        }
-        
-        setCustomSortMode(false);
-        await loadFields(); // Reload with new order
-    } catch (error) {
-        console.error("Error saving custom order:", error);
-        setErrorMessages([{
-            type: "Save Failed",
-            message: "Failed to save custom order. Please try again."
-        }]);
-        setInfoVisible(true);
-    }
-};
-
-const handleCancelCustomOrder = () => {
-    setCustomSortMode(false);
-    loadFields(); // Reset to saved order
-};
-
     return (
-        <View style={[styles.container, { backgroundColor: colors.bgPrimary}]}>
+        <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
 
             {/* HeaderBar */}
             <HeaderBar
@@ -218,79 +137,64 @@ const handleCancelCustomOrder = () => {
                 onSort={handleSort}
                 items={fields}
                 setItems={setFields}
-                onCancelSelection={() => clearSelection()}
+                onCancelSelection={clearSelection}
                 onSelectAll={() => selectAll(fields)}
-                customSortMode={customSortMode}
-                onEnterCustomSort={() => setCustomSortMode(true)}
-                onSaveCustomSort={handleSaveCustomOrder}
-                onCancelCustomSort={handleCancelCustomOrder}
+                customSortMode={customSort.customSortMode}
+                onEnterCustomSort={customSort.enterCustomSort}
+                onSaveCustomSort={customSort.handleSaveCustomOrder}
+                onCancelCustomSort={customSort.handleCancelCustomOrder}
             />
 
             <BreadCrumb
                 path={path}
                 onNavigate={async (node) => {
                     const targetIndex = path.findIndex(p => p.id === node.id);
-                    if (targetIndex === 0) {navigation.navigate("Home"); return;}                                 // If clicking the root folder (index 0), go to Home
-                    const targetFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [node.id]); // Get the folder data
-                    navigation.navigate("Folder", {folder: targetFolder, path: path.slice(0, targetIndex + 1)});  // Update the current screen's params
+                    if (targetIndex === 0) { navigation.navigate("Home"); return; }
+                    const targetFolder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [node.id]);
+                    navigation.navigate("Folder", { folder: targetFolder, path: path.slice(0, targetIndex + 1) });
                 }}
             />
 
             {/* Card Title */}
-            <View style={[styles.paddingHorizontal, styles.paddingVertical, {backgroundColor: colors.bgSecondary}]}>
-                
-                {/* Folder name centered */}
+            <View style={[styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
                 <Text style={[styles.bigText, { color: colors.textPrimary }]}>
                     {card.name}
                 </Text>
 
-                {/* Created At pinned bottom-right */}
+                {/* Date display pinned bottom-right */}
                 <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
                     <FontAwesome name={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
-                    <Text style={[ styles.tinyText, {color: colors.textHalfOpacity}]}>
+                    <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
                         {formatDate(cardDate)}
                     </Text>
-                </View>  
-                
+                </View>
             </View>
 
             {/* Fields */}
             {fields.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
-                    <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
+                    <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
                         No fields yet. Tap the plus button to add context!
                     </Text>
                 </View>
-            ) : customSortMode ? (
+            ) : customSort.customSortMode ? (
                 // Custom sort mode - draggable list
                 <DraggableFlatList
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
-                    onDragEnd={handleDragEnd}
+                    onDragEnd={customSort.handleDragEnd}
                     activationDistance={8}
                     style={{ marginTop: 8, paddingHorizontal: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
-                            item={item}
-                            index={index}
-                            totalItems={fields.length}
-                            drag={drag}
-                            isActive={isActive}
-                            onMoveUp={() => {
-                                const newFields = [...fields];
-                                if (index > 0) {
-                                [newFields[index], newFields[index - 1]] = [newFields[index - 1], newFields[index]];
-                                setFields(newFields);
-                                }
-                            }}
-                            onMoveDown={() => {
-                                const newFields = [...fields];
-                                if (index < fields.length - 1) {
-                                [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
-                                setFields(newFields);
-                                }
-                            }}
+                                item={item}
+                                index={index}
+                                totalItems={fields.length}
+                                drag={drag}
+                                isActive={isActive}
+                                onMoveUp={() => customSort.moveItemUp(index)}
+                                onMoveDown={() => customSort.moveItemDown(index)}
                             />
                         </ScaleDecorator>
                     )}
@@ -305,7 +209,7 @@ const handleCancelCustomOrder = () => {
                         <ListButton
                             label={item.name}
                             updatedAt={item.updated_at}
-                            createdAt={item.created_at} 
+                            createdAt={item.created_at}
                             context={item.context}
                             color={item.color}
                             icon="align-left"
@@ -323,70 +227,72 @@ const handleCancelCustomOrder = () => {
             )}
 
             {/* Edit Button */}
-            <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
-                <CircleButton 
-                    icon={selectedItems.length === 1 ? "pencil" : "plus"}
-                    onPress={() => {if (selectedItems.length === 1) handleEditSelectedWrapper(); else setModalVisible(true)}}
-                />
-            </View>
+            {!customSort.customSortMode && (
+                <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+                    <CircleButton
+                        icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                        onPress={() => {
+                            if (selectedItems.length === 1) footerActions.handleEdit();
+                            else modals.openCreateModal();
+                        }}
+                    />
+                </View>
+            )}
 
             {/* Empty Spacing */}
-            <View style={{backgroundColor: colors.bgPrimary, height: 15}}></View>
+            <View style={{ backgroundColor: colors.bgPrimary, height: 15 }} />
 
             {/* Footer */}
-            <FooterBar
-                selectedCount={selectedItems.length}
-                hasClipboard={clipboard.length > 0}
-                onAction={handleAction}
-                onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
-            />
+            {!customSort.customSortMode && (
+                <FooterBar
+                    selectedCount={selectedItems.length}
+                    hasClipboard={clipboard.length > 0}
+                    onAction={handleAction}
+                    onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+                />
+            )}
 
-            {/* Modal for editing card title + fields */}
+            {/* Modal for editing field */}
             <CreateModal
-                visible={modalVisible}
+                visible={modals.modalVisible}
                 onCreate={handleField}
-                title={editTarget ? "Edit Field" : "Create Field"}
+                title={modals.editTarget ? "Edit Field" : "Create Field"}
                 placeholder="Field Title"
-                value={editTarget ? editTarget.name : ""}
-                color={editTarget ? editTarget.color : null}
-                mode={editTarget ? "edit" : "create"}
+                value={modals.editTarget ? modals.editTarget.name : ""}
+                color={modals.editTarget ? modals.editTarget.color : null}
+                mode={modals.editTarget ? "edit" : "create"}
                 isField={true}
                 context={fieldContext}
                 parentId={card.id}
-                editTarget={editTarget}
-                onClose={() => {
-                    setFieldContext("");
-                    setEditTarget(null);
-                    clearSelection();
-                    setModalVisible(false);
-                }}
+                editTarget={modals.editTarget}
+                onClose={() => {setFieldContext(""); modals.closeCreateModal(); clearSelection()}}
             />
 
-            {/* Color Picker Modal For Changing Color of Items */}
+            {/* Color Picker Modal */}
             <ColorModal
-                visible={colorModalVisible}
-                onClose={() => {applyColorToSelected(selectedColor); setColorModalVisible(false)}}
-                onSelect={(c) => setSelectedColor(c)}
-                selectedColor={selectedColor}
+                visible={modals.colorModalVisible}
+                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
+                onSelect={(c) => modals.setSelectedColor(c)}
+                selectedColor={modals.selectedColor}
             />
 
             {/* Confirmation Modal */}
             <ConfirmationModal
-                visible={confirmVisible}
-                onCancel={() => setConfirmVisible(false)}
+                visible={modals.confirmVisible}
+                onCancel={modals.closeDeleteModal}
                 onConfirm={confirmDelete}
                 title="Confirm Delete"
-                message={deleteTarget?.message || ""}
+                message={modals.deleteTarget?.message || ""}
                 confirmText="Delete"
                 confirmColor={colors.danger}
             />
 
             {/* Information Modal For Errors */}
             <InformationModal
-                visible={infoVisible}
-                onClose={handleCloseInfo}
-                title={errorMessages[0]?.type}
-                message={errorMessages[0]?.message}
+                visible={modals.infoVisible}
+                onClose={modals.closeInfoModal}
+                title={modals.errorMessages[0]?.type}
+                message={modals.errorMessages[0]?.message}
             />
 
         </View>

@@ -1,14 +1,13 @@
 import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive, getFolders, getCards } from "../database/queries.js";
     
 // Delete selected items
-export function handleDeleteSelected(selectedItems, setDeleteTarget, setConfirmVisible, itemLabel = "items") {
+export function handleDeleteSelected(selectedItems, openDeleteModal, itemLabel = "items") {
     if (selectedItems.length === 0) return;
     const message =
         selectedItems.length === 1
             ? `Are you sure you want to delete "${selectedItems[0].name}"?`
             : `Are you sure you want to delete these ${selectedItems.length} ${itemLabel}?`;
-    setDeleteTarget({ items: [...selectedItems], message });
-    setConfirmVisible(true);
+    openDeleteModal({ items: [...selectedItems], message });
 }
 
 // Edit selected
