@@ -23,7 +23,6 @@ import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 import { useModalStates } from "../hooks/useModalStates.js";
 import { useCustomSort } from "../hooks/useCustomSort.js";
-import { useFooterActions } from "../hooks/useFooterActions.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -42,7 +41,6 @@ export default function HomeScreen({ navigation }) {
     const modals = useModalStates();
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
-    const footerActions = useFooterActions({ selectedItems, clearSelection, openDeleteModal: modals.openDeleteModal, setEditTarget: modals.setEditTarget, openCreateModal: modals.openCreateModal, openInfoModal: modals.openInfoModal, clipboard, clipboardMode, cut, copy, clearClipboard, reloadItems: loadSubjects, parent: null, itemLabel: "subjects"});
     const { sortMode } = useSortMode();
 
     // Load subjects when screen is focused
@@ -58,6 +56,7 @@ export default function HomeScreen({ navigation }) {
         handleSort(result, setSubjects, lastMode);
     };
 
+    // Custom sort functions for custom sort mode
     const customSort = useCustomSort(subjects, setSubjects, loadSubjects, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
 
     // Handle Create or Edit
@@ -81,27 +80,40 @@ export default function HomeScreen({ navigation }) {
         await loadSubjects();
     };
 
-    // Change colors of selected items
-    const applyColorToSelected = async (color) => {
-        for (const item of selectedItems) await updateFolder(item.id, item.name, color);
-        await loadSubjects();
-        clearSelection();
+    // Footer action handlers
+    const handleDeleteSelectedWrapper = () => {handleDeleteSelected(selectedItems, modals.openDeleteModal, "subjects")};
+    const handleCutSelectedWrapper =    () => {handleCutSelected(selectedItems, cut, clearSelection)};
+    const handleCopySelectedWrapper =   () => {handleCopySelected(selectedItems, copy, clearSelection)};
+    const handlePasteWrapper = async () => {
+        const result = await handlePaste(clipboard, clipboardMode, null, clearClipboard, loadSubjects);
+        if (result.length > 0) modals.openInfoModal(result);
+    };
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal);
+        if (result.length > 0) modals.openInfoModal(result);
     };
 
     // Handle footer actions
     const handleAction = (action) => {
         switch (action) {
-            case "delete":         footerActions.handleDelete(); break;
-            case "cut":            footerActions.handleCut(); break;
-            case "copy":           footerActions.handleCopy(); break;
-            case "paste":          footerActions.handlePasteAction(); break;
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
-            case "color":          if (selectedItems.length === 0) return; modals.openColorModal(); break;
-            case "settings":       navigation.navigate("Settings"); break;
-            case "search":         navigation.navigate("Search"); break;
-            case "deleted":        navigation.navigate("Deleted"); break;
+            case "color": if (selectedItems.length === 0) return; modals.openColorModal(); break;
+            case "settings": navigation.navigate("Settings"); break;
+            case "search": navigation.navigate("Search"); break;
+            case "deleted": navigation.navigate("Deleted"); break;
             default: break;
         }
+    };
+
+    // Change colors of selected items
+    const applyColorToSelected = async (color) => {
+        for (const item of selectedItems) await updateFolder(item.id, item.name, color);
+        await loadSubjects();
+        clearSelection();
     };
 
     return (
@@ -192,8 +204,8 @@ export default function HomeScreen({ navigation }) {
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
                         onPress={() => {
-                            if (selectedItems.length === 1) footerActions.handleEdit();
-                            else modals.openCreateModal();
+                            if (selectedItems.length === 1) handleEditSelectedWrapper();
+                            else                            modals.openCreateModal();
                         }}
                     />
                 </View>

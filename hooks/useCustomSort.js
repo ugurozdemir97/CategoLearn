@@ -1,23 +1,13 @@
 import { useState, useCallback } from "react";
 import db from "../database/db.js";
 
-/**
- * Custom hook for handling drag-and-drop custom sorting
- * Works for folders, cards, and fields
- * 
- * @param {Array} items - Current items array
- * @param {Function} setItems - State setter for items
- * @param {Function} reloadItems - Function to reload items from database
- * @param {Function} setErrorMessages - Function to set error messages
- * @param {Function} setInfoVisible - Function to show info modal
- */
+// Custom sort functions repeat themselves across screens
+// This hook handles sorting related functions and save the last order of items
 export function useCustomSort(items, setItems, reloadItems, setErrorMessages, setInfoVisible) {
-    const [customSortMode, setCustomSortMode] = useState(false);
+    const [customSortMode, setCustomSortMode] = useState(false);  // If we are in custom sort mode or not
 
-    // Handle drag end
-    const handleDragEnd = useCallback(({ data }) => {
-        setItems(data);
-    }, [setItems]);
+    // When dragging ends set items to keep the items in the same order
+    const handleDragEnd = useCallback(({ data }) => {setItems(data)}, [setItems]);
 
     // Save custom order to database
     const handleSaveCustomOrder = async () => {
@@ -28,25 +18,20 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
                 
                 // Determine table based on item type
                 let table;
-                if (item.type === "Category") table = "folders";
-                else if (item.type === "Card") table = "cards";
-                else if (item.type === "Field") table = "fields";
-                else continue; // Skip unknown types
+                if      (item.type === "Category") table = "folders";
+                else if (item.type === "Card")     table = "cards";
+                else if (item.type === "Field")    table = "fields";
+                else continue; 
                 
-                await db.runAsync(
-                    `UPDATE ${table} SET sort_index = ? WHERE id = ?`,
-                    [newIndex, item.id]
-                );
+                await db.runAsync(`UPDATE ${table} SET sort_index = ? WHERE id = ?`, [newIndex, item.id]);
             }
             
-            setCustomSortMode(false);
+            setCustomSortMode(false);  // Quit sort mode after saving the order to database and reload items
             await reloadItems();
+
         } catch (error) {
             console.error("Error saving custom order:", error);
-            setErrorMessages([{
-                type: "Save Failed",
-                message: "Failed to save custom order. Please try again."
-            }]);
+            setErrorMessages([{type: "Save Failed", message: "Failed to save custom order. Please try again."}]);
             setInfoVisible(true);
         }
     };
@@ -60,7 +45,7 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
     // Enter custom sort mode
     const enterCustomSort = () => setCustomSortMode(true);
 
-    // Move item up/down manually (for arrow buttons)
+    // Move item up/down manually with arrow buttons
     const moveItemUp = (index) => {
         if (index <= 0) return;
         const newItems = [...items];
@@ -75,13 +60,6 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
         setItems(newItems);
     };
 
-    return {
-        customSortMode,
-        handleDragEnd,
-        handleSaveCustomOrder,
-        handleCancelCustomOrder,
-        enterCustomSort,
-        moveItemUp,
-        moveItemDown,
-    };
+    return { customSortMode, handleDragEnd, handleSaveCustomOrder, handleCancelCustomOrder, enterCustomSort, moveItemUp, moveItemDown };
+
 }

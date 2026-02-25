@@ -26,7 +26,6 @@ import { useSelection } from "../hooks/useSelection.js";
 import { useSortMode } from "../context/SortModeContext.js";
 import { useModalStates } from "../hooks/useModalStates.js";
 import { useCustomSort } from "../hooks/useCustomSort.js";
-import { useFooterActions } from "../hooks/useFooterActions.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -50,7 +49,6 @@ export default function FolderScreen({ route, navigation }) {
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
-    const footerActions = useFooterActions({ selectedItems, clearSelection, openDeleteModal: modals.openDeleteModal, setEditTarget: modals.setEditTarget, openCreateModal: modals.openCreateModal, openInfoModal: modals.openInfoModal, clipboard, clipboardMode, cut, copy, clearClipboard, reloadItems: loadItems, parent: folder,    itemLabel: "items",    setCreateType,   setFields });
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -105,6 +103,7 @@ export default function FolderScreen({ route, navigation }) {
         else setFolderDate(currentFolder.updated_at);
     };
 
+    // Custom sort functions for custom sort mode
     const customSort = useCustomSort( items, setItems, loadItems, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
 
     // Handle Create or Edit for both cards and folders
@@ -174,6 +173,36 @@ export default function FolderScreen({ route, navigation }) {
         await loadItems();
     };
 
+    // Footer action handlers
+    const handleDeleteSelectedWrapper = () => {handleDeleteSelected(selectedItems, modals.openDeleteModal, "items")};
+    const handleCutSelectedWrapper =    () => {handleCutSelected(selectedItems, cut, clearSelection)};
+    const handleCopySelectedWrapper =   () => {handleCopySelected(selectedItems, copy, clearSelection)};
+    const handlePasteWrapper = async    () => {
+        const result = await handlePaste(clipboard, clipboardMode, folder, clearClipboard, loadItems);
+        if (result.length > 0) modals.openInfoModal(result);
+    };
+
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, setCreateType, setFields);
+        if (result.length > 0) modals.openInfoModal(result);
+    };
+
+    // Handle footer actions
+    const handleAction = (action) => {
+        switch (action) {
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
+            case "clearClipboard": clearClipboard(); break;
+            case "color": if (selectedItems.length === 0) return; modals.openColorModal(); break;
+            case "settings": navigation.navigate("Settings"); break;
+            case "search": navigation.navigate("Search"); break;
+            case "deleted": navigation.navigate("Deleted"); break;
+            default: break;
+        }
+    };
+
     // Change colors of selected items
     const applyColorToSelected = async (color) => {
         for (const item of selectedItems) {
@@ -183,22 +212,6 @@ export default function FolderScreen({ route, navigation }) {
 
         await loadItems();
         clearSelection();
-    };
-
-    // Handle footer actions
-    const handleAction = (action) => {
-        switch (action) {
-            case "delete":         footerActions.handleDelete(); break;
-            case "cut":            footerActions.handleCut(); break;
-            case "copy":           footerActions.handleCopy(); break;
-            case "paste":          footerActions.handlePasteAction(); break;
-            case "clearClipboard": clearClipboard(); break;
-            case "color":          if (selectedItems.length === 0) return; modals.openColorModal(); break;
-            case "settings":       navigation.navigate("Settings"); break;
-            case "search":         navigation.navigate("Search"); break;
-            case "deleted":        navigation.navigate("Deleted"); break;
-            default: break;
-        }
     };
 
     return (
@@ -306,13 +319,13 @@ export default function FolderScreen({ route, navigation }) {
             {!customSort.customSortMode && (
                 <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
                     {selectedItems.length === 1 && selectedItems[0].type === "Category" ? (
-                        <CircleButton icon="pencil" onPress={() => footerActions.handleEdit()} />
+                        <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()} />
                     ) : (
                         <CircleButton icon="folder" onPress={() => { setCreateType("Category"); modals.openCreateModal(); }} />
                     )}
 
                     {selectedItems.length === 1 && selectedItems[0].type === "Card" ? (
-                        <CircleButton icon="pencil" onPress={() => footerActions.handleEdit()} />
+                        <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()} />
                     ) : (
                         <CircleButton icon="file" onPress={() => { setCreateType("Card"); modals.openCreateModal(); }} />
                     )}

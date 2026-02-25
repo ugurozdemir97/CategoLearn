@@ -25,7 +25,6 @@ import { useClipboard } from "../context/ClipboardContext.js";
 import { useSelection } from "../hooks/useSelection.js";
 import { useModalStates } from "../hooks/useModalStates.js";
 import { useCustomSort } from "../hooks/useCustomSort.js";
-import { useFooterActions } from "../hooks/useFooterActions.js";
 
 // Utils
 import { formatDate } from "../utils/formatTime.js";
@@ -50,7 +49,6 @@ export default function CardDetailScreen({ route, navigation }) {
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
-    const footerActions = useFooterActions({ selectedItems, clearSelection, openDeleteModal: modals.openDeleteModal, setEditTarget: modals.setEditTarget, openCreateModal: modals.openCreateModal, openInfoModal: modals.openInfoModal, clipboard, clipboardMode, cut, copy, clearClipboard, reloadItems: loadFields, parent: card, itemLabel: "fields", setFieldContext});
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
@@ -60,14 +58,8 @@ export default function CardDetailScreen({ route, navigation }) {
         else setCardDate(card.updated_at);
     };
 
-    // Custom sort hook (must come after loadFields is defined)
-    const customSort = useCustomSort(
-        fields,
-        setFields,
-        loadFields,
-        modals.setErrorMessages,
-        () => modals.openInfoModal(modals.errorMessages)
-    );
+    // Custom sort functions for custom sort mode
+    const customSort = useCustomSort(fields, setFields, loadFields, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
 
     // Load fields when screen is focused
     useEffect(() => {
@@ -104,27 +96,41 @@ export default function CardDetailScreen({ route, navigation }) {
     // Toggle expand/collapse of field to show/hide context
     const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    // Change colors of selected items
-    const applyColorToSelected = async (color) => {
-        for (const item of selectedItems) await updateField(item.id, item.name, item.context, color);
-        await loadFields();
-        clearSelection();
+    // Footer action handlers
+    const handleDeleteSelectedWrapper = () => {handleDeleteSelected(selectedItems, modals.openDeleteModal, "fields")};
+    const handleCutSelectedWrapper =    () => {handleCutSelected(selectedItems, cut, clearSelection)};
+    const handleCopySelectedWrapper =   () => {handleCopySelected(selectedItems, copy, clearSelection)};
+    const handlePasteWrapper = async    () => {
+        const result = await handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
+        if (result.length > 0) modals.openInfoModal(result);
+    };
+
+    const handleEditSelectedWrapper = async () => {
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, null, null, setFieldContext);
+        if (result.length > 0) modals.openInfoModal(result);
     };
 
     // Handle footer actions
     const handleAction = (action) => {
         switch (action) {
-            case "delete":         footerActions.handleDelete(); break;
-            case "cut":            footerActions.handleCut(); break;
-            case "copy":           footerActions.handleCopy(); break;
-            case "paste":          footerActions.handlePasteAction(); break;
+            case "delete": handleDeleteSelectedWrapper(); break;
+            case "cut": handleCutSelectedWrapper(); break;
+            case "copy": handleCopySelectedWrapper(); break;
+            case "paste": handlePasteWrapper(); break;
             case "clearClipboard": clearClipboard(); break;
-            case "color":          if (selectedItems.length === 0) return; modals.openColorModal(); break;
-            case "settings":       navigation.navigate("Settings"); break;
-            case "search":         navigation.navigate("Search"); break;
-            case "deleted":        navigation.navigate("Deleted"); break;
+            case "color": if (selectedItems.length === 0) return; modals.openColorModal(); break;
+            case "settings": navigation.navigate("Settings"); break;
+            case "search": navigation.navigate("Search"); break;
+            case "deleted": navigation.navigate("Deleted"); break;
             default: break;
         }
+    };
+
+    // Change colors of selected items
+    const applyColorToSelected = async (color) => {
+        for (const item of selectedItems) await updateField(item.id, item.name, item.context, color);
+        await loadFields();
+        clearSelection();
     };
 
     return (
@@ -232,8 +238,8 @@ export default function CardDetailScreen({ route, navigation }) {
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
                         onPress={() => {
-                            if (selectedItems.length === 1) footerActions.handleEdit();
-                            else modals.openCreateModal();
+                            if (selectedItems.length === 1) handleEditSelectedWrapper();
+                            else                            modals.openCreateModal();
                         }}
                     />
                 </View>
