@@ -1,0 +1,22 @@
+# Node modules (reinstalled in build environment)
+node_modules
+
+# Git history
+.git
+.gitignore
+
+# Local Expo files
+.expo
+.expo-shared
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/project files
+.vscode
+.idea
+
+# Build outputs
+android/app/build
+ios/build
