@@ -29,7 +29,7 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 // Utils
 import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
-import { handleDeleteSelected, handleEditSelected, handleCutSelected, handleCopySelected, handlePaste } from "../utils/handleFooterActions.js";
+import { handleEditSelected } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
@@ -96,34 +96,10 @@ export default function CardDetailScreen({ route, navigation }) {
     // Toggle expand/collapse of field to show/hide context
     const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    // Footer action handlers
-    const handleDeleteSelectedWrapper = () => {handleDeleteSelected(selectedItems, modals.openDeleteModal, "fields")};
-    const handleCutSelectedWrapper =    () => {handleCutSelected(selectedItems, cut, clearSelection)};
-    const handleCopySelectedWrapper =   () => {handleCopySelected(selectedItems, copy, clearSelection)};
-    const handlePasteWrapper = async    () => {
-        const result = await handlePaste(clipboard, clipboardMode, card, clearClipboard, loadFields);
-        if (result.length > 0) modals.openInfoModal(result);
-    };
-
+    // Edit handler
     const handleEditSelectedWrapper = async () => {
         const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, null, null, setFieldContext);
         if (result.length > 0) modals.openInfoModal(result);
-    };
-
-    // Handle footer actions
-    const handleAction = (action) => {
-        switch (action) {
-            case "delete": handleDeleteSelectedWrapper(); break;
-            case "cut": handleCutSelectedWrapper(); break;
-            case "copy": handleCopySelectedWrapper(); break;
-            case "paste": handlePasteWrapper(); break;
-            case "clearClipboard": clearClipboard(); break;
-            case "color": if (selectedItems.length === 0) return; modals.openColorModal(); break;
-            case "settings": navigation.navigate("Settings"); break;
-            case "search": navigation.navigate("Search"); break;
-            case "deleted": navigation.navigate("Deleted"); break;
-            default: break;
-        }
     };
 
     // Change colors of selected items
@@ -251,9 +227,20 @@ export default function CardDetailScreen({ route, navigation }) {
             {/* Footer */}
             {!customSort.customSortMode && (
                 <FooterBar
-                    selectedCount={selectedItems.length}
-                    hasClipboard={clipboard.length > 0}
-                    onAction={handleAction}
+                    selectedItems={selectedItems}
+                    clipboard={clipboard}
+                    clipboardMode={clipboardMode}
+                    clearSelection={clearSelection}
+                    openDeleteModal={modals.openDeleteModal}
+                    openColorModal={modals.openColorModal}
+                    openInfoModal={modals.openInfoModal}
+                    cut={cut}
+                    copy={copy}
+                    clearClipboard={clearClipboard}
+                    reloadItems={loadFields}
+                    parent={card}
+                    itemLabel="fields"
+                    navigation={navigation}
                     onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
                 />
             )}

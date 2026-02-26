@@ -18,6 +18,7 @@ import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permane
 
 // Hooks
 import { useSelection } from "../hooks/useSelection.js";
+import { useModalStates } from "../hooks/useModalStates.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
@@ -26,13 +27,11 @@ import { handleSort } from "../utils/handleSort.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
 export default function DeletedScreen({ navigation }) {
-    const insets = useSafeAreaInsets();            // For placing elements
-    const [deletedItems, setDeletedItems] = useState([]);         // All deleted Items
-    const [confirmVisible, setConfirmVisible] = useState(false);  // Show/Hide Confirmation Modal
-    const [confirmAction, setConfirmAction] = useState(null);     // Confirm deletion or restore
-    const [infoVisible, setInfoVisible] = useState(false);
-    const [infoMessage, setInfoMessage] = useState({ title: "", message: "" });
+    const insets = useSafeAreaInsets();  // For placing elements
+    const [deletedItems, setDeletedItems] = useState([]);  // All deleted Items
+    const [confirmAction, setConfirmAction] = useState(null);  // Confirm deletion or restore
 
+    const modals = useModalStates();
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
 
     // Bring all deleted items on mount
@@ -53,11 +52,8 @@ export default function DeletedScreen({ navigation }) {
         
         const anyRenamed = await restoreMultipleItems(selectedItems);
         
-        if (anyRenamed) {
-            setInfoMessage({title: "Items Restored", message: "Some items were renamed because items with the same names already exist in the destination."});
-            setInfoVisible(true);
-        }
-        
+        if (anyRenamed) modals.openInfoModal({type: "Items Restored", message: "Some items were renamed because items with the same names already exist in the destination."});
+
         clearSelection();
         await loadDeletedItems();
     }, [selectedItems, clearSelection]);
@@ -73,7 +69,7 @@ export default function DeletedScreen({ navigation }) {
         }
 
         clearSelection();
-        setConfirmVisible(false);
+        modals.closeDeleteModal();
         await loadDeletedItems();
     }, [selectedItems, clearSelection]);
 
@@ -85,7 +81,7 @@ export default function DeletedScreen({ navigation }) {
             else if (item.type === "Field") await permanentlyDeleteField(item.id);
         }
 
-        setConfirmVisible(false);
+        modals.closeDeleteModal();
         await loadDeletedItems();
     }, [deletedItems]);
 
@@ -97,20 +93,15 @@ export default function DeletedScreen({ navigation }) {
                 break;
             case "permanentDelete":
                 setConfirmAction("delete");
-                setConfirmVisible(true);
+                modals.openDeleteModal();
                 break;
             case "emptyTrash":
                 setConfirmAction("empty");
-                setConfirmVisible(true);
+                modals.openDeleteModal();
                 break;
             default:
                 break;
         }
-    };
-
-    const handleCloseInfo = () => {
-        setInfoVisible(false);
-        setInfoMessage({ title: "", message: "" });
     };
 
     // Give icons to items
@@ -190,9 +181,10 @@ export default function DeletedScreen({ navigation }) {
                 )}
             </View>
 
+            {/* Confirmation Modal */}
             <ConfirmationModal
-                visible={confirmVisible}
-                onCancel={() => setConfirmVisible(false)}
+                visible={modals.confirmVisible}
+                onCancel={modals.closeDeleteModal}
                 onConfirm={confirmAction === "empty" ? handleEmptyTrash : handlePermanentDelete}
                 title={confirmAction === "empty" ? "Delete Everything Permanently?" : "Delete Forever?"}
                 message={
@@ -204,11 +196,12 @@ export default function DeletedScreen({ navigation }) {
                 confirmColor={colors.danger}
             />
 
+            {/* Information Modal */}
             <InformationModal
-                visible={infoVisible}
-                onClose={handleCloseInfo}
-                title={infoMessage.title}
-                message={infoMessage.message}
+                visible={modals.infoVisible}
+                onClose={modals.closeInfoModal}
+                title={modals.errorMessages[0]?.type}
+                message={modals.errorMessages[0]?.message}
             />
 
         </View>

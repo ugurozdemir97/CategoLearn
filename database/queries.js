@@ -225,10 +225,9 @@ export async function moveCard(id, newFolderId) {
 // Copy card recursively (with all its fields)
 export async function copyCardRecursive(copiedCard, newFolderId) {
     const card =            await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [copiedCard]);
-    const newCardId =       await addCard(newFolderId, card.name);
+    const newCardId =       await addCard(newFolderId, card.name, card.color);
     const fields =          await getFields(card.id);
-    for (const f of fields) await addField(newCardId, f.name, f.context);
-
+    for (const f of fields) await addField(newCardId, f.name, f.context, f.color); 
     return newCardId;
 }
 

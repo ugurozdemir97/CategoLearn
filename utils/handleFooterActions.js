@@ -59,7 +59,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
             }
 
             if (clipboardMode === "cut")       await moveField(item.id, node.id);
-            else if (clipboardMode === "copy") await addField(node.id, item.name, item.context);
+            else if (clipboardMode === "copy") await addField(node.id, item.name, item.context, item.color);
         }
 
         // Rule 2: Cards can only be pasted into Folders
