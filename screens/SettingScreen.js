@@ -199,7 +199,7 @@ export default function SettingsScreen() {
 
                 <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
                     {availableThemes.map((themeName) => (
-                        <RadioButton key={themeName} label={themeName} selected={currentTheme === themeName} onPress={() => changeTheme(themeName)}/>
+                        <RadioButton key={themeName} label={t(`themes.${themeName}`)} selected={currentTheme === themeName} onPress={() => changeTheme(themeName)}/>
                     ))}
                 </View>
 

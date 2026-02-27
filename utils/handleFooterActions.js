@@ -1,17 +1,17 @@
 import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive, getFolders, getCards } from "../database/queries.js";
     
 // Delete selected items
-export function handleDeleteSelected(selectedItems, openDeleteModal, itemLabel = "items") {
+export function handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t) {
     if (selectedItems.length === 0) return;
     const message =
         selectedItems.length === 1
-            ? `Are you sure you want to delete "${selectedItems[0].name}"?`
-            : `Are you sure you want to delete these ${selectedItems.length} ${itemLabel}?`;
+            ? t("infoMessages.sureDeleteOne", {item: selectedItems[0].name})
+            : t("infoMessages.sureDelete", {length: selectedItems.length, label: itemLabel || t("titles.items")});
     openDeleteModal({ items: [...selectedItems], message });
 }
 
 // Edit selected
-export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, setCreateType, setFields, setFieldContext) {
+export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, t, setCreateType, setFields, setFieldContext) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
         setEditTarget(item);                                              // Store the item being edited  
@@ -20,7 +20,7 @@ export async function handleEditSelected(selectedItems, setEditTarget, setModalV
         if (item.type === "Card") setFields?.(await getFields(item.id));  // Set fields of the card for card editing
         setModalVisible(true);
     } else {
-        return [{ type: "Edit Error", message: "You can only edit one item at a time."}];
+        return [{ type: t("errorTitles.edit"), message: t("errorMessages.editOne")}];
     }
 }
 
@@ -37,7 +37,7 @@ export function handleCopySelected(selectedItems, copyFn, clearSelection) {
 }
 
 // Paste Items
-export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn) {
+export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn, t) {
     if (clipboard.length === 0) return [];
 
     let errorMessages = new Map();  // Use this to show error messages with information modal in screens
@@ -47,14 +47,14 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
         // Rule 1: Fields can only be pasted into Cards
         if (item.type === "Field") {
             if (node?.type !== "Card") {
-                errorMessages.set("Not Allowed", "Fields can only be pasted inside cards.");
+                errorMessages.set(t("errorTitles.notAllowed"), t("errorMessages.fieldInFolder"));
                 continue;
             }
 
             // Check if a field with the same name already exist in the card
             const existingFields = await getFields(node.id);
             if (existingFields.some(f => f.name === item.name)) {
-                errorMessages.set("Duplicate Name", `A field named "${item.name}" already exists in this card.`);
+                errorMessages.set(t("errorTitles.duplicate"), t("errorMessages.duplicateField", {title: item.name}));
                 continue;
             }
 
@@ -65,14 +65,14 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
         // Rule 2: Cards can only be pasted into Folders
         else if (item.type === "Card") {
             if (node?.type !== "Category") {
-                errorMessages.set("Not Allowed", "Cards can only be pasted inside folders.");
+                errorMessages.set(t("errorTitles.notAllowed"), t("errorMessages.cardInCard"));
                 continue;
             }
 
             // Check if a card with the same name already exist in the folder
             const existingCards = await getCards(node.id);
             if (existingCards.some(c => c.name === item.name)) {
-                errorMessages.set("Duplicate Name", `A card named "${item.name}" already exists in this folder.`);
+                errorMessages.set(t("errorTitles.duplicate"), t("errorMessages.duplicateCard", {title: item.name}));
                 continue;
             }
 
@@ -83,7 +83,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
         // Rule 3: Folders cannot be pasted into Cards
         else if (item.type === "Category") {
             if (node?.type === "Card") {
-                errorMessages.set("Not Allowed", "Folders cannot be pasted inside cards.");
+                errorMessages.set(t("errorTitles.notAllowed"), t("errorMessages.folderInCard"));
                 continue;
             }
 
@@ -93,7 +93,7 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
                 // Check if a folder with the same name already exist in the root
                 const rootFolders = await getFolders(null);
                 if (rootFolders.some(f => f.name === item.name)) {
-                    errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists at root.`);
+                    errorMessages.set(t("errorTitles.duplicate"), t("errorMessages.duplicateFolder", {title: item.name}));
                     continue;
                 }
 
@@ -104,14 +104,14 @@ export async function handlePaste(clipboard, clipboardMode, node, clearClipboard
             } else {
 
                 if (await isDescendant(item.id, node.id)) {
-                    errorMessages.set("Not Allowed", "You cannot paste a folder into its own descendant.");
+                    errorMessages.set(t("errorTitles.notAllowed"), t("errorMessages.cantPasteDescendant"));
                     continue;
                 }
 
                 // Check if a folder with the same name already exist in the folder
                 const siblingFolders = await getFolders(node.id);
                 if (siblingFolders.some(f => f.name === item.name)) {
-                    errorMessages.set("Duplicate Name", `A folder named "${item.name}" already exists here.`);
+                    errorMessages.set(t("errorTitles.duplicate"), t("errorMessages.duplicateFolder", {title: item.name}));
                     continue;
                 }
 

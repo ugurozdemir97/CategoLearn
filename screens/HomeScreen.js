@@ -87,7 +87,7 @@ export default function HomeScreen({ navigation }) {
 
     // Edit handler 
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal);
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, t);
         if (result.length > 0) modals.openInfoModal(result);
     };
 
@@ -182,7 +182,7 @@ export default function HomeScreen({ navigation }) {
 
             {/* Create Subjects Button */}
             {!customSort.customSortMode && (
-                <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+                <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
                         onPress={() => {

@@ -8,11 +8,13 @@ import styles from "../../styles/styles.js";
 
 // Utils
 import { formatDate } from "../../utils/formatTime.js";
+import { useTranslation } from 'react-i18next';
 
 // Component that re-renders itself to update dates
 export default function DateDisplay({ date, icon }) {
     const [, forceUpdate] = useState(0);
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Update every minute to keep dates fresh
     useEffect(() => {
@@ -24,7 +26,7 @@ export default function DateDisplay({ date, icon }) {
         <View style={[styles.rowCenter, { gap: 4 }]}>
             <FontAwesome name={icon} size={10} color={colors.textHalfOpacity} />
             <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
-                {formatDate(date)}
+                {formatDate(date, t)}
             </Text>
         </View>
     );

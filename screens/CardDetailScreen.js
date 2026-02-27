@@ -103,7 +103,7 @@ export default function CardDetailScreen({ route, navigation }) {
 
     // Edit handler
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, null, null, setFieldContext);
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, t, null, null, setFieldContext);
         if (result.length > 0) modals.openInfoModal(result);
     };
 
@@ -152,7 +152,7 @@ export default function CardDetailScreen({ route, navigation }) {
                 <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
                     <FontAwesome name={sortMode === "creationDate" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
                     <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
-                        {formatDate(cardDate)}
+                        {formatDate(cardDate, t)}
                     </Text>
                 </View>
             </View>
@@ -215,7 +215,7 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Edit Button */}
             {!customSort.customSortMode && (
-                <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+                <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
                         onPress={() => {

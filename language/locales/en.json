@@ -1,10 +1,27 @@
 {
     "errorTitles": {
-        "dbFailed": "Database initialization failed!"
+        "dbFailed": "Database initialization failed!",
+        "error": "Error",
+        "edit": "Edit Error",
+        "notAllowed": "Not Allowed",
+        "duplicate": "Duplicate Name"
     },
     "errorMessages": {
         "dbFailed": "Please restart the app or contact support.",
-        "dbFailedFallback": "Database Error"
+        "dbFailedFallback": "Database Error",
+        "duplicateCard": "A card named \"{{title}}\" already exists in this folder.",
+        "duplicateField": "A field named \"{{title}}\" already exists in this folder.",
+        "duplicateFolder": "A folder named \"{{title}}\" already exists in this folder.",
+        "duplicateFields": "Duplicate field names are not allowed: \"{{fields}}\".",
+        "titleNotEmpty": "{{type}} Title cannot be empty.",
+        "nameNotEmpty": "{{type}} Name cannot be empty.",
+        "titleTooLong": "{{type}} Title cannot exceed 50 characters.",
+        "nameTooLong": "{{type}} Name cannot exceed 50 characters.",
+        "editOne": "You can only edit one item at a time.",
+        "cantPasteDescendant": "You cannot paste a folder into its own descendant.",
+        "folderInCard": "Folders cannot be pasted inside cards.",
+        "cardInCard": "Cards can only be pasted inside folders.",
+        "fieldInFolder": "Fields can only be pasted inside cards."
     },
     "screenMessages": {
         "dbLoading": "Initializing database...",
@@ -39,7 +56,9 @@
         "backup": "Backup & Restore",
         "selectColor": "Select Color",
         "confirm": "Confirm",
-        "confirmDelete": "Confirm Delete"
+        "confirmDelete": "Confirm Delete",
+        "none": "None",
+        "items": "items"
     },
     "infoMessages": {
         "itemsRenamed": "Some items were renamed because items with the same names already exist in the destination.",
@@ -55,11 +74,16 @@
         "export": "Export your database to backup your data, or import a previously exported database to restore it.",
         "language": "Choose your preferred language",
         "prefferedTheme": "Choose your preferred color theme",
-        "selected": "{{selectedCount}}/{{totalCount}} selected"
+        "selected": "{{selectedCount}}/{{totalCount}} selected",
+        "infoMessages": "Are you sure you want to delete this field?",
+        "sureDeleteOne": "Are you sure you want to delete \"{{item}}\"?",
+        "sureDelete": "Are you sure you want to delete these {{length}} {{label}}?"
     },
     "itemType": {
         "Category": "Category",
-        "Card": "Card" 
+        "Card": "Card",
+        "Field": "Field",
+        "Subject": "Subject"
     },
     "buttons": {
         "delete": "Delete",
@@ -78,12 +102,16 @@
         "color": "Color",
         "okay": "Okay",
         "cancel": "Cancel",
-        "confirmAction": "Confirm Action"
+        "confirmAction": "Confirm Action",
+        "addField": "Add Field",
+        "create": "Create",
+        "save": "Save"
     },
     "placeholders": {
         "subjectName": "Enter Subject Name",
         "itemName": "Enter {{item}} Name",
-        "fieldTitle": "Field Title"
+        "fieldTitle": "Field Title",
+        "context": "Context (Optional)"
     },
     "sort": {
         "editTime": "Order by edit time",
@@ -106,5 +134,21 @@
         "yellow":"Yellow",
         "purple":"Purple",
         "mint":  "Mint"
+    },
+    "date": {
+        "now": "Just Now",
+        "minutesAgo": "{{minutes}}m Ago",
+        "yesterday": "Yesterday At {{time}}"
+    },
+    "themes": {
+        "Midnight": "Midnight",
+        "Deep Space": "Deep Space",
+        "Ocean": "Ocean",
+        "Aurora": "Aurora",
+        "Wood": "Wood",
+        "Charcoal": "Charcoal",
+        "Slate": "Slate",
+        "Light": "Light",
+        "Sunset": "Sunset"
     }
 }

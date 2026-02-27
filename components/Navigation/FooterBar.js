@@ -22,12 +22,12 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
     const { colors } = useTheme();
     const { t } = useTranslation();
 
-    const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel)};
+    const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t)};
     const handleCutAction =  () => {handleCutSelected(selectedItems, cut, clearSelection)};
     const handleCopyAction = () => {handleCopySelected(selectedItems, copy, clearSelection)};
     const handleColor =      () => {if (selectedItems.length === 0) return; openColorModal()};
     const handlePasteAction = async () => {
-        const result = await handlePaste(clipboard, clipboardMode, parent, clearClipboard, reloadItems);
+        const result = await handlePaste(clipboard, clipboardMode, parent, clearClipboard, reloadItems, t);
         if (result && result.length > 0) openInfoModal(result);
     };
     

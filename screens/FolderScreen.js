@@ -180,7 +180,7 @@ export default function FolderScreen({ route, navigation }) {
 
     // Edit handler
     const handleEditSelectedWrapper = async () => {
-        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, setCreateType, setFields);
+        const result = await handleEditSelected(selectedItems, modals.setEditTarget, modals.openCreateModal, t, setCreateType, setFields);
         if (result.length > 0) modals.openInfoModal(result);
     };
 
@@ -296,7 +296,7 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Create Buttons */}
             {!customSort.customSortMode && (
-                <View style={[styles.buttonContainer, { bottom: footerHeight + 20 }]}>
+                <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     {selectedItems.length === 1 && selectedItems[0].type === "Category" ? (
                         <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()} />
                     ) : (

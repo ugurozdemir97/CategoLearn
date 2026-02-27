@@ -49,7 +49,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const handleAction = async () => {
 
         // Validate the title
-        const validation = validateName(localTitle, isCard ? "Card" : isField ? "Field" : title.split(" ").pop());
+        const validation = validateName(localTitle, isCard ? "Card" : isField ? "Field" : title.split(" ").pop(), t);
         if (!validation.valid) {setErrorMessage(validation.error); return}
 
         // Add Or Edit Cards
@@ -58,7 +58,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             // Check duplicates in parent folder
             const existingCards = await getCards(parentId);
             if (existingCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
-                setErrorMessage(`A card named "${validation.trimmed}" already exists in this folder.`);
+                setErrorMessage(t("errorMessages.duplicateCard", {title: validation.trimmed}));
                 return;
             }
 
@@ -67,7 +67,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             let duplicatePair = null;
 
             for (const f of fieldNames) {
-                const fieldValidation = validateName(f, "Field");
+                const fieldValidation = validateName(f, "Field", t);
                 if (!fieldValidation.valid) {
                     setErrorMessage(fieldValidation.error);
                     return;
@@ -86,7 +86,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             }
 
             if (duplicatePair) {
-                setErrorMessage(`Duplicate field names are not allowed: "${duplicatePair.join(", ")}".`);
+                setErrorMessage(t("errorMessages.duplicateFields", {fields: duplicatePair.join(", ")}));
                 return;
             }
 
@@ -100,7 +100,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             // Check duplicates in parent card
             const existingFields = await getFields(parentId);
             if (existingFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
-                setErrorMessage(`A field named "${validation.trimmed}" already exists in this card.`);
+                setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
                 return;
             }
 
@@ -114,7 +114,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             // Check duplicates in parent folder (or root if parentId is null)
             const existingFolders = await getFolders(parentId);
             if (existingFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
-                setErrorMessage(`A folder named "${validation.trimmed}" already exists here.`);
+               setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
                 return;
             }
 
@@ -202,7 +202,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                         <View style={[styles.centered, { flexDirection: "row" }]}>
                                                             <TextInput
                                                                 style={[ styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, flex: 1 }]}
-                                                                placeholder="Field Name"
+                                                                placeholder={t("placeholders.fieldTitle")}
                                                                 placeholderTextColor={colors.textSecondary}
                                                                 value={field.name}
                                                                 onChangeText={(text) => updateField(index, "name", text)}
@@ -222,7 +222,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                             key={`field-${index}`}
                                                             initialContent={field.context || ''}
                                                             onChange={(html) => updateField(index, "context", html)}
-                                                            placeholder="Context (optional)"
+                                                            placeholder={t("placeholders.context")}
                                                         />
                                                     </View>
                                                 );
@@ -233,7 +233,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                     {/* Add Field Button */}
                                     <TouchableOpacity onPress={addField} style={[styles.normalButton, styles.dashedBorder, styles.centered, { borderColor: colors.bgPrimary, flexDirection: "row", gap: 10 }]}>
                                         <FontAwesome name="plus" size={14} color={colors.accentLight}/>
-                                        <Text style={[styles.midText, { color: colors.accentLight }]}>Add Field</Text>
+                                        <Text style={[styles.midText, { color: colors.accentLight }]}>{t("buttons.addField")}</Text>
                                     </TouchableOpacity> 
                                 </View>
                             )}
@@ -244,17 +244,17 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                     key={`field-${editTarget?.id || 'new'}-${visible}`}
                                     initialContent={localContext}
                                     onChange={setLocalContext}
-                                    placeholder="Context (optional)"
+                                    placeholder={t("placeholders.context")}
                                 />
                             )}
 
                             {/* Action Buttons */}
                             <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
                                 <TouchableOpacity onPress={onClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
-                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>Cancel</Text>
+                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.cancel")}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={handleAction} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
-                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? "Create" : "Save"}</Text>
+                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? t("buttons.create") : t("buttons.save")}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -267,9 +267,9 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={confirmDeleteField}
-                title="Confirm Delete"
-                message="Are you sure you want to delete this field?"
-                confirmText="Delete"
+                title={t("titles.confirmDelete")}
+                message={t("infoMessages.deleteField")}
+                confirmText={t("buttons.delete")}
                 confirmColor={colors.danger}
             />
 

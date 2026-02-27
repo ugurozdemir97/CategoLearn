@@ -9,9 +9,13 @@ import ScrollingText from "../Blocks/ScrollingText.js";
 import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // Draggable version of List Button used for ordering colors in settings screen and ordering items in custom mode
 export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, item, colorNames }) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     const getIcon = (t) => {
         if (t === "Category") return "folder";
@@ -37,7 +41,7 @@ export default function DraggableListButton({ drag, isActive, index, totalItems,
                                 <View key={i} style={[styles.dragDot, { backgroundColor: colors.textHalfOpacity }]}/>
                             ))}
                         </View>
-                        <Text style={[styles.smallText, { color: colors.textPrimary, flex: 1 }]}>{colorNames[item] ?? item ?? "None"}</Text>
+                        <Text style={[styles.smallText, { color: colors.textPrimary, flex: 1 }]}>{colorNames[item] ?? item ?? t("titles.none")}</Text>
                         {item && (<Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>{item}</Text>)}
                     </>
                 ) : (
