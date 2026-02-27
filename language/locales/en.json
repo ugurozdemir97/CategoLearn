@@ -1,0 +1,117 @@
+{
+  "screens": {
+    "subjects": "Subjects",
+    "deletedItems": "Deleted Items",
+    "settings": "Settings"
+  },
+  "titles": {
+    "createSubject": "Create Subject",
+    "editSubject": "Edit Subject",
+    "createFolder": "Create Folder",
+    "editFolder": "Edit Folder",
+    "createCard": "Create Card",
+    "editCard": "Edit Card",
+    "createField": "Create Field",
+    "editField": "Edit Field",
+    "confirmDelete": "Confirm Delete",
+    "deleteEverything": "Delete Everything Permanently?",
+    "importDatabase": "Import Database",
+    "colors": "Colors",
+    "themes": "Themes",
+    "languages": "Languages",
+    "backupRestore": "Backup & Restore"
+  },
+  "placeholders": {
+    "enterSubjectName": "Enter Subject Name",
+    "enterFolderName": "Enter Folder Name",
+    "enterCardName": "Enter Card Name",
+    "fieldTitle": "Field Title"
+  },
+  "commands": {
+    "create": "Create",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "restore": "Restore",
+    "deleteForever": "Delete Forever",
+    "emptyTrash": "Empty Trash",
+    "search": "Search",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "color": "Color",
+    "clear": "Clear",
+    "import": "Import",
+    "exportDatabase": "Export Database",
+    "importDatabase": "Import Database"
+  },
+  "labels": {
+    "deleted": "Deleted",
+    "name": "Name",
+    "lastEditTime": "Last Edit Time",
+    "subjects": "subjects",
+    "items": "items",
+    "fields": "fields"
+  },
+  "messages": {
+    "whatToLearn": "What Do You Want To Learn About?",
+    "noItemsYet": "No Items Yet.\nCreate Cards to Store Information\nor Folders to Organize Your Learning!",
+    "noFieldsYet": "No fields yet. Tap the plus button to add context!",
+    "noDeletedItems": "There are no deleted items",
+    "deleteMessage": "Are you sure you want to delete \"{{name}}\"?",
+    "deleteMultipleMessage": "Are you sure you want to delete these {{count}} {{label}}?",
+    "deleteEverythingMessage": "All items will be permanently deleted. This cannot be undone.",
+    "deletePermanentMessage": "{{count}} item(s) will be permanently deleted. This cannot be undone.",
+    "itemsRenamedMessage": "Some items were renamed because items with the same names already exist in the destination.",
+    "importConfirmMessage": "Importing will replace your current database. Your current data will be backed up. Continue?",
+    "comingSoon": "Coming soon..."
+  },
+  "descriptions": {
+    "colorsDescription": "Which color order would you like to use to sort the items? Click and drag the colors or use the arrow buttons to reorder them.",
+    "sortColorsBy": "Sort colors by",
+    "themesDescription": "Choose your preferred color theme",
+    "languagesDescription": "Choose your preferred language",
+    "backupDescription": "Export your database to backup your data, or import a previously exported database to restore it."
+  },
+  "successTitles": {
+    "exportSuccess": "Export Successful",
+    "importSuccess": "Import Successful",
+    "itemsRestored": "Items Restored"
+  },
+  "successMessages": {
+    "exportSuccess": "Your database has been exported successfully. Save the file in a safe location.",
+    "importSuccess": "Database imported successfully. Please restart the app to see your data."
+  },
+  "errorTitles": {
+    "exportFailed": "Export Failed",
+    "importFailed": "Import Failed",
+    "editError": "Edit Error",
+    "notAllowed": "Not Allowed",
+    "duplicateName": "Duplicate Name"
+  },
+  "errorMessages": {
+    "exportFailed": "Failed to export database. Please try again.",
+    "importFailed": "Failed to import database. Please try again.",
+    "cannotEditMultiple": "You can only edit one item at a time.",
+    "fieldsInCards": "Fields can only be pasted inside cards.",
+    "cardsInFolders": "Cards can only be pasted inside folders.",
+    "foldersNotInCards": "Folders cannot be pasted inside cards.",
+    "cannotPasteInDescendant": "You cannot paste a folder into its own descendant.",
+    "fieldExists": "A field named \"{{name}}\" already exists in this card.",
+    "cardExists": "A card named \"{{name}}\" already exists in this folder.",
+    "folderExistsRoot": "A folder named \"{{name}}\" already exists at root.",
+    "folderExists": "A folder named \"{{name}}\" already exists here."
+  },
+  "colors": {
+    "none": "None",
+    "black": "Black",
+    "white": "White",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "yellow": "Yellow",
+    "purple": "Purple",
+    "mint": "Mint"
+  }
+}

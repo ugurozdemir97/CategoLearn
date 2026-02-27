@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 // Contexts
 import { ClipboardProvider } from "./context/ClipboardContext.js";
 import { SortModeProvider } from "./context/SortModeContext.js";
+import { LanguageProvider } from "./context/LanguageContext.js";
 import { ThemeProvider } from "./context/ThemeContext.js";
 
 // Navigation and Screens
@@ -15,6 +16,9 @@ import DbLoadingScreen from "./screens/ErrorScreens/DatabaseLoadingScreen.js";
 
 // Database Setup
 import { setupDatabase } from "./database/schema.js";
+
+// Language
+import "./language/i18n.js";
 
 // Disable font scaling globally
 Text.defaultProps = Text.defaultProps || {};
@@ -48,13 +52,15 @@ export default function App() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider>
-                <SafeAreaProvider>
-                    <SortModeProvider>
-                        <ClipboardProvider>
-                            <StackNavigator/>
-                        </ClipboardProvider>
-                    </SortModeProvider>
-                </SafeAreaProvider>
+                <LanguageProvider>
+                    <SafeAreaProvider>
+                        <SortModeProvider>
+                            <ClipboardProvider>
+                                <StackNavigator/>
+                            </ClipboardProvider>
+                        </SortModeProvider>
+                    </SafeAreaProvider>
+                </LanguageProvider>
             </ThemeProvider>
         </GestureHandlerRootView>
     );

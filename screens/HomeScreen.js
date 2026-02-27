@@ -32,6 +32,9 @@ import { handleEditSelected } from "../utils/handleFooterActions.js";
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
 import { loadSortMode } from "../storage/sortPreference.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
     const [subjects, setSubjects] = useState([]);
@@ -43,6 +46,7 @@ export default function HomeScreen({ navigation }) {
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Load subjects when screen is focused
     useEffect(() => {

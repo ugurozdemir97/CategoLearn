@@ -1,0 +1,117 @@
+{
+  "screens": {
+    "subjects": "Konular",
+    "deletedItems": "Silinmiş Öğeler",
+    "settings": "Ayarlar"
+  },
+  "titles": {
+    "createSubject": "Konu Oluştur",
+    "editSubject": "Konu Düzenle",
+    "createFolder": "Klasör Oluştur",
+    "editFolder": "Klasör Düzenle",
+    "createCard": "Kart Oluştur",
+    "editCard": "Kart Düzenle",
+    "createField": "Alan Oluştur",
+    "editField": "Alan Düzenle",
+    "confirmDelete": "Silmeyi Onayla",
+    "deleteEverything": "Her Şeyi Kalıcı Olarak Sil?",
+    "importDatabase": "Veritabanını İçe Aktar",
+    "colors": "Renkler",
+    "themes": "Temalar",
+    "languages": "Diller",
+    "backupRestore": "Yedekleme ve Geri Yükleme"
+  },
+  "placeholders": {
+    "enterSubjectName": "Konu Adı Girin",
+    "enterFolderName": "Klasör Adı Girin",
+    "enterCardName": "Kart Adı Girin",
+    "fieldTitle": "Alan Başlığı"
+  },
+  "commands": {
+    "create": "Oluştur",
+    "edit": "Düzenle",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "restore": "Geri Yükle",
+    "deleteForever": "Kalıcı Olarak Sil",
+    "emptyTrash": "Çöp Kutusunu Boşalt",
+    "search": "Ara",
+    "cut": "Kes",
+    "copy": "Kopyala",
+    "paste": "Yapıştır",
+    "color": "Renk",
+    "clear": "Temizle",
+    "import": "İçe Aktar",
+    "exportDatabase": "Veritabanını Dışa Aktar",
+    "importDatabase": "Veritabanını İçe Aktar"
+  },
+  "labels": {
+    "deleted": "Silinmiş",
+    "name": "İsim",
+    "lastEditTime": "Son Düzenleme Zamanı",
+    "subjects": "konu",
+    "items": "öğe",
+    "fields": "alan"
+  },
+  "messages": {
+    "whatToLearn": "Ne Hakkında Öğrenmek İstiyorsun?",
+    "noItemsYet": "Henüz Öğe Yok.\nBilgi Depolamak için Kart Oluştur\nveya Öğrenmeyi Düzenlemek için Klasör Oluştur!",
+    "noFieldsYet": "Henüz alan yok. Bağlam eklemek için artı düğmesine dokun!",
+    "noDeletedItems": "Silinmiş öğe yok",
+    "deleteMessage": "\"{{name}}\" öğesini silmek istediğinizden emin misiniz?",
+    "deleteMultipleMessage": "Bu {{count}} {{label}} öğesini silmek istediğinizden emin misiniz?",
+    "deleteEverythingMessage": "Tüm öğeler kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "deletePermanentMessage": "{{count}} öğe kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "itemsRenamedMessage": "Bazı öğeler yeniden adlandırıldı çünkü hedefte aynı ada sahip öğeler zaten mevcut.",
+    "importConfirmMessage": "İçe aktarma mevcut veritabanınızı değiştirecek. Mevcut verileriniz yedeklenecek. Devam edilsin mi?",
+    "comingSoon": "Çok yakında..."
+  },
+  "descriptions": {
+    "colorsDescription": "Öğeleri sıralamak için hangi renk sırasını kullanmak istersiniz? Renkleri tıklayıp sürükleyin veya yeniden sıralamak için ok düğmelerini kullanın.",
+    "sortColorsBy": "Renkleri şuna göre sırala",
+    "themesDescription": "Tercih ettiğiniz renk temasını seçin",
+    "languagesDescription": "Tercih ettiğiniz dili seçin",
+    "backupDescription": "Verilerinizi yedeklemek için veritabanınızı dışa aktarın veya geri yüklemek için önceden dışa aktarılmış bir veritabanını içe aktarın."
+  },
+  "successTitles": {
+    "exportSuccess": "Dışa Aktarma Başarılı",
+    "importSuccess": "İçe Aktarma Başarılı",
+    "itemsRestored": "Öğeler Geri Yüklendi"
+  },
+  "successMessages": {
+    "exportSuccess": "Veritabanınız başarıyla dışa aktarıldı. Dosyayı güvenli bir konuma kaydedin.",
+    "importSuccess": "Veritabanı başarıyla içe aktarıldı. Verilerinizi görmek için lütfen uygulamayı yeniden başlatın."
+  },
+  "errorTitles": {
+    "exportFailed": "Dışa Aktarma Başarısız",
+    "importFailed": "İçe Aktarma Başarısız",
+    "editError": "Düzenleme Hatası",
+    "notAllowed": "İzin Verilmiyor",
+    "duplicateName": "Yinelenen İsim"
+  },
+  "errorMessages": {
+    "exportFailed": "Veritabanı dışa aktarılamadı. Lütfen tekrar deneyin.",
+    "importFailed": "Veritabanı içe aktarılamadı. Lütfen tekrar deneyin.",
+    "cannotEditMultiple": "Aynı anda yalnızca bir öğeyi düzenleyebilirsiniz.",
+    "fieldsInCards": "Alanlar yalnızca kartların içine yapıştırılabilir.",
+    "cardsInFolders": "Kartlar yalnızca klasörlerin içine yapıştırılabilir.",
+    "foldersNotInCards": "Klasörler kartların içine yapıştırılamaz.",
+    "cannotPasteInDescendant": "Bir klasörü kendi alt öğesine yapıştıramazsınız.",
+    "fieldExists": "Bu kartta \"{{name}}\" adında bir alan zaten var.",
+    "cardExists": "Bu klasörde \"{{name}}\" adında bir kart zaten var.",
+    "folderExistsRoot": "Kök dizinde \"{{name}}\" adında bir klasör zaten var.",
+    "folderExists": "Burada \"{{name}}\" adında bir klasör zaten var."
+  },
+  "colors": {
+    "none": "Yok",
+    "black": "Siyah",
+    "white": "Beyaz",
+    "red": "Kırmızı",
+    "green": "Yeşil",
+    "blue": "Mavi",
+    "yellow": "Sarı",
+    "purple": "Mor",
+    "mint": "Nane Yeşili"
+  }
+}

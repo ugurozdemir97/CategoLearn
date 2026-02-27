@@ -19,6 +19,10 @@ import { useTheme } from "../context/ThemeContext.js";
 import { saveColorOrder, loadColorOrder, saveColorSortPreference, loadColorSortPreference } from "../storage/sortPreference.js";
 import { exportDatabase, importDatabase } from "../database/exportDb.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from "../context/LanguageContext.js";
+
 // Temporary, I will load these from AsyncStorage
 const COLOR_NAMES = { null: "None", "#000000": "Black", "#FFFFFF": "White", "#bb0000": "Red", "#00b700": "Green", "#0000da": "Blue", "#ffdd00": "Yellow", "#980081": "Purple", "#00e19d": "Mint" };
 
@@ -26,6 +30,8 @@ const COLOR_NAMES = { null: "None", "#000000": "Black", "#FFFFFF": "White", "#bb
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const { currentTheme, colors, changeTheme, availableThemes } = useTheme();
+    const { currentLanguage, changeLanguage, availableLanguages } = useLanguage();
+    const { t } = useTranslation();
     const [colorOrder, setColorOrder] = useState([]);
     const [colorSortMode, setColorSortMode] = useState("");
     const [infoVisible, setInfoVisible] = useState(false);
@@ -191,7 +197,13 @@ export default function SettingsScreen() {
                 <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
 
                 {/* Language Settings */}
-                <SectionBlock title="Languages" description="Coming soon..." />
+                <SectionBlock title="Languages" description="Choose your preferred language"/>
+
+                <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
+                    {availableLanguages.map((lang) => (
+                        <RadioButton key={lang.code} label={lang.name} selected={currentLanguage === lang.code} onPress={() => changeLanguage(lang.code)}/>
+                    ))}
+                </View>
 
                 {/* Divider */}
                 <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
