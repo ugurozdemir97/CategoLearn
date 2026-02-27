@@ -83,7 +83,8 @@
         "Category": "Kategori",
         "Card": "Kart",
         "Field": "Alan",
-        "Subject": "Konu"
+        "Subject": "Konu",
+        "Subjects": "Konular"
     },
     "buttons": {
         "delete": "Sil",

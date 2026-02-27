@@ -30,7 +30,7 @@ export default function SettingsScreen() {
     const { currentLanguage, changeLanguage, availableLanguages } = useLanguage();
     const { t } = useTranslation();
     const [colorOrder, setColorOrder] = useState([]);
-    const [colorSortMode, setColorSortMode] = useState("");
+    const [colorSortMode, setColorSortMode] = useState("alphabetical");
     const [infoVisible, setInfoVisible] = useState(false);
     const [infoMessage, setInfoMessage] = useState({ title: "", message: "" });
     const [confirmVisible, setConfirmVisible] = useState(false);
@@ -41,7 +41,7 @@ export default function SettingsScreen() {
             const savedOrder = await loadColorOrder();
             const savedSortPref = await loadColorSortPreference();
             setColorOrder(savedOrder);
-            setColorSortMode(savedSortPref);
+            if (savedSortPref) setColorSortMode(savedSortPref);
         };
 
         loadSettings();
@@ -106,14 +106,14 @@ export default function SettingsScreen() {
         const result = await importDatabase();
         if (result.success) {
             setInfoMessage({
-                title: t("titles.exportSuccess"),
-                message: t("infoMessages.exportSuccess")
+                title: t("titles.importSuccess"),
+                message: t("infoMessages.importSuccess")
             });
             setInfoVisible(true);
         } else if (result.error !== 'Import cancelled') {
             setInfoMessage({
-                title: t("titles.exportFail"),
-                message: result.error || t("infoMessages.exportFail")
+                title: t("titles.importFail"),
+                message: result.error || t("infoMessages.importFail")
             });
             setInfoVisible(true);
         }

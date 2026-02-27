@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
+import { getLocales } from "expo-localization";
 import { loadLanguage, saveLanguage } from "../storage/languagePreference.js";
 
 // Language context
@@ -14,7 +15,12 @@ export const availableLanguages = [
 // Language provider component
 export function LanguageProvider({ children }) {
     const { i18n } = useTranslation();
-    const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
+    
+    // Detect system language on first load
+    const systemLanguage = getLocales()[0]?.languageCode || "en";
+    const defaultLanguage = availableLanguages.find(l => l.code === systemLanguage) ? systemLanguage : "en";
+    
+    const [currentLanguage, setCurrentLanguage] = useState(defaultLanguage);
 
     // Load saved language on mount
     useEffect(() => {
@@ -23,6 +29,9 @@ export function LanguageProvider({ children }) {
             if (savedLanguage) {
                 await i18n.changeLanguage(savedLanguage);
                 setCurrentLanguage(savedLanguage);
+            } else {
+                await i18n.changeLanguage(defaultLanguage);
+                setCurrentLanguage(defaultLanguage);
             }
         };
         loadSavedLanguage();

@@ -2,11 +2,13 @@ import { useRef, useEffect } from "react";
 import { ScrollView, View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
+import { useTranslation } from 'react-i18next';
 
 // Bread crumb links are the the link you generally see on navbars. 
 // For example "Roots > Folder A > Parent B > Current Folder"
 export default function BreadCrumb({ path, onNavigate }) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Auto-scroll to the end whenever path changes
     const scrollViewRef = useRef(null); 
@@ -19,7 +21,7 @@ export default function BreadCrumb({ path, onNavigate }) {
                 <View key={`${node.type}-${node.id}`} style={styles.rowCenter}>
                     <TouchableOpacity onPress={() => onNavigate(node)} activeOpacity={0.7} style={styles.crumbButton}>
                         <Text style={[ styles.tinyText, {color: index === path.length - 1 ? colors.accentLight : colors.textSecondary}]}>
-                            {node.name}
+                            {index === 0 ? t("itemType.Subjects") : node.name}
                         </Text>
                     </TouchableOpacity>
                     

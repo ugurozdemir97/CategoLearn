@@ -83,7 +83,8 @@
         "Category": "Category",
         "Card": "Card",
         "Field": "Field",
-        "Subject": "Subject"
+        "Subject": "Subject",
+        "Subjects": "Subjects"
     },
     "buttons": {
         "delete": "Delete",

@@ -13,9 +13,9 @@ export const formatDate = (date, t) => {
     const diffMins =  Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays =  Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return t("date.now");                                                            // If less than 1 minute ago
-    if (diffHours < 1) return t("date.yesterday", {minutes: diffMins});                                // If less than 1 hour ago
+    if (diffHours < 1) return t("date.minutesAgo", {minutes: diffMins});                               // If less than 1 hour ago
     if (diffDays === 0) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });  // If today
     if (diffDays === 1) {                                                                              // If yesterday
         const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });

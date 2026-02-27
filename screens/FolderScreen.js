@@ -225,10 +225,10 @@ export default function FolderScreen({ route, navigation }) {
 
             {/* Category Title */}
             <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
-                <Text style={[styles.bigText, { color: colors.textPrimary }]}>{folder.name}</Text>
+                <Text style={[styles.bigText, { color: colors.textPrimary, marginBottom: 3  }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{folder.name}</Text>
 
                 {/* Date display pinned bottom-right */}
-                <View style={{ position: "absolute", right: 10, bottom: 5 }}>
+                <View style={{ position: "absolute", right: 10, bottom: 4 }}>
                     {folderDate && (
                         <DateDisplay date={folderDate} icon={sortMode === "creationDate" ? "plus-circle" : "pencil"} />
                     )}

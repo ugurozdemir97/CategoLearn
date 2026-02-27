@@ -166,14 +166,14 @@ export default function DeletedScreen({ navigation }) {
             <View style={[styles.rowCenter, styles.paddingHorizontal, {backgroundColor: colors.bgSecondary, gap: 10, paddingBottom: insets.bottom + 15, paddingTop: 15}]}>
                 {selectedItems.length > 0 ? (
                     <>
-                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>
+                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 5, paddingHorizontal: 10 }]}>
                             <FontAwesome name="undo" size={16} color={colors.textPrimary} />
-                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.restore", {length: `(${selectedItems.length})`})}</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{t("buttons.restore", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
+                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 5, paddingHorizontal: 10 }]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
-                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.deleteForever", {length: `(${selectedItems.length})`})}</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{t("buttons.deleteForever", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
                     </>
                 ) : (

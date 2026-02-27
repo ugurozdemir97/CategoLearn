@@ -144,12 +144,10 @@ export default function CardDetailScreen({ route, navigation }) {
 
             {/* Card Title */}
             <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
-                <Text style={[styles.bigText, { color: colors.textPrimary }]}>
-                    {card.name}
-                </Text>
+                <Text style={[styles.bigText, { color: colors.textPrimary, marginBottom: 3 }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{card.name}</Text>
 
                 {/* Date display pinned bottom-right */}
-                <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
+                <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 4 }]}>
                     <FontAwesome name={sortMode === "creationDate" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
                     <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
                         {formatDate(cardDate, t)}
