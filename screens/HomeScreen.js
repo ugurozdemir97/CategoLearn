@@ -147,8 +147,8 @@ export default function HomeScreen({ navigation }) {
                                         totalItems={subjects.length}
                                         drag={drag}
                                         isActive={isActive}
-                                        onMoveUp={() => customSort.moveItemUp(index)}
-                                        onMoveDown={() => customSort.moveItemDown(index)}
+                                        onMoveUp={() => customSort.moveItem(item, -1)}
+                                        onMoveDown={() => customSort.moveItem(item, 1)}
                                     />
                                 </ScaleDecorator>
                             )}

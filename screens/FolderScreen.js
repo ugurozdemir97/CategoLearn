@@ -258,8 +258,8 @@ export default function FolderScreen({ route, navigation }) {
                                 totalItems={items.length}
                                 drag={drag}
                                 isActive={isActive}
-                                onMoveUp={() => customSort.moveItemUp(index)}
-                                onMoveDown={() => customSort.moveItemDown(index)}
+                                onMoveUp={() => customSort.moveItem(item, -1)}
+                                onMoveDown={() => customSort.moveItem(item, 1)}
                             />
                         </ScaleDecorator>
                     )}

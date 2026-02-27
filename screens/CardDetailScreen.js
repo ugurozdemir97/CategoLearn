@@ -180,8 +180,8 @@ export default function CardDetailScreen({ route, navigation }) {
                                 totalItems={fields.length}
                                 drag={drag}
                                 isActive={isActive}
-                                onMoveUp={() => customSort.moveItemUp(index)}
-                                onMoveDown={() => customSort.moveItemDown(index)}
+                                onMoveUp={() => customSort.moveItem(item, -1)}
+                                onMoveDown={() => customSort.moveItem(item, 1)}
                             />
                         </ScaleDecorator>
                     )}

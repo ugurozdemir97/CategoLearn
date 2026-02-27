@@ -45,21 +45,25 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
     // Enter custom sort mode
     const enterCustomSort = () => setCustomSortMode(true);
 
-    // Move item up/down manually with arrow buttons
-    const moveItemUp = (index) => {
-        if (index <= 0) return;
-        const newItems = [...items];
-        [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
-        setItems(newItems);
+    // Move items by pressing the arrow buttons
+    const moveItem = (item, direction) => {
+        setItems((prev) => {
+            const currentIndex = prev.indexOf(item);
+            const targetIndex = currentIndex + direction;
+
+            // If item is already the first one and we try to move it up 
+            // or it is the last item and we try to move it down
+            // Just return the current color order
+            if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+
+            // Swap 2 elements, the item you move goes to target place and swap places with the item there
+            const newOrder = [...prev];
+            newOrder[currentIndex] = newOrder[targetIndex];
+            newOrder[targetIndex] = item;
+            return newOrder;
+        });
     };
 
-    const moveItemDown = (index) => {
-        if (index >= items.length - 1) return;
-        const newItems = [...items];
-        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-        setItems(newItems);
-    };
-
-    return { customSortMode, handleDragEnd, handleSaveCustomOrder, handleCancelCustomOrder, enterCustomSort, moveItemUp, moveItemDown };
+    return { customSortMode, handleDragEnd, handleSaveCustomOrder, handleCancelCustomOrder, enterCustomSort, moveItem };
 
 }
