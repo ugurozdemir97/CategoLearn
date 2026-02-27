@@ -169,6 +169,14 @@ export default StyleSheet.create({
         width: 3,
         height: 3,
         borderRadius: 1.5
+    },
+
+    underShadow: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,   
+        shadowRadius: 4,      
+        elevation: 4,         
     }
 
 });

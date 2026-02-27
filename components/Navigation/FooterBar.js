@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FooterButton from "../Blocks/FooterButton.js";
 
 // Styles
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Utils
@@ -16,6 +16,7 @@ import { handleDeleteSelected, handleCutSelected, handleCopySelected, handlePast
 export default function FooterBar({ selectedItems, clipboard, clipboardMode, clearSelection, openDeleteModal, openColorModal, openInfoModal, cut, copy, clearClipboard, reloadItems, parent, itemLabel, navigation, onLayout }) {
 
     const insets = useSafeAreaInsets();  // Safe area insets for preventing overlap with navigation buttons/status bar
+    const { colors } = useTheme();
 
     const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel)};
     const handleCutAction =  () => {handleCutSelected(selectedItems, cut, clearSelection)};

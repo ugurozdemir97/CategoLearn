@@ -9,7 +9,7 @@ import RichTextEditor from "../Editor/RichTextEditor.js";
 
 // Styles and Colors
 import styles from "../../styles/styles.js";
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 
 // Utils
 import { validateName } from "../../utils/validation.js";
@@ -28,6 +28,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const [deleteIndex, setDeleteIndex] = useState(null);               // For deleting the fields in Create Card modal
     const [errorMessage, setErrorMessage] = useState("");               // For displaying error messages
     const [selectedColor, setSelectedColor] = useState(color);          // Color of the item
+    const { colors } = useTheme();
 
     // Place name and fields if editing a card when modal opens
     useEffect(() => {
@@ -153,7 +154,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
                 <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
                     <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
-                        <View style={[styles.modalContent, { backgroundColor: colors.bgModal}]}>
+                        <View style={[styles.underShadow, styles.modalContent, { backgroundColor: colors.bgModal}]}>
 
                             {/* Title */}
                             <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>{title}</Text>
@@ -165,14 +166,14 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                             {/* Card/Folder title input */}
                             <View style={[styles.rowCenter, {gap: 10, marginVertical: 10}]}>
                                 <TextInput
-                                    style={[styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, backgroundColor: colors.bgSecondary }]}
+                                    style={[styles.underShadow, styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, backgroundColor: colors.bgSecondary }]}
                                     placeholder={placeholder}
                                     placeholderTextColor={colors.textSecondary}
                                     value={localTitle}
                                     onChangeText={setLocalTitle}
                                     maxLength={50}
                                 />
-                                <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
+                                <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.underShadow, styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
                                     <FontAwesome name="paint-brush" size={20} color={
                                             selectedColor === "#FFFFFF" || 
                                             selectedColor === "#ffdd00" || 
@@ -245,10 +246,10 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
                             {/* Action Buttons */}
                             <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
-                                <TouchableOpacity onPress={onClose} style={[styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
+                                <TouchableOpacity onPress={onClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>Cancel</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleAction} style={[styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
+                                <TouchableOpacity onPress={handleAction} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? "Create" : "Save"}</Text>
                                 </TouchableOpacity>
                             </View>

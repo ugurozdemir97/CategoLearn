@@ -1,10 +1,11 @@
 import { View, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // If there are any problem with the database show this screen
 export default function DbErrorScreen({ error }) {
+    const { colors } = useTheme();
     return (
         <SafeAreaProvider>
             <View style={[styles.container, styles.centered, { backgroundColor: colors.bgPrimary, gap: 8 }]}>

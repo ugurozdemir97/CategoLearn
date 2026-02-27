@@ -8,7 +8,7 @@ import HeaderMode from "../Blocks/HeaderMode.js";
 
 // Styles
 import styles from "../../styles/styles.js";
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 
 // Context and Hooks
 import { saveSortMode, saveDeletedSortMode } from "../../storage/sortPreference.js";
@@ -38,6 +38,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     const insets = useSafeAreaInsets();             // Used to move header down, below any device bar or camera
     const [sortIndex, setSortIndex] = useState(0);  // In which sort modes we are in
     const { sortMode, setSortMode, deletedSortMode, setDeletedSortMode } = useSortMode();
+    const { colors } = useTheme();
     
     // Choose sort modes based on screen type
     const modes =          isDeletedScreen ? deletedSortModes   : sortModes;
@@ -80,7 +81,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     };
 
     return (
-        <View style={[styles.paddingHorizontal, styles.spaceBetween, styles.rowCenter,  { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: colors.bgPrimary, minHeight: 70 }]}>
+        <View style={[styles.underShadow, styles.paddingHorizontal, styles.spaceBetween, styles.rowCenter,  { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: colors.bgPrimary, minHeight: 70 }]}>
             
             {/* This is custom sort mode, when we enable drag and sort items, show cancel and save buttons */}
             {customSortMode ? (

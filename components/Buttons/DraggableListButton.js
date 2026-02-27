@@ -6,11 +6,12 @@ import { FontAwesome } from "@expo/vector-icons";
 import ScrollingText from "../Blocks/ScrollingText.js";
 
 // Styles
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Draggable version of List Button used for ordering colors in settings screen and ordering items in custom order mode
 export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, item, colorNames }) {
+    const { colors } = useTheme();
 
     const getIcon = (t) => {
         if (t === "Category") return "folder";
@@ -22,7 +23,7 @@ export default function DraggableListButton({ drag, isActive, index, totalItems,
     const isColorMode = !!colorNames;
 
     return (
-        <View style={[styles.colorRow, styles.rowCenter, { backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard, borderWidth: 1, borderColor: isActive ? colors.accentLight : "transparent" }]}>
+        <View style={[styles.underShadow, styles.colorRow, styles.rowCenter, { backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard, borderWidth: 1, borderColor: isActive ? colors.accentLight : "transparent" }]}>
         
             {/* Color Box, Drag Handle, Item/Color name, Hex Code in Color mode */}
             <TouchableOpacity onLongPress={drag} delayLongPress={150} activeOpacity={1} style={[styles.rowCenter, { gap: 10, flex: 1 }]}>

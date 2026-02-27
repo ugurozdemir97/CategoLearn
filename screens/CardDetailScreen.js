@@ -17,7 +17,7 @@ import BreadCrumb from "../components/Navigation/BreadCrumb.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import { useTheme } from "../context/ThemeContext.js";
 
 // Context and Hooks
 import { useSortMode } from "../context/SortModeContext.js";
@@ -49,6 +49,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
+    const { colors } = useTheme();
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
@@ -138,7 +139,7 @@ export default function CardDetailScreen({ route, navigation }) {
             />
 
             {/* Card Title */}
-            <View style={[styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
+            <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
                 <Text style={[styles.bigText, { color: colors.textPrimary }]}>
                     {card.name}
                 </Text>
@@ -166,7 +167,7 @@ export default function CardDetailScreen({ route, navigation }) {
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     onDragEnd={customSort.handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8, paddingHorizontal: 15 }}
+                    style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
@@ -186,7 +187,7 @@ export default function CardDetailScreen({ route, navigation }) {
                 <FlatList
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 8, paddingBottom: 15 }}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}

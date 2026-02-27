@@ -2,7 +2,7 @@ import { TouchableOpacity, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Styles
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Components
@@ -17,6 +17,7 @@ import { useSortMode } from "../../context/SortModeContext.js";
 export default function ListButton({ label, updatedAt, deletedAt, createdAt, icon, onPress, onLongPress, isSelected, color = null, status = {}, context = null, expanded = false}) {
 
     const { sortMode } = useSortMode();
+    const { colors } = useTheme();
 
     // Apply styles based on status (is Cut or Copied)
     const dynamicStyle = {
@@ -52,13 +53,13 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
     return (
         <View style={{alignItems: "center"}}>
             <TouchableOpacity
-                style={[ styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8, gap: 10}]}
+                style={[ styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, styles.rowCenter, styles.spaceBetween, dynamicStyle, {marginTop: 8, gap: 10}]}
                 onPress={onPress}
                 onLongPress={onLongPress}
             >
 
                 {/* Left color stripe */}
-                <View key={color} style={[styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: color || "transparent", borderColor: !color ? colors.bgPrimary : "transparent"}]}/>
+                <View key={color} style={[styles.underShadow, styles.itemColorDisplay, styles.dashedBorder, {backgroundColor: color || "transparent", borderColor: !color ? colors.bgPrimary : "transparent"}]}/>
 
                 {/* Label with folder icon and auto-scroll for long text */}
                 <View style={[styles.rowCenter, { flex: 1, marginLeft: 10 }]}>

@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Styles
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Utils
@@ -12,6 +12,7 @@ import { formatDate } from "../../utils/formatTime.js";
 // Component that re-renders itself to update dates
 export default function DateDisplay({ date, icon }) {
     const [, forceUpdate] = useState(0);
+    const { colors } = useTheme();
 
     // Update every minute to keep dates fresh
     useEffect(() => {

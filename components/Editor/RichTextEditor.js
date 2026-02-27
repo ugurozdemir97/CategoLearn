@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
-import { colors } from '../../styles/colors.js';
+import { useTheme } from "../../context/ThemeContext.js";
 
 // Rich text editor
 export default function RichTextEditor({ initialContent, onChange, placeholder = "Context (optional)" }) {
@@ -11,6 +11,7 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     const [isFocused, setIsFocused] = useState(false);
     const [isHighlighted, setIsHighlighted] = useState(false);
     const isInitializing = useRef(false);
+    const { colors } = useTheme();
 
     // Only call onChange if editor is ready and not initializing
     const handleChange = (html) => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 
 // Styles
-import { colors } from "../../styles/colors.js";
+import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Component that automatically scrolls long titles or just display them as they are
@@ -12,6 +12,7 @@ export default function ScrollingText({ text }) {
     const [textWidth, setTextWidth] = useState(0);                  // Text's width
     const [containerWidth, setContainerWidth] = useState(0);        // The empty space for the text
     const scrollAnimation = useRef(new Animated.Value(0)).current;
+    const { colors } = useTheme();
 
     // Get container width
     const handleContainerLayout = (e) => setContainerWidth(e.nativeEvent.layout.width);

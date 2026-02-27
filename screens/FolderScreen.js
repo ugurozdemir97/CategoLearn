@@ -18,7 +18,7 @@ import DateDisplay from "../components/Blocks/DateDisplay.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import { useTheme } from "../context/ThemeContext.js";
 
 // Context and Hooks
 import { useClipboard } from "../context/ClipboardContext.js";
@@ -49,6 +49,7 @@ export default function FolderScreen({ route, navigation }) {
     const { selectedItems, secondarySelect, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
+    const { colors } = useTheme();
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -219,7 +220,7 @@ export default function FolderScreen({ route, navigation }) {
             />
 
             {/* Category Title */}
-            <View style={[styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
+            <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
                 <Text style={[styles.bigText, { color: colors.textPrimary }]}>{folder.name}</Text>
 
                 {/* Date display pinned bottom-right */}
@@ -246,7 +247,7 @@ export default function FolderScreen({ route, navigation }) {
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                     onDragEnd={customSort.handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8, paddingHorizontal: 15 }}
+                    style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
@@ -266,7 +267,7 @@ export default function FolderScreen({ route, navigation }) {
                 <FlatList
                     data={items}
                     keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 8, paddingBottom: 15 }}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}

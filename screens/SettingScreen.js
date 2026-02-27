@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { Pressable as GHPressable } from "react-native-gesture-handler";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -14,7 +13,7 @@ import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import { useTheme } from "../context/ThemeContext.js";
 
 // Database Queries and Storage
 import { saveColorOrder, loadColorOrder, saveColorSortPreference, loadColorSortPreference } from "../storage/sortPreference.js";
@@ -26,6 +25,7 @@ const COLOR_NAMES = { null: "None", "#000000": "Black", "#FFFFFF": "White", "#bb
 // Settings - Preferences and Synchronisation
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
+    const { currentTheme, colors, changeTheme, availableThemes } = useTheme();
     const [colorOrder, setColorOrder] = useState([]);
     const [colorSortMode, setColorSortMode] = useState("");
     const [infoVisible, setInfoVisible] = useState(false);
@@ -141,7 +141,7 @@ export default function SettingsScreen() {
                     onDragEnd={handleDragEnd}
                     activationDistance={8}
                     scrollEnabled={false}
-                    style={styles.paddingHorizontal}
+                    style={[styles.paddingHorizontal, {paddingBottom: 10}]}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
@@ -179,7 +179,13 @@ export default function SettingsScreen() {
 
 
                 {/* Theme Settings */}
-                <SectionBlock title="Themes" description="Coming soon..." />
+                <SectionBlock title="Themes" description="Choose your preferred color theme"/>
+
+                <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
+                    {availableThemes.map((themeName) => (
+                        <RadioButton key={themeName} label={themeName} selected={currentTheme === themeName} onPress={() => changeTheme(themeName)}/>
+                    ))}
+                </View>
 
                 {/* Divider */}
                 <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
@@ -196,13 +202,13 @@ export default function SettingsScreen() {
                 <View style={[styles.paddingHorizontal, { gap: 10, marginBottom: 20 }]}>
 
                     {/* Export Button */}
-                    <TouchableOpacity onPress={handleExport} style={[ styles.normalButton,  styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
+                    <TouchableOpacity onPress={handleExport} style={[styles.underShadow, styles.normalButton,  styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="upload" size={18} color={colors.accentLight} />
                         <Text style={[styles.midText, { color: colors.textPrimary }]}>Export Database</Text>
                     </TouchableOpacity>
 
                     {/* Import Button */}
-                    <TouchableOpacity onPress={handleImportConfirm} style={[ styles.normalButton, styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
+                    <TouchableOpacity onPress={handleImportConfirm} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="download" size={18} color={colors.accentLight} />
                         <Text style={[styles.midText, { color: colors.textPrimary }]}>Import Database</Text>
                     </TouchableOpacity>

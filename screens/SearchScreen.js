@@ -11,7 +11,7 @@ import db from "../database/db.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import { useTheme } from "../context/ThemeContext.js";
 
 // Searching Screen
 export default function SearchScreen({ navigation }) {
@@ -19,6 +19,7 @@ export default function SearchScreen({ navigation }) {
     const [query, setQuery] = useState("");        // Searched text
     const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
     const [results, setResults] = useState([]);    // Filtered items
+    const { colors } = useTheme();
 
     // Load all data once when screen mounts
     useEffect(() => {
@@ -131,7 +132,7 @@ export default function SearchScreen({ navigation }) {
         <View style={[styles.container, { backgroundColor: colors.bgPrimary, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }]}>
 
             {/* Search Bar */}
-            <View style={[styles.rowCenter, styles.paddingHorizontal, {gap: 10, backgroundColor: colors.bgSecondary, paddingVertical: 5}]}>
+            <View style={[styles.underShadow, styles.rowCenter, styles.paddingHorizontal, {gap: 10, backgroundColor: colors.bgSecondary, paddingVertical: 5}]}>
                 <FontAwesome name="search" size={20} color={colors.textSecondary}/>
                 <TextInput
                     value={query}

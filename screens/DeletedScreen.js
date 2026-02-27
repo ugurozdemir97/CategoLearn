@@ -5,7 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
-import { colors } from "../styles/colors.js";
+import { useTheme } from "../context/ThemeContext.js";
 
 // Components
 import HeaderBar from "../components/Navigation/HeaderBar.js";
@@ -33,6 +33,7 @@ export default function DeletedScreen({ navigation }) {
 
     const modals = useModalStates();
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
+    const { colors } = useTheme();
 
     // Bring all deleted items on mount
     useEffect(() => {
@@ -125,7 +126,7 @@ export default function DeletedScreen({ navigation }) {
                 isDeletedScreen={true}
             />
 
-            <View style={[styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
+            <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
                 <Text style={[styles.bigText, { color: colors.textPrimary }]}>Deleted Items</Text>
             </View>
 
@@ -161,19 +162,19 @@ export default function DeletedScreen({ navigation }) {
             <View style={[styles.rowCenter, styles.paddingHorizontal, {backgroundColor: colors.bgSecondary, gap: 10, paddingBottom: insets.bottom + 15, paddingTop: 15}]}>
                 {selectedItems.length > 0 ? (
                     <>
-                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>
+                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>
                             <FontAwesome name="undo" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]}>Restore ({selectedItems.length})</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
+                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]}>Delete Forever ({selectedItems.length})</Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     deletedItems.length > 0 && (
-                        <TouchableOpacity onPress={() => handleAction("emptyTrash")} style={[styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
+                        <TouchableOpacity onPress={() => handleAction("emptyTrash")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]}>Empty Trash</Text>
                         </TouchableOpacity>
