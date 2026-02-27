@@ -35,6 +35,9 @@ import { handleEditSelected } from "../utils/handleFooterActions.js";
 import db from "../database/db.js";
 import { getFolders, getCards, addFolder, addCard, updateFolder, updateCard, deleteFolder, deleteCard, addField, updateField, getFields, deleteField } from "../database/queries.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // FolderScreen: Displays contents of a folder (subfolders and cards). Create or edit them. 
 export default function FolderScreen({ route, navigation }) {
     const { folder, path } = route.params;
@@ -50,6 +53,7 @@ export default function FolderScreen({ route, navigation }) {
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -100,7 +104,7 @@ export default function FolderScreen({ route, navigation }) {
         const result = [...folders, ...cards];
         handleSort(result, setItems, sortMode);
         const currentFolder = route.params?.folder || folder;
-        if (sortMode === "Order by creation date") setFolderDate(currentFolder.created_at);
+        if (sortMode === "creationDate") setFolderDate(currentFolder.created_at);
         else setFolderDate(currentFolder.updated_at);
     };
 
@@ -226,7 +230,7 @@ export default function FolderScreen({ route, navigation }) {
                 {/* Date display pinned bottom-right */}
                 <View style={{ position: "absolute", right: 10, bottom: 5 }}>
                     {folderDate && (
-                        <DateDisplay date={folderDate} icon={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} />
+                        <DateDisplay date={folderDate} icon={sortMode === "creationDate" ? "plus-circle" : "pencil"} />
                     )}
                 </View>
             </View>
@@ -235,9 +239,7 @@ export default function FolderScreen({ route, navigation }) {
             {items.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
-                        No Items Yet.{"\n"}
-                        Create Cards to Store Information{"\n"}
-                        or Folders to Organize Your Learning!
+                        {t("screenMessages.items")}
                     </Text>
                 </View>
             ) : customSort.customSortMode ? (
@@ -337,8 +339,8 @@ export default function FolderScreen({ route, navigation }) {
             <CreateModal
                 visible={modals.modalVisible}
                 onCreate={handleItem}
-                title={modals.editTarget ? `Edit ${createType}` : `Create ${createType}`}
-                placeholder={`Enter ${createType} Name`}
+                title={modals.editTarget ? t("titles.editItem", {item: t(`itemType.${createType}`)}) : t("titles.createItem", {item: t(`itemType.${createType}`)})}
+                placeholder={t("placeholders.itemName", {item: t(`itemType.${createType}`)})}
                 value={modals.editTarget ? modals.editTarget.name : ""}
                 color={modals.editTarget ? modals.editTarget.color : null}
                 mode={modals.editTarget ? "edit" : "create"}
@@ -362,9 +364,9 @@ export default function FolderScreen({ route, navigation }) {
                 visible={modals.confirmVisible}
                 onCancel={modals.closeDeleteModal}
                 onConfirm={confirmDelete}
-                title="Confirm Delete"
+                title={t("titles.confirmDelete")}
                 message={modals.deleteTarget?.message || ""}
-                confirmText="Delete"
+                confirmText={t("buttons.delete")}
                 confirmColor={colors.danger}
             />
 

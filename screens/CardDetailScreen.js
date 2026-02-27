@@ -35,6 +35,9 @@ import { handleEditSelected } from "../utils/handleFooterActions.js";
 import db from "../database/db.js";
 import { getFields, addField, updateField, deleteField } from "../database/queries.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
     const { card, path } = route.params;
@@ -50,12 +53,13 @@ export default function CardDetailScreen({ route, navigation }) {
     const { clipboard, clipboardMode, cut, copy, clearClipboard, getItemStatus } = useClipboard();
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
         const result = await getFields(card.id);
         handleSort(result, setFields, sortMode);
-        if (sortMode === "Order by creation date") setCardDate(card.created_at);
+        if (sortMode === "creationDate") setCardDate(card.created_at);
         else setCardDate(card.updated_at);
     };
 
@@ -146,7 +150,7 @@ export default function CardDetailScreen({ route, navigation }) {
 
                 {/* Date display pinned bottom-right */}
                 <View style={[styles.rowCenter, { gap: 4, position: "absolute", right: 10, bottom: 5 }]}>
-                    <FontAwesome name={sortMode === "Order by creation date" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
+                    <FontAwesome name={sortMode === "creationDate" ? "plus-circle" : "pencil"} size={10} color={colors.textHalfOpacity} />
                     <Text style={[styles.tinyText, { color: colors.textHalfOpacity }]}>
                         {formatDate(cardDate)}
                     </Text>
@@ -157,7 +161,7 @@ export default function CardDetailScreen({ route, navigation }) {
             {fields.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
-                        No fields yet. Tap the plus button to add context!
+                        {t("screenMessages.fields")}
                     </Text>
                 </View>
             ) : customSort.customSortMode ? (
@@ -250,8 +254,8 @@ export default function CardDetailScreen({ route, navigation }) {
             <CreateModal
                 visible={modals.modalVisible}
                 onCreate={handleField}
-                title={modals.editTarget ? "Edit Field" : "Create Field"}
-                placeholder="Field Title"
+                title={modals.editTarget ? t("titles.editField") : t("titles.createField")}
+                placeholder={t("placeholders.fieldTitle")}
                 value={modals.editTarget ? modals.editTarget.name : ""}
                 color={modals.editTarget ? modals.editTarget.color : null}
                 mode={modals.editTarget ? "edit" : "create"}
@@ -275,9 +279,9 @@ export default function CardDetailScreen({ route, navigation }) {
                 visible={modals.confirmVisible}
                 onCancel={modals.closeDeleteModal}
                 onConfirm={confirmDelete}
-                title="Confirm Delete"
+                title={t("titles.confirmDelete")}
                 message={modals.deleteTarget?.message || ""}
-                confirmText="Delete"
+                confirmText={t("buttons.delete")}
                 confirmColor={colors.danger}
             />
 

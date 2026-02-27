@@ -14,22 +14,25 @@ import { useTheme } from "../../context/ThemeContext.js";
 import { saveSortMode, saveDeletedSortMode } from "../../storage/sortPreference.js";
 import { useSortMode } from "../../context/SortModeContext.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // Available sort modes
 const sortModes = [
-    "Order by edit time",
-    "Order alphabetically",
-    "Order by creation date",
-    "Order by color",
-    "Custom order",
+    "editTime",
+    "alphabetical",
+    "creationDate",
+    "color",
+    "custom",
 ];
 
 // Available sort modes for deleted screen
 const deletedSortModes = [
-    "Order by deletion time",
-    "Order alphabetically",
-    "Order by creation date",
-    "Order by edit time",
-    "Order by color"
+    "deletionTime",
+    "alphabetical",
+    "creationDate",
+    "editTime",
+    "color"
 ];
 
 // HeaderBar component with sort button and selection info
@@ -39,6 +42,7 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
     const [sortIndex, setSortIndex] = useState(0);  // In which sort modes we are in
     const { sortMode, setSortMode, deletedSortMode, setDeletedSortMode } = useSortMode();
     const { colors } = useTheme();
+    const { t } = useTranslation();
     
     // Choose sort modes based on screen type
     const modes =          isDeletedScreen ? deletedSortModes   : sortModes;
@@ -85,25 +89,25 @@ export default function HeaderBar({ selectedCount, totalCount = 0, onSort, items
             
             {/* This is custom sort mode, when we enable drag and sort items, show cancel and save buttons */}
             {customSortMode ? (
-                <HeaderMode label="Reorder Items" onCancel={onCancelCustomSort} onConfirm={onSaveCustomSort}/>
+                <HeaderMode label={t("sort.reorder")} onCancel={onCancelCustomSort} onConfirm={onSaveCustomSort}/>
 
             // This is selection mode, if we have any selected items, show cancel and select all buttons
             ) : selectedCount > 0 ? (
-                <HeaderMode label={`${selectedCount}/${totalCount} selected`} onCancel={onCancelSelection} onConfirm={onSelectAll}/>
+                <HeaderMode label={t("infoMessages.selected", {selectedCount: selectedCount, totalCount: totalCount})} onCancel={onCancelSelection} onConfirm={onSelectAll}/>
 
             // Normal header, show "Order by x" button
             ) : (           
                 <View style={[styles.rowCenter, styles.spaceBetween, {flex: 1}]}>
                     <TouchableOpacity onPress={cycleSort} style={[styles.rowCenter, {gap: 10}]}>
-                        <Text style={[styles.smallText, { color: colors.textPrimary}]}>{modes[sortIndex]}</Text>
+                        <Text style={[styles.smallText, { color: colors.textPrimary}]}>{t(`sort.${modes[sortIndex]}`)}</Text>
                         <FontAwesome name="caret-down" size={18} color={colors.textPrimary} />
                     </TouchableOpacity>
 
-                    {/* Edit Custom Order Button - only for normal screens with Custom order mode is selected */}
-                    {!isDeletedScreen && currentMode === "Custom order" && onEnterCustomSort && (
+                    {/* Edit custom Button - only for normal screens with custom mode is selected */}
+                    {!isDeletedScreen && currentMode === "custom" && onEnterCustomSort && (
                         <TouchableOpacity onPress={onEnterCustomSort} style={[styles.rowCenter, {gap: 10}]}>
                             <FontAwesome name="edit" size={16} color={colors.textPrimary} style={{marginTop: 3}}/>
-                            <Text style={[styles.smallText, { color: colors.textPrimary}]}>Edit order</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary}]}>{t("sort.edit")}</Text>
                         </TouchableOpacity>
                     )}
                 </View>

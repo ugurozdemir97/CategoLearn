@@ -13,6 +13,9 @@ import db from "../database/db.js";
 import styles from "../styles/styles.js";
 import { useTheme } from "../context/ThemeContext.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // Searching Screen
 export default function SearchScreen({ navigation }) {
     const insets = useSafeAreaInsets();            // For placing elements
@@ -20,6 +23,7 @@ export default function SearchScreen({ navigation }) {
     const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
     const [results, setResults] = useState([]);    // Filtered items
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Load all data once when screen mounts
     useEffect(() => {
@@ -137,7 +141,7 @@ export default function SearchScreen({ navigation }) {
                 <TextInput
                     value={query}
                     onChangeText={(text) => {setQuery(text); runSearch(text)}}
-                    placeholder="Search folders, cards, fields..."
+                    placeholder={t("titles.search")}
                     placeholderTextColor={colors.textSecondary}
                     style={[styles.input, styles.midText, { color: colors.textSecondary }]}
                     returnKeyType="search"
@@ -155,7 +159,7 @@ export default function SearchScreen({ navigation }) {
             {query.trim().length > 0 && results.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
-                        No results found for "{query}"
+                        {t("screenMessages.noResult", {query: `"${query}"`})}
                     </Text>
                 </View>
             
@@ -164,7 +168,7 @@ export default function SearchScreen({ navigation }) {
                 <View style={[styles.container, styles.centered, {gap: 10}]}>
                     <FontAwesome name="search" size={60} color={colors.textHalfOpacity} />
                     <Text style={[styles.midText, styles.centeredText, {color: colors.textHalfOpacity}]}>
-                        Start typing to search
+                        {t("screenMessages.typeToSearch")}
                     </Text>
                 </View>
 

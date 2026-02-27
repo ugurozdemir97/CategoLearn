@@ -17,6 +17,9 @@ import { validateName } from "../../utils/validation.js";
 // Database Queries
 import { getFolders, getCards, getFields } from "../../database/queries.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 // For creating/editing both cards and folders, with dynamic fields for cards
 export default function CreateModal({ visible, onClose, onCreate, title, placeholder, value, color, isCard = false, isField = false, fields = [], context = "", mode = "create", parentId = null, editTarget = null}) {
     
@@ -29,6 +32,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const [errorMessage, setErrorMessage] = useState("");               // For displaying error messages
     const [selectedColor, setSelectedColor] = useState(color);          // Color of the item
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Place name and fields if editing a card when modal opens
     useEffect(() => {

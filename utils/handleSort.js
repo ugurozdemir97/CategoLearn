@@ -18,35 +18,35 @@ export async function handleSort(items, setItems, mode, isDeletedScreen = false)
         let sorted = [...group];
 
         switch (mode) {
-            case "Order by creation date":
+            case "creationDate":
                 sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 break;
 
-            case "Order by edit time":
+            case "editTime":
                 sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
                 break;
 
-            case "Order by deletion time":
+            case "deletionTime":
                 if (isDeletedScreen) {sorted.sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at))}
                 break;
 
-            case "Order alphabetically":
+            case "alphabetical":
                 sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
                 break;
 
-            case "Order by color":
+            case "color":
                 sorted.sort((a, b) => {
                     const colorDiff = getColorIndex(a.color, savedOrder) - getColorIndex(b.color, savedOrder);
                     if (colorDiff !== 0) return colorDiff;
 
                     // Secondary sort inside same color group
-                    if (savedSortPref === "Order alphabetically") return (a.name || "").localeCompare(b.name || "");
+                    if (savedSortPref === "alphabetical") return (a.name || "").localeCompare(b.name || "");
                     else                                          return new Date(b.updated_at) - new Date(a.updated_at);
 
                 });
                 break;
                 
-            case "Custom order":
+            case "custom":
 
                 // Sort by sort_index (nulls items at the end)
                 // If both of them are null use creation date to sort

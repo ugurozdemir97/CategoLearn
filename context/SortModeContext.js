@@ -5,8 +5,8 @@ const SortModeContext = createContext();
 
 // Update Sort Mode Across Screens
 export function SortModeProvider({ children }) {
-    const [sortMode, setSortMode] = useState("Order by edit time");                    // Default sort mode
-    const [deletedSortMode, setDeletedSortMode] = useState("Order by deletion time");  // Default DeletedScreen Sort mode
+    const [sortMode, setSortMode] = useState("editTime");                    // Default sort mode
+    const [deletedSortMode, setDeletedSortMode] = useState("deletionTime");  // Default DeletedScreen Sort mode
 
     // Load last preferred sort modes
     useEffect(() => {

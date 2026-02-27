@@ -120,14 +120,14 @@ export default function HomeScreen({ navigation }) {
             {subjects.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
-                        What Do You Want To Learn About?
+                        {t("screenMessages.subjects")}
                     </Text>
                 </View>
             ) : (
                 <>
                     <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
                         <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>
-                            Subjects
+                            {t("titles.subjects")}
                         </Text>
                     </View>
 
@@ -221,8 +221,8 @@ export default function HomeScreen({ navigation }) {
             <CreateModal
                 visible={modals.modalVisible}
                 onCreate={handleSubject}
-                title={modals.editTarget ? "Edit Subject" : "Create Subject"}
-                placeholder="Enter Subject Name"
+                title={modals.editTarget ? t("titles.editSubject") : t("titles.createSubject")}
+                placeholder={t("placeholders.subjectName")}
                 value={modals.editTarget ? modals.editTarget.name : ""}
                 color={modals.editTarget ? modals.editTarget.color : null}
                 mode={modals.editTarget ? "edit" : "create"}
@@ -235,9 +235,9 @@ export default function HomeScreen({ navigation }) {
                 visible={modals.confirmVisible}
                 onCancel={modals.closeDeleteModal}
                 onConfirm={confirmDelete}
-                title="Confirm Delete"
+                title={t("titles.confirmDelete")}
                 message={modals.deleteTarget?.message || ""}
-                confirmText="Delete"
+                confirmText={t("buttons.delete")}
                 confirmColor={colors.danger}
             />
 

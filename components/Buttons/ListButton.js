@@ -34,13 +34,13 @@ export default function ListButton({ label, updatedAt, deletedAt, createdAt, ico
     // Determine which date and icon to show based on sort mode
     let displayDate = updatedAt;
     let dateIcon = "pencil";
-    if (sortMode === "Order by deletion time" && deletedAt) {
+    if (sortMode === "deletionTime" && deletedAt) {
         displayDate = deletedAt;
         dateIcon = "trash-o";
-    } else if (sortMode === "Order by creation date" && createdAt || sortMode === "Custom order" && createdAt) {
+    } else if (sortMode === "creationDate" && createdAt || sortMode === "custom" && createdAt) {
         displayDate = createdAt;
         dateIcon = "plus-circle";
-    } else if (sortMode === "Order by edit time" && updatedAt) {
+    } else if (sortMode === "editTime" && updatedAt) {
         displayDate = updatedAt;
         dateIcon = "pencil";
     } else {

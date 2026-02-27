@@ -9,7 +9,7 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
     // When dragging ends set items to keep the items in the same order
     const handleDragEnd = useCallback(({ data }) => {setItems(data)}, [setItems]);
 
-    // Save custom order to database
+    // Save custom to database
     const handleSaveCustomOrder = async () => {
         try {
             for (let i = 0; i < items.length; i++) {
@@ -30,8 +30,8 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
             await reloadItems();
 
         } catch (error) {
-            console.error("Error saving custom order:", error);
-            setErrorMessages([{type: "Save Failed", message: "Failed to save custom order. Please try again."}]);
+            console.error("Error saving custom:", error);
+            setErrorMessages([{type: "Save Failed", message: "Failed to save custom. Please try again."}]);
             setInfoVisible(true);
         }
     };

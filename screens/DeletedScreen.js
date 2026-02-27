@@ -26,6 +26,9 @@ import { handleSort } from "../utils/handleSort.js";
 // Storage
 import { loadSortMode } from "../storage/sortPreference.js";
 
+// Language
+import { useTranslation } from 'react-i18next';
+
 export default function DeletedScreen({ navigation }) {
     const insets = useSafeAreaInsets();  // For placing elements
     const [deletedItems, setDeletedItems] = useState([]);  // All deleted Items
@@ -34,6 +37,7 @@ export default function DeletedScreen({ navigation }) {
     const modals = useModalStates();
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     // Bring all deleted items on mount
     useEffect(() => {
@@ -53,7 +57,7 @@ export default function DeletedScreen({ navigation }) {
         
         const anyRenamed = await restoreMultipleItems(selectedItems);
         
-        if (anyRenamed) modals.openInfoModal({type: "Items Restored", message: "Some items were renamed because items with the same names already exist in the destination."});
+        if (anyRenamed) modals.openInfoModal({type: t("titles.restored"), message: t("infoMessages.itemsRenamed")});
 
         clearSelection();
         await loadDeletedItems();
@@ -127,13 +131,13 @@ export default function DeletedScreen({ navigation }) {
             />
 
             <View style={[styles.underShadow, styles.paddingHorizontal, styles.paddingVertical, { backgroundColor: colors.bgSecondary }]}>
-                <Text style={[styles.bigText, { color: colors.textPrimary }]}>Deleted Items</Text>
+                <Text style={[styles.bigText, { color: colors.textPrimary }]}>{t("titles.deleted")}</Text>
             </View>
 
             {deletedItems.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <FontAwesome name="trash-o" size={60} color={colors.textHalfOpacity} />
-                    <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 10 }]}>There are no deleted items</Text>
+                    <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 10 }]}>{t("screenMessages.deleted")}</Text>
                 </View>
             ) : (
                 <FlatList
@@ -164,19 +168,19 @@ export default function DeletedScreen({ navigation }) {
                     <>
                         <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 10}]}>
                             <FontAwesome name="undo" size={16} color={colors.textPrimary} />
-                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Restore ({selectedItems.length})</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.restore", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
-                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Delete Forever ({selectedItems.length})</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.deleteForever", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     deletedItems.length > 0 && (
                         <TouchableOpacity onPress={() => handleAction("emptyTrash")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
-                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>Empty Trash</Text>
+                            <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.emptyTrash")}</Text>
                         </TouchableOpacity>
                     )
                 )}
@@ -187,13 +191,13 @@ export default function DeletedScreen({ navigation }) {
                 visible={modals.confirmVisible}
                 onCancel={modals.closeDeleteModal}
                 onConfirm={confirmAction === "empty" ? handleEmptyTrash : handlePermanentDelete}
-                title={confirmAction === "empty" ? "Delete Everything Permanently?" : "Delete Forever?"}
+                title={confirmAction === "empty" ? t("titles.deleteEverything") : `${t("titles.deleteForever")}?`}
                 message={
                     confirmAction === "empty"
-                        ? "All items will be permanently deleted. This cannot be undone."
-                        : `${selectedItems.length} item(s) will be permanently deleted. This cannot be undone.`
+                        ? t("infoMessages.confirmDeleteAll")
+                        : `${selectedItems.length} ${t("infoMessages.confirmDelete")}`
                 }
-                confirmText="Delete Forever"
+                confirmText={t("titles.deleteForever")}
                 confirmColor={colors.danger}
             />
 

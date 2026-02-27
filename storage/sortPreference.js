@@ -16,10 +16,10 @@ export async function saveSortMode(mode) {
 export async function loadSortMode() {
     try {
         const mode = await AsyncStorage.getItem(SORT_MODE_KEY);
-        return mode || "Order by edit time"; // Default: edit time
+        return mode || "editTime"; // Default: edit time
     } catch (e) {
         console.error("Failed to load sort mode", e);
-        return "Order by edit time";
+        return "editTime";
     }
 }
 
@@ -33,10 +33,10 @@ export async function saveDeletedSortMode(mode) {
 export async function loadDeletedSortMode() {
     try {
         const mode = await AsyncStorage.getItem(DELETED_SORT_MODE_KEY);
-        return mode || "Order by deletion time"; // Default: deletion time
+        return mode || "deletionTime"; // Default: deletion time
     } catch (e) {
         console.error("Failed to load deleted sort mode", e);
-        return "Order by deletion time";
+        return "deletionTime";
     }
 }
 
@@ -67,9 +67,9 @@ export async function saveColorSortPreference(pref) {
 export async function loadColorSortPreference() {
     try {
         const pref = await AsyncStorage.getItem(COLOR_SORT_PREF_KEY);
-        return pref || "Order alphabetically";
+        return pref || "alphabetical";
     } catch (e) {
         console.error("Failed to load color sort preference", e);
-        return "Order alphabetically";
+        return "alphabetical";
     }
 }

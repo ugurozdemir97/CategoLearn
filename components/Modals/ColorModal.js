@@ -1,6 +1,7 @@
 import { Modal, View, Text, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext.js";
+import { useTranslation } from 'react-i18next';
 import styles from "../../styles/styles.js";
 
 const AVAILABLE_COLORS = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da", "#ffdd00", "#980081", "#00e19d", null ];
@@ -8,6 +9,7 @@ const AVAILABLE_COLORS = [ "#000000", "#FFFFFF", "#bb0000", "#00b700", "#0000da"
 // A modal for changing colors of the items
 export default function ColorModal({ visible, onClose, onSelect, selectedColor }) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
     return (
         <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
             <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
@@ -16,7 +18,7 @@ export default function ColorModal({ visible, onClose, onSelect, selectedColor }
                         
                         {/* Title */}
                         <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary, marginBottom: 10 }]}>
-                            Select Color
+                            {t("titles.selectColor")}
                         </Text>
 
                         {/* Color Grid */}
@@ -40,7 +42,7 @@ export default function ColorModal({ visible, onClose, onSelect, selectedColor }
                         {/* Confirm Button */}
                         <View style={[ styles.rowCenter, styles.spaceBetween ]}>
                             <TouchableOpacity onPress={onClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
-                                <Text style={[styles.midText, { color: colors.textPrimary }]}>Okay</Text>
+                                <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.okay")}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

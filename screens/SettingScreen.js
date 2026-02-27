@@ -23,9 +23,6 @@ import { exportDatabase, importDatabase } from "../database/exportDb.js";
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from "../context/LanguageContext.js";
 
-// Temporary, I will load these from AsyncStorage
-const COLOR_NAMES = { null: "None", "#000000": "Black", "#FFFFFF": "White", "#bb0000": "Red", "#00b700": "Green", "#0000da": "Blue", "#ffdd00": "Yellow", "#980081": "Purple", "#00e19d": "Mint" };
-
 // Settings - Preferences and Synchronisation
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
@@ -88,14 +85,14 @@ export default function SettingsScreen() {
         const result = await exportDatabase();
         if (result.success) {
             setInfoMessage({
-                title: "Export Successful",
-                message: "Your database has been exported successfully. Save the file in a safe location."
+                title: t("titles.exportSuccess"),
+                message: t("infoMessages.exportSuccess")
             });
             setInfoVisible(true);
         } else {
             setInfoMessage({
-                title: "Export Failed",
-                message: result.error || "Failed to export database. Please try again."
+                title: t("titles.exportFail"),
+                message: result.error || t("infoMessages.exportFail")
             });
             setInfoVisible(true);
         }
@@ -109,14 +106,14 @@ export default function SettingsScreen() {
         const result = await importDatabase();
         if (result.success) {
             setInfoMessage({
-                title: "Import Successful",
-                message: "Database imported successfully. Please restart the app to see your data."
+                title: t("titles.exportSuccess"),
+                message: t("infoMessages.exportSuccess")
             });
             setInfoVisible(true);
         } else if (result.error !== 'Import cancelled') {
             setInfoMessage({
-                title: "Import Failed",
-                message: result.error || "Failed to import database. Please try again."
+                title: t("titles.exportFail"),
+                message: result.error || t("infoMessages.exportFail")
             });
             setInfoVisible(true);
         }
@@ -130,15 +127,28 @@ export default function SettingsScreen() {
     // Dragging items will change the color order too.
     const handleDragEnd = useCallback(({ data }) => { updateColorOrder(data); }, []);
 
+    // Names of the colors
+    const COLOR_NAMES = { 
+        null: "None", 
+        "#000000": t("colors.black") , 
+        "#FFFFFF": t("colors.white") , 
+        "#bb0000": t("colors.red") , 
+        "#00b700": t("colors.green") , 
+        "#0000da": t("colors.blue") , 
+        "#ffdd00": t("colors.yellow") , 
+        "#980081": t("colors.purple") , 
+        "#00e19d": t("colors.mint")
+    }; 
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
             <ScrollView contentContainerStyle={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
 
                 {/* Screen Title */}
-                <Text style={[styles.bigText, styles.paddingHorizontal, { color: colors.textPrimary }]}>Settings</Text>
+                <Text style={[styles.bigText, styles.paddingHorizontal, { color: colors.textPrimary }]}>{t("titles.settings")}</Text>
 
                 {/* Color Settings */}
-                <SectionBlock title="Colors" description="Which color order would you like to use to sort the items? Click and drag the colors or use the arrow buttons to reorder them."/>
+                <SectionBlock title={t("titles.colors")} description={t("infoMessages.colorPick")}/>
 
                 {/* Color drag list */}
                 <DraggableFlatList
@@ -165,18 +175,18 @@ export default function SettingsScreen() {
                 />
 
                 {/* Sort order radio buttons */}
-                <SectionBlock title={null} description="Sort colors by"/>
+                <SectionBlock title={null} description={t("infoMessages.sortColorsBy")}/>
 
                 <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
                     <RadioButton
-                        label="Name"
-                        selected={colorSortMode === "Order alphabetically"}
-                        onPress={() => updateColorSortMode("Order alphabetically")}
+                        label={t("sort.name")}
+                        selected={colorSortMode === "alphabetical"}
+                        onPress={() => updateColorSortMode("alphabetical")}
                     />
                     <RadioButton
-                        label="Last Edit Time"
-                        selected={colorSortMode === "Order by edit time"}
-                        onPress={() => updateColorSortMode("Order by edit time")}
+                        label={t("sort.lastEdit")}
+                        selected={colorSortMode === "editTime"}
+                        onPress={() => updateColorSortMode("editTime")}
                     />
                 </View>
 
@@ -185,7 +195,7 @@ export default function SettingsScreen() {
 
 
                 {/* Theme Settings */}
-                <SectionBlock title="Themes" description="Choose your preferred color theme"/>
+                <SectionBlock title={t("titles.themes")} description={t("infoMessages.prefferedTheme")}/>
 
                 <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
                     {availableThemes.map((themeName) => (
@@ -197,7 +207,7 @@ export default function SettingsScreen() {
                 <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
 
                 {/* Language Settings */}
-                <SectionBlock title="Languages" description="Choose your preferred language"/>
+                <SectionBlock title={t("titles.languages")} description={t("infoMessages.language")}/>
 
                 <View style={[styles.paddingHorizontal, {flex: 1, marginBottom: 10, gap: 10}]}>
                     {availableLanguages.map((lang) => (
@@ -209,20 +219,20 @@ export default function SettingsScreen() {
                 <View style={{height: 2, backgroundColor: colors.textHalfOpacity, marginVertical: 5}} />
 
                 {/* Synchronisation Settings */}
-                <SectionBlock title="Backup & Restore" description="Export your database to backup your data, or import a previously exported database to restore it."/>
+                <SectionBlock title={t("titles.backup")} description={t("infoMessages.export")}/>
 
                 <View style={[styles.paddingHorizontal, { gap: 10, marginBottom: 20 }]}>
 
                     {/* Export Button */}
                     <TouchableOpacity onPress={handleExport} style={[styles.underShadow, styles.normalButton,  styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="upload" size={18} color={colors.accentLight} />
-                        <Text style={[styles.midText, { color: colors.textPrimary }]}>Export Database</Text>
+                        <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.export")}</Text>
                     </TouchableOpacity>
 
                     {/* Import Button */}
                     <TouchableOpacity onPress={handleImportConfirm} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="download" size={18} color={colors.accentLight} />
-                        <Text style={[styles.midText, { color: colors.textPrimary }]}>Import Database</Text>
+                        <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.importDB")}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -241,9 +251,9 @@ export default function SettingsScreen() {
                 visible={confirmVisible}
                 onCancel={() => setConfirmVisible(false)}
                 onConfirm={handleImport}
-                title="Import Database"
-                message="Importing will replace your current database. Your current data will be backed up. Continue?"
-                confirmText="Import"
+                title={t("buttons.importDB")}
+                message={t("infoMessages.import")}
+                confirmText={t("buttons.import")}
                 confirmColor={colors.accent}
             />
 

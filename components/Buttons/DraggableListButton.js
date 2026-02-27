@@ -9,7 +9,7 @@ import ScrollingText from "../Blocks/ScrollingText.js";
 import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
-// Draggable version of List Button used for ordering colors in settings screen and ordering items in custom order mode
+// Draggable version of List Button used for ordering colors in settings screen and ordering items in custom mode
 export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, item, colorNames }) {
     const { colors } = useTheme();
 
