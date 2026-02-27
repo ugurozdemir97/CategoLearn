@@ -8,6 +8,7 @@ I was trying flashcard apps for learning Russian and realized that I had no way 
 - Create folders (subjects, categories, subcategories).
 - Nest folders as deeply as you want (e.g., English → Verbs → Daily Phrasal Verbs).
 - Use colors to visually organize and distinguish items.
+- Use custom sort to sort items however you want by clicking and dragging items.
 
 ### Custom Cards
 - Cards can have custom fields instead of just front/back.
@@ -23,6 +24,12 @@ I was trying flashcard apps for learning Russian and realized that I had no way 
 - Sort, edit, delete items.
 - Restore deleted items unless permanently removed.
 - Search across folders, cards, and fields.
+
+### Language
+- Supports English and Turkish.
+
+### Themes
+- Has 8 built in themes.
 
 ## Purpose
 CategoLearn is primarily built for my own learning needs, especially for Russian vocabulary.  
