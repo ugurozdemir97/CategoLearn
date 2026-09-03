@@ -33,7 +33,7 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
     
     return (
         <View 
-            style={[styles.paddingHorizontal, styles.rowCenter, styles.spaceBetween, { paddingBottom: insets.bottom + 15, paddingTop: 15, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
+            style={[styles.footerBar, styles.paddingHorizontal, styles.rowCenter, styles.spaceBetween, { paddingBottom: insets.bottom + 15, paddingTop: 15, backgroundColor: colors.bgSecondary }]} onLayout={onLayout}>
             
             {/* Delete - Cut - Copy - Color */}
             {selectedItems.length > 0 ? (

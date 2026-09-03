@@ -106,13 +106,35 @@
         "confirmAction": "İşlemi Onayla",
         "addField": "Alan Ekle",
         "create": "Oluştur",
-        "save": "Kaydet"
+        "save": "Kaydet",
+        "load": "Yükle",
+        "update": "Güncelle",
+        "hideActions": "Alan işlemlerini gizle",
+        "showActions": "Alan işlemlerini göster"
     },
     "placeholders": {
         "subjectName": "Konu Adını Girin",
         "itemName": "{{item}} Adını Girin",
         "fieldTitle": "Alan Başlığı",
         "context": "Bağlam (Opsiyonel)"
+    },
+    "fieldSets": {
+        "saveTitle": "Alan Setini Kaydet",
+        "loadTitle": "Alan Setini Yükle",
+        "saveDescription": "Alan başlıkları ve renkleri kaydedilir. Bağlam kartta kalır.",
+        "pickDescription": "Kaydedilmiş bir alan setini yükleyin veya artık kullanmadığınız bir seti silin.",
+        "namePlaceholder": "Alan seti adı",
+        "nameRequired": "Bu alan seti için bir ad girin.",
+        "fieldsRequired": "Önce en az bir adlandırılmış alan ekleyin.",
+        "unnamedField": "Kaydetmeden önce tüm alanların bir başlığı olmalıdır.",
+        "duplicateFields": "Kaydetmeden önce alan başlıkları benzersiz olmalıdır.",
+        "empty": "Henüz kaydedilmiş alan seti yok.",
+        "updateConfirmTitle": "Alan Seti Güncellensin mi?",
+        "updateConfirmMessage": "\"{{name}}\" adında bir alan seti zaten mevcut. Güncellemek istiyor musunuz?",
+        "deleteConfirmTitle": "Alan Seti Silinsin mi?",
+        "deleteConfirmMessage": "\"{{name}}\" silinsin mi? Bu setten oluşturulan kartlar etkilenmez.",
+        "storageError": "Alan seti kaydedilemedi. Lütfen tekrar deneyin.",
+        "loadError": "Alan seti yüklenemedi. Lütfen tekrar deneyin."
     },
     "sort": {
         "editTime": "Düzenleme zamanına göre sırala",
@@ -150,6 +172,7 @@
         "Charcoal": "Kömür",
         "Slate": "Arduvaz",
         "Light": "Açık",
+        "Sakura": "Sakura",
         "Sunset": "Gün Batımı"
     }
 }

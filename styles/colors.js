@@ -128,6 +128,22 @@ const themes = {
         success:         "#42ff71",
         warning:         "#ffb703"
     },
+    "Sakura": {
+        bgPrimary:       "#fff8fb",
+        bgSecondary:     "#fee4ee",
+        bgCard:          "#ffffff",
+        bgCardCopied:    "#f9dce7",
+        bgModal:         "#fff4f8",
+        bgBreadCrumb:    "#ffc9df",
+        accent:          "#fc84a6",
+        accentLight:     "#fb3d8c",
+        textPrimary:     "#4a1f33",
+        textSecondary:   "#68344b",
+        textHalfOpacity: "#5d3c4ba7",
+        danger:          "#dd3a65",
+        success:         "#30bd85",
+        warning:         "#ca8832"
+    },
     "Sunset": {
         bgPrimary:       "#b2d7de",   
         bgSecondary:     "#ca3c3c",   

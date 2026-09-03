@@ -14,6 +14,53 @@ export default StyleSheet.create({
         rowGap: 12
     },
 
+    cardActionTray: {
+        position: "absolute",
+        right: 10,
+        width: 100,
+        alignItems: "center",
+        zIndex: 10,
+    },
+
+    cardActionClip: {
+        width: 100,
+        height: 112,
+        paddingBottom: 12,
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "flex-end",
+    },
+
+    cardActionButtons: {
+        alignItems: "center",
+        gap: 12,
+    },
+
+    cardActionCaretButton: {
+        width: 76,
+        height: 24,
+        alignItems: "center",
+        justifyContent: "center",
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 2,
+        elevation: 9,
+    },
+
+    footerBar: {
+        position: "relative",
+        zIndex: 20,
+        elevation: 6,
+        shadowColor: "transparent",
+        shadowOpacity: 0,
+    },
+
     colorPicker: {
         flexDirection: "row", 
         flexWrap: "wrap", 
@@ -27,6 +74,12 @@ export default StyleSheet.create({
     toolBarContainer: {
         borderRadius: 6,
         overflow: 'hidden',
+    },
+
+    fieldSetActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
     },
 
     // ALIGNMENT
@@ -74,7 +127,27 @@ export default StyleSheet.create({
         padding: 8,
         borderRadius: 5,
         borderWidth: 1
-    },  
+    },
+
+    fieldSetActionButton: {
+        minWidth: 38,
+        height: 34,
+        paddingHorizontal: 4,
+        borderRadius: 6,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1,
+    },
+
+    fieldSetRowButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
     colorButton: {
         width: 50,        

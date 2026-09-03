@@ -3,6 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { useTheme } from "../../context/ThemeContext.js";
+import { normalizeHorizontalRules } from "../../utils/richText.js";
 
 // Rich text editor
 export default function RichTextEditor({ initialContent, onChange, onFocus, onBlur, placeholder = "Context (optional)" }) {
@@ -25,7 +26,7 @@ export default function RichTextEditor({ initialContent, onChange, onFocus, onBl
 
     // Custom action to insert horizontal line
     const insertHorizontalLine = () => {
-        editorRef.current?.insertHTML(`<hr style="border: 1px solid ${colors.accentLight}; width: 100%; display: block;"/><br/>`);
+        editorRef.current?.insertHTML("<hr/><br/>");
     };
 
     // We only show the toolbar when the text editor is focused
@@ -52,18 +53,25 @@ export default function RichTextEditor({ initialContent, onChange, onFocus, onBl
         }
     };
 
-    // Allow one nested list level, but prevent nesting a list inside that level.
+    // Nest the current list item under its previous sibling, up to five levels deep.
     const indentListOnce = () => {
         editorRef.current?.commandDOM(`
+            const MAX_LIST_DEPTH = 5;
             const selection = document.getSelection();
             const anchor = selection && selection.anchorNode;
             const element = anchor && (anchor.nodeType === 1 ? anchor : anchor.parentElement);
             const listItem = element && element.closest('li');
             const parentList = listItem && listItem.parentElement;
             const previousItem = listItem && listItem.previousElementSibling;
-            const isTopLevel = parentList && !parentList.parentElement.closest('li');
+            let currentDepth = 0;
+            let ancestor = parentList;
 
-            if (isTopLevel && previousItem && previousItem.tagName === 'LI') {
+            while (ancestor) {
+                if (ancestor.tagName === 'OL' || ancestor.tagName === 'UL') currentDepth += 1;
+                ancestor = ancestor.parentElement;
+            }
+
+            if (currentDepth < MAX_LIST_DEPTH && previousItem && previousItem.tagName === 'LI') {
                 let nestedList = null;
                 for (const child of previousItem.children) {
                     if (child.tagName === parentList.tagName) nestedList = child;
@@ -113,7 +121,6 @@ export default function RichTextEditor({ initialContent, onChange, onFocus, onBl
                             actions.insertBulletsList,
                             actions.insertOrderedList,
                             "indentOnce",
-                            actions.outdent,
                             actions.undo,
                             actions.redo,
                             "addHR"
@@ -130,7 +137,7 @@ export default function RichTextEditor({ initialContent, onChange, onFocus, onBl
             <ScrollView ref={editorScrollRef} style={{ minHeight: 50, maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="always">
                 <RichEditor
                     ref={editorRef}
-                    initialContentHTML={initialContent || ""}
+                    initialContentHTML={normalizeHorizontalRules(initialContent)}
                     onChange={handleChange}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
@@ -149,6 +156,7 @@ export default function RichTextEditor({ initialContent, onChange, onFocus, onBl
                         backgroundColor: colors.bgSecondary,
                         color: colors.textSecondary,
                         placeholderColor: colors.textHalfOpacity,
+                        cssText: `hr { border-top: 1px solid ${colors.accentLight} !important; }`,
                         contentCSSText: `
                             color: ${colors.textSecondary};
                             padding: 10px;

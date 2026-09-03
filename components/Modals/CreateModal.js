@@ -6,6 +6,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import ConfirmationModal from "./ConfirmationModal.js";
 import ColorModal from "./ColorModal.js";
 import RichTextEditor from "../Editor/RichTextEditor.js";
+import FieldSetActions from "../FieldSets/FieldSetActions.js";
 
 // Styles and Colors
 import styles from "../../styles/styles.js";
@@ -164,6 +165,16 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         setLocalFields([...localFields, { name: "", context: "", color: null }]);
     };
 
+    // Append a saved set as blank fields. Existing field titles are left untouched.
+    const loadFieldSet = async (savedFields) => {
+        const existingNames = new Set(localFields.map((field) => field.name.trim()));
+        const newFields = savedFields
+            .filter((field) => !existingNames.has(field.name))
+            .map((field) => ({ name: field.name, context: "", color: field.color || null }));
+
+        setLocalFields((current) => [...current, ...newFields]);
+    };
+
     // Update fields area in the modal
     const updateField = (index, key, val) => {
         const updated = [...localFields];
@@ -195,8 +206,16 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                     <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
                         <View style={[styles.underShadow, styles.modalContent, { backgroundColor: colors.bgModal}]}>
 
-                            {/* Title */}
-                            <Text style={[styles.bigText, styles.centeredText, { color: colors.textPrimary }]}>{title}</Text>
+                            {/* Title and quiet field-set shortcuts */}
+                            <View style={[styles.rowCenter, { minHeight: 36 }] }>
+                                <Text style={[styles.bigText, { color: colors.textPrimary, flex: 1, paddingRight: isCard ? 8 : 0 }]}>{title}</Text>
+                                {isCard && (
+                                    <FieldSetActions
+                                        fields={localFields}
+                                        onLoad={loadFieldSet}
+                                    />
+                                )}
+                            </View>
 
                             {errorMessage ? (
                                 <Text style={[styles.midText, styles.centeredText, { color: colors.danger, marginTop: 5 }]}>{errorMessage}</Text>

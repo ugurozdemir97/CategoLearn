@@ -106,13 +106,35 @@
         "confirmAction": "Confirm Action",
         "addField": "Add Field",
         "create": "Create",
-        "save": "Save"
+        "save": "Save",
+        "load": "Load",
+        "update": "Update",
+        "hideActions": "Hide field actions",
+        "showActions": "Show field actions"
     },
     "placeholders": {
         "subjectName": "Enter Subject Name",
         "itemName": "Enter {{item}} Name",
         "fieldTitle": "Field Title",
         "context": "Context (Optional)"
+    },
+    "fieldSets": {
+        "saveTitle": "Save Field Set",
+        "loadTitle": "Load Field Set",
+        "saveDescription": "Field titles and colors will be saved. Context stays with the card.",
+        "pickDescription": "Load a saved field set or delete one you no longer need.",
+        "namePlaceholder": "Field set name",
+        "nameRequired": "Enter a name for this field set.",
+        "fieldsRequired": "Add at least one named field first.",
+        "unnamedField": "All fields must have a title before saving.",
+        "duplicateFields": "Field titles must be unique before saving.",
+        "empty": "No field sets saved yet.",
+        "updateConfirmTitle": "Update Field Set?",
+        "updateConfirmMessage": "A field set named \"{{name}}\" already exists. Do you want to update it?",
+        "deleteConfirmTitle": "Delete Field Set?",
+        "deleteConfirmMessage": "Delete \"{{name}}\"? Cards created from it will not be affected.",
+        "storageError": "The field set could not be saved. Please try again.",
+        "loadError": "The field set could not be loaded. Please try again."
     },
     "sort": {
         "editTime": "Order by edit time",
@@ -150,6 +172,7 @@
         "Charcoal": "Charcoal",
         "Slate": "Slate",
         "Light": "Light",
+        "Sakura": "Sakura",
         "Sunset": "Sunset"
     }
 }

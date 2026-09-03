@@ -2,6 +2,7 @@ import { useWindowDimensions } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { appendChild } from 'domutils';
 import { useTheme } from "../../context/ThemeContext.js";
+import { normalizeHorizontalRules } from "../../utils/richText.js";
 
 const nestedListDomVisitors = {
     onElement(element) {
@@ -39,7 +40,7 @@ export default function RichTextDisplay({ content }) {
     return (
         <RenderHtml 
             contentWidth={width} 
-            source={{ html: content }} 
+            source={{ html: normalizeHorizontalRules(content) }} 
             tagsStyles={tagsStyles}
             domVisitors={nestedListDomVisitors}
             enableExperimentalMarginCollapsing={true}
