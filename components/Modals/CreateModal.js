@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Modal, View, Text, TextInput, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -28,9 +28,15 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const [localContext, setLocalContext] = useState(context);          // Local state for context (fields only)
     const [confirmVisible, setConfirmVisible] = useState(false);        // For confirming field deletion
     const [colorModalVisible, setColorModalVisible] = useState(false);  // For selecting color
+    const [colorTargetFieldIndex, setColorTargetFieldIndex] = useState(null);
     const [deleteIndex, setDeleteIndex] = useState(null);               // For deleting the fields in Create Card modal
     const [errorMessage, setErrorMessage] = useState("");               // For displaying error messages
     const [selectedColor, setSelectedColor] = useState(color);          // Color of the item
+    const fieldsScrollRef = useRef(null);
+    const fieldTitleRefs = useRef([]);
+    const fieldLayoutYs = useRef([]);
+    const focusedFieldIndex = useRef(null);
+    const pendingFieldFocusIndex = useRef(null);
     const { colors } = useTheme();
     const { t } = useTranslation();
 
@@ -42,8 +48,34 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             setLocalContext(context || "");
             setErrorMessage("");
             setSelectedColor(color);
+            setColorTargetFieldIndex(null);
+            focusedFieldIndex.current = null;
+            pendingFieldFocusIndex.current = null;
         }
     }, [visible]);
+
+    useEffect(() => {
+        if (pendingFieldFocusIndex.current === null) return;
+
+        const index = pendingFieldFocusIndex.current;
+        const frame = requestAnimationFrame(() => {
+            fieldsScrollRef.current?.scrollToEnd({ animated: true });
+            fieldTitleRefs.current[index]?.focus();
+            pendingFieldFocusIndex.current = null;
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [localFields.length]);
+
+    const scrollToFocusedField = () => {
+        const index = focusedFieldIndex.current;
+        if (index === null || fieldLayoutYs.current[index] === undefined) return;
+
+        fieldsScrollRef.current?.scrollTo({
+            y: fieldLayoutYs.current[index],
+            animated: true,
+        });
+    };
 
     // Handle Create or Edit action
     const handleAction = async () => {
@@ -127,7 +159,10 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     };
 
     // Add field area
-    const addField = () => setLocalFields([...localFields, { name: "", context: "" }]);
+    const addField = () => {
+        pendingFieldFocusIndex.current = localFields.length;
+        setLocalFields([...localFields, { name: "", context: "", color: null }]);
+    };
 
     // Update fields area in the modal
     const updateField = (index, key, val) => {
@@ -177,7 +212,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                     onChangeText={setLocalTitle}
                                     maxLength={50}
                                 />
-                                <TouchableOpacity onPress={() => setColorModalVisible(true)} style={[styles.underShadow, styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
+                                <TouchableOpacity onPress={() => { setColorTargetFieldIndex(null); setColorModalVisible(true); }} style={[styles.underShadow, styles.smallInputButton, {backgroundColor: selectedColor || colors.bgModal, borderColor: colors.accentLight}]}>
                                     <FontAwesome name="paint-brush" size={20} color={
                                             selectedColor === "#FFFFFF" || 
                                             selectedColor === "#ffdd00" || 
@@ -193,14 +228,24 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                             {isCard && (
                                 <View>
                                     {localFields.length > 0 && (
-                                        <ScrollView style={{ maxHeight: 300, width: "100%", marginBottom: 10  }}>
+                                        <ScrollView
+                                            ref={fieldsScrollRef}
+                                            style={{ maxHeight: 300, width: "100%", marginBottom: 10  }}
+                                            onContentSizeChange={scrollToFocusedField}
+                                            keyboardShouldPersistTaps="always"
+                                        >
                                             {localFields.map((field, index) => {
                                                 const isLast = index === localFields.length - 1;
                                                 return (
-                                                    <View key={index} style={{backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10, borderRadius: 6, overflow: "hidden" }}>
+                                                    <View
+                                                        key={index}
+                                                        onLayout={({ nativeEvent }) => { fieldLayoutYs.current[index] = nativeEvent.layout.y; }}
+                                                        style={{backgroundColor: colors.bgSecondary, paddingHorizontal: 0, marginBottom: isLast ? 0 : 10, borderRadius: 6, overflow: "hidden" }}
+                                                    >
                                                         
                                                         <View style={[styles.centered, { flexDirection: "row" }]}>
                                                             <TextInput
+                                                                ref={(ref) => { fieldTitleRefs.current[index] = ref; }}
                                                                 style={[ styles.input, styles.smallText, styles.paddingHorizontal, { color: colors.textSecondary, flex: 1 }]}
                                                                 placeholder={t("placeholders.fieldTitle")}
                                                                 placeholderTextColor={colors.textSecondary}
@@ -208,6 +253,18 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                                 onChangeText={(text) => updateField(index, "name", text)}
                                                                 maxLength={50}
                                                             />
+                                                            <TouchableOpacity
+                                                                onPress={() => { setColorTargetFieldIndex(index); setColorModalVisible(true); }}
+                                                                style={[ styles.smallInputButton, { backgroundColor: field.color || colors.bgSecondary, borderWidth: 0 }]}
+                                                            >
+                                                                <FontAwesome name="paint-brush" size={18} color={
+                                                                    field.color === "#FFFFFF" ||
+                                                                    field.color === "#ffdd00" ||
+                                                                    field.color === "#00e19d"
+                                                                    ? "#000000"
+                                                                    : colors.textPrimary
+                                                                } />
+                                                            </TouchableOpacity>
                                                             <TouchableOpacity onPress={() => requestDeleteField(index)} style={[ styles.smallInputButton, { borderWidth: 0, marginRight: 5 }]}>
                                                                 <FontAwesome name="trash" size={18} color={colors.danger} />
                                                             </TouchableOpacity>
@@ -222,6 +279,13 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                                                             key={`field-${index}`}
                                                             initialContent={field.context || ''}
                                                             onChange={(html) => updateField(index, "context", html)}
+                                                            onFocus={() => {
+                                                                focusedFieldIndex.current = index;
+                                                                requestAnimationFrame(scrollToFocusedField);
+                                                            }}
+                                                            onBlur={() => {
+                                                                if (focusedFieldIndex.current === index) focusedFieldIndex.current = null;
+                                                            }}
                                                             placeholder={t("placeholders.context")}
                                                         />
                                                     </View>
@@ -276,9 +340,12 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             {/* Select Color Modal */}
             <ColorModal
                 visible={colorModalVisible}
-                onClose={() => setColorModalVisible(false)}
-                onSelect={(c) => setSelectedColor(c)}
-                selectedColor={selectedColor}
+                onClose={() => { setColorModalVisible(false); setColorTargetFieldIndex(null); }}
+                onSelect={(c) => {
+                    if (colorTargetFieldIndex === null) setSelectedColor(c);
+                    else updateField(colorTargetFieldIndex, "color", c);
+                }}
+                selectedColor={colorTargetFieldIndex === null ? selectedColor : localFields[colorTargetFieldIndex]?.color}
             />
 
         </>

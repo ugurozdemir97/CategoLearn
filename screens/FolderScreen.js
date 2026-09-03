@@ -118,7 +118,7 @@ export default function FolderScreen({ route, navigation }) {
                 await addFolder(folder.id, itemData.name, itemData.color);
             } else if (itemData.type === "Card") {
                 const cardId = await addCard(folder.id, itemData.name, itemData.color);
-                for (const f of itemData.fields) await addField(cardId, f.name, f.context);
+                for (const f of itemData.fields) await addField(cardId, f.name, f.context, f.color || null);
             }
         } else if (mode === "edit" && modals.editTarget) {
             if (modals.editTarget.type === "Category") {

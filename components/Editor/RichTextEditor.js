@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { useTheme } from "../../context/ThemeContext.js";
 
 // Rich text editor
-export default function RichTextEditor({ initialContent, onChange, placeholder = "Context (optional)" }) {
+export default function RichTextEditor({ initialContent, onChange, onFocus, onBlur, placeholder = "Context (optional)" }) {
     const editorRef = useRef(null);
+    const editorScrollRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [isHighlighted, setIsHighlighted] = useState(false);
@@ -28,8 +29,17 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
     };
 
     // We only show the toolbar when the text editor is focused
-    const handleFocus = () => {setIsFocused(true)};
-    const handleBlur  = () => {setIsFocused(false)};
+    const handleFocus = () => {
+        setIsFocused(true);
+        onFocus?.();
+    };
+    const handleBlur = () => {
+        setIsFocused(false);
+        onBlur?.();
+    };
+    const handleCursorPosition = (scrollY) => {
+        editorScrollRef.current?.scrollTo({ y: Math.max(0, scrollY - 30), animated: true });
+    };
 
     // Custom action to highlight text
     const highlightText = () => {
@@ -42,16 +52,46 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
         }
     };
 
+    // Allow one nested list level, but prevent nesting a list inside that level.
+    const indentListOnce = () => {
+        editorRef.current?.commandDOM(`
+            const selection = document.getSelection();
+            const anchor = selection && selection.anchorNode;
+            const element = anchor && (anchor.nodeType === 1 ? anchor : anchor.parentElement);
+            const listItem = element && element.closest('li');
+            const parentList = listItem && listItem.parentElement;
+            const previousItem = listItem && listItem.previousElementSibling;
+            const isTopLevel = parentList && !parentList.parentElement.closest('li');
+
+            if (isTopLevel && previousItem && previousItem.tagName === 'LI') {
+                let nestedList = null;
+                for (const child of previousItem.children) {
+                    if (child.tagName === parentList.tagName) nestedList = child;
+                }
+
+                if (!nestedList) {
+                    nestedList = document.createElement(parentList.tagName.toLowerCase());
+                    previousItem.appendChild(nestedList);
+                }
+
+                nestedList.appendChild(listItem);
+                if (!parentList.children.length) parentList.remove();
+                listItem.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        `);
+    };
+
     // Custom button icons
     const hrIcon = ({tintColor}) => <FontAwesome name="minus" size={18} color={tintColor} />
     const hlIcon = ({tintColor}) => <FontAwesome5 name="highlighter" size={18} color={isHighlighted ? colors.accent : tintColor} />
+    const indentIcon = ({tintColor}) => <FontAwesome name="indent" size={18} color={tintColor} />
 
     return (
         <View style={{minHeight: 50, maxHeight: isFocused ? 240 : 200}}>
 
-            {/* Toolbar - only show when ready AND focused */}
-            {isReady && isFocused && (
-                <View style={{ flexDirection: 'row', alignItems: "center", height: 40, borderBottomWidth: 1, borderBottomColor: colors.accentLight + '30' }}>
+            {/* Keep the toolbar container mounted so focusing does not remount the editor. */}
+            <View style={{ flexDirection: 'row', alignItems: "center", height: isReady && isFocused ? 40 : 0, overflow: 'hidden', borderBottomWidth: isReady && isFocused ? 1 : 0, borderBottomColor: colors.accentLight + '30' }}>
+                {isReady && (
                     <RichToolbar 
                         getEditor={getEditor}
                         iconTint={colors.textSecondary} 
@@ -72,53 +112,57 @@ export default function RichTextEditor({ initialContent, onChange, placeholder =
                             "highlight",
                             actions.insertBulletsList,
                             actions.insertOrderedList,
+                            "indentOnce",
+                            actions.outdent,
                             actions.undo,
                             actions.redo,
                             "addHR"
                         ]} 
-                        iconMap={{ ["addHR"]: hrIcon, ["highlight"]: hlIcon }}
+                        iconMap={{ ["addHR"]: hrIcon, ["highlight"]: hlIcon, ["indentOnce"]: indentIcon }}
                         addHR={insertHorizontalLine}
                         highlight={highlightText}
+                        indentOnce={indentListOnce}
                     />
-
-                </View>
-            )}
+                )}
+            </View>
             
             {/* Rich Text Editor */}
-            <RichEditor
-                ref={editorRef}
-                initialContentHTML={initialContent || ""}
-                onChange={handleChange}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                placeholder={placeholder}
-                editorInitializedCallback={() => setIsReady(true)}
-                style={{
-                    minHeight: 50,
-                    maxHeight: 200,
-                    borderBottomLeftRadius: 6,   
-                    borderBottomRightRadius: 6,  
-                    borderTopLeftRadius: isFocused ? 0 : 6,       
-                    borderTopRightRadius: isFocused ? 0 : 6,  
-                    overflow: "hidden", 
-                }}
-                editorStyle={{
-                    backgroundColor: colors.bgSecondary,
-                    color: colors.textSecondary,
-                    placeholderColor: colors.textHalfOpacity,
-                    contentCSSText: `  
-                        color: ${colors.textSecondary}; 
-                        padding: 10px;
-                        position: absolute; 
-                        top: 5; right: 10; bottom: 5; left: 10;
-                        word-wrap: break-word;
-                        overflow-wrap: break-word;
-                        word-break: break-word;
-                        white-space: pre-wrap;
-                        width: 100%;
-                    `,
-                }}
-            />
+            <ScrollView ref={editorScrollRef} style={{ minHeight: 50, maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="always">
+                <RichEditor
+                    ref={editorRef}
+                    initialContentHTML={initialContent || ""}
+                    onChange={handleChange}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    onCursorPosition={handleCursorPosition}
+                    placeholder={placeholder}
+                    editorInitializedCallback={() => setIsReady(true)}
+                    style={{
+                        minHeight: 50,
+                        borderBottomLeftRadius: 6,
+                        borderBottomRightRadius: 6,
+                        borderTopLeftRadius: isFocused ? 0 : 6,
+                        borderTopRightRadius: isFocused ? 0 : 6,
+                        overflow: "hidden",
+                    }}
+                    editorStyle={{
+                        backgroundColor: colors.bgSecondary,
+                        color: colors.textSecondary,
+                        placeholderColor: colors.textHalfOpacity,
+                        contentCSSText: `
+                            color: ${colors.textSecondary};
+                            padding: 10px;
+                            position: absolute;
+                            top: 5; right: 10; bottom: 5; left: 10;
+                            word-wrap: break-word;
+                            overflow-wrap: break-word;
+                            word-break: break-word;
+                            white-space: pre-wrap;
+                            width: 100%;
+                        `,
+                    }}
+                />
+            </ScrollView>
         </View>
     );
 }

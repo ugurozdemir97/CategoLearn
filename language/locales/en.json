@@ -75,7 +75,7 @@
         "language": "Choose your preferred language",
         "prefferedTheme": "Choose your preferred color theme",
         "selected": "{{selectedCount}}/{{totalCount}} selected",
-        "infoMessages": "Are you sure you want to delete this field?",
+        "deleteField": "Are you sure you want to delete this field?",
         "sureDeleteOne": "Are you sure you want to delete \"{{item}}\"?",
         "sureDelete": "Are you sure you want to delete these {{length}} {{label}}?"
     },

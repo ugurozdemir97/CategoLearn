@@ -75,7 +75,7 @@
         "language": "Tercih ettiğiniz dili seçin",
         "prefferedTheme": "Tercih ettiğiniz renk temasını seçin",
         "selected": "{{selectedCount}}/{{totalCount}} seçildi",
-        "infoMessages": "Bu alanı silmek istediğinizden emin misiniz?",
+        "deleteField": "Bu alanı silmek istediğinizden emin misiniz?",
         "sureDeleteOne": "\"{{item}}\" öğesini silmek istediğinizden emin misiniz?",
         "sureDelete": "Bu {{length}} {{label}} öğesini silmek istediğinizden emin misiniz?"
     },
