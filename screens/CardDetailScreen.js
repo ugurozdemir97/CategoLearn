@@ -14,6 +14,8 @@ import InformationModal from "../components/Modals/InformationModal.js";
 import HeaderBar from "../components/Navigation/HeaderBar.js";
 import FooterBar from "../components/Navigation/FooterBar.js";
 import BreadCrumb from "../components/Navigation/BreadCrumb.js";
+import FieldSetActions from "../components/FieldSets/FieldSetActions.js";
+import CollapsibleActionTray from "../components/Buttons/CollapsibleActionTray.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -114,6 +116,20 @@ export default function CardDetailScreen({ route, navigation }) {
         clearSelection();
     };
 
+    // Load saved titles and colors directly into the database as empty fields.
+    const loadFieldSetIntoCard = async (savedFields) => {
+        // Read the database again so existing fields always win over loaded fields.
+        const currentFields = await getFields(card.id);
+        const existingNames = new Set(currentFields.map((field) => String(field.name || "").trim()));
+        for (const field of savedFields) {
+            if (!existingNames.has(field.name)) {
+                await addField(card.id, field.name, "", field.color || null);
+                existingNames.add(field.name);
+            }
+        }
+        await loadFields();
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
 
@@ -211,9 +227,13 @@ export default function CardDetailScreen({ route, navigation }) {
                 />
             )}
 
-            {/* Edit Button */}
+            {/* Collapsible field actions */}
             {!customSort.customSortMode && (
-                <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
+                <CollapsibleActionTray footerHeight={footerHeight}>
+                    <FieldSetActions
+                        fields={fields}
+                        onLoad={loadFieldSetIntoCard}
+                    />
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
                         onPress={() => {
@@ -221,7 +241,7 @@ export default function CardDetailScreen({ route, navigation }) {
                             else                            modals.openCreateModal();
                         }}
                     />
-                </View>
+                </CollapsibleActionTray>
             )}
 
             {/* Empty Spacing */}
