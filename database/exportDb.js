@@ -6,17 +6,17 @@ import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import db from './db.js';
 import { setupDatabase } from './schema.js';
+import {
+    CURRENT_DATABASE_VERSION,
+    CURRENT_SCHEMA_COLUMNS,
+    getDatabaseVersion,
+    migrateDatabase
+} from './migrations.js';
 
 const DATABASE_EXTENSION = '.db';
 const DATABASE_MIME_TYPE = 'application/x-sqlite3';
 const IMPORT_FOLDER_COLOR = '#ff9800';
 const MAX_NAME_LENGTH = 50;
-
-const EXPECTED_COLUMNS = {
-    folders: ['id', 'parent_id', 'name', 'color', 'type', 'is_system_folder', 'sort_index', 'created_at', 'updated_at', 'deleted_at'],
-    cards: ['id', 'parent_id', 'name', 'color', 'type', 'is_system_card', 'sort_index', 'created_at', 'updated_at', 'deleted_at'],
-    fields: ['id', 'parent_id', 'name', 'color', 'type', 'context', 'sort_index', 'created_at', 'updated_at', 'deleted_at']
-};
 
 const EXPECTED_PARENT_TABLE = {
     folders: 'folders',
@@ -88,7 +88,7 @@ async function openPreparedDatabase(preparedImport) {
 
 function ensureExpectedColumns(tableName, tableInfo) {
     const actualColumns = tableInfo.map((column) => column.name).sort();
-    const expectedColumns = [...EXPECTED_COLUMNS[tableName]].sort();
+    const expectedColumns = [...CURRENT_SCHEMA_COLUMNS[tableName]].sort();
     if (actualColumns.length !== expectedColumns.length || actualColumns.some((name, index) => name !== expectedColumns[index])) {
         throw new Error(`Unexpected ${tableName} schema.`);
     }
@@ -150,17 +150,26 @@ function validateHierarchy(folders, cards, fields) {
     }
 }
 
-async function readAndValidateDatabase(candidate) {
+async function ensureDatabaseIntegrity(candidate) {
     const integrityRows = await candidate.getAllAsync('PRAGMA integrity_check');
     if (integrityRows.length === 0 || integrityRows.some((row) => Object.values(row)[0] !== 'ok')) {
         throw new Error('SQLite integrity check failed.');
     }
+}
+
+async function readAndValidateDatabase(candidate) {
+    await ensureDatabaseIntegrity(candidate);
 
     const schemaObjects = await candidate.getAllAsync(
         "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
     );
     const tableNames = schemaObjects.filter((item) => item.type === 'table').map((item) => item.name).sort();
-    const expectedTableNames = Object.keys(EXPECTED_COLUMNS).sort();
+    const databaseVersion = await getDatabaseVersion(candidate);
+    if (databaseVersion !== CURRENT_DATABASE_VERSION) {
+        throw new Error(`Expected database version ${CURRENT_DATABASE_VERSION}, received ${databaseVersion}.`);
+    }
+
+    const expectedTableNames = Object.keys(CURRENT_SCHEMA_COLUMNS).sort();
     if (tableNames.length !== expectedTableNames.length || tableNames.some((name, index) => name !== expectedTableNames[index])) {
         throw new Error('Required CategoLearn tables are missing or do not match.');
     }
@@ -210,6 +219,19 @@ function uniqueName(baseName, usedNames) {
         if (!usedNames.has(candidate)) return candidate;
         number += 1;
     }
+}
+
+function insertMigratedRow(transaction, tableName, row, overrides = {}) {
+    const columns = CURRENT_SCHEMA_COLUMNS[tableName].filter((column) => column !== 'id');
+    const placeholders = columns.map(() => '?').join(', ');
+    const values = columns.map((column) => (
+        Object.prototype.hasOwnProperty.call(overrides, column) ? overrides[column] : row[column]
+    ));
+
+    return transaction.runAsync(
+        `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
+        values
+    );
 }
 
 async function createPermanentPreImportBackup() {
@@ -273,12 +295,12 @@ async function keepCurrentDatabase(sourceData, displayName) {
                     activeFolderNamesByParent.set(newParentId, siblingNames);
                 }
 
-                const result = await transaction.runAsync(
-                    `INSERT INTO folders
-                        (parent_id, name, color, type, is_system_folder, sort_index, created_at, updated_at, deleted_at)
-                     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)`,
-                    [newParentId, folderName, folder.color, 'Category', folder.sort_index, folder.created_at, folder.updated_at, folder.deleted_at]
-                );
+                const result = await insertMigratedRow(transaction, 'folders', folder, {
+                    parent_id: newParentId,
+                    name: folderName,
+                    type: 'Category',
+                    is_system_folder: 0
+                });
                 folderIdMap.set(folder.id, result.lastInsertRowId);
                 pendingFolders.splice(index, 1);
                 insertedThisPass += 1;
@@ -299,22 +321,20 @@ async function keepCurrentDatabase(sourceData, displayName) {
                 activeCardNamesByParent.set(newParentId, siblingNames);
             }
 
-            const result = await transaction.runAsync(
-                `INSERT INTO cards
-                    (parent_id, name, color, type, is_system_card, sort_index, created_at, updated_at, deleted_at)
-                 VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)`,
-                [newParentId, cardName, card.color, 'Card', card.sort_index, card.created_at, card.updated_at, card.deleted_at]
-            );
+            const result = await insertMigratedRow(transaction, 'cards', card, {
+                parent_id: newParentId,
+                name: cardName,
+                type: 'Card',
+                is_system_card: 0
+            });
             cardIdMap.set(card.id, result.lastInsertRowId);
         }
 
         for (const field of sourceData.fields) {
-            await transaction.runAsync(
-                `INSERT INTO fields
-                    (parent_id, name, color, type, context, sort_index, created_at, updated_at, deleted_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [cardIdMap.get(field.parent_id), field.name, field.color, 'Field', field.context, field.sort_index, field.created_at, field.updated_at, field.deleted_at]
-            );
+            await insertMigratedRow(transaction, 'fields', field, {
+                parent_id: cardIdMap.get(field.parent_id),
+                type: 'Field'
+            });
         }
     });
 }
@@ -394,6 +414,9 @@ export async function prepareDatabaseImport(onSelectionAccepted) {
             FileSystem.cacheDirectory
         );
         try {
+            // Never run migrations on a damaged file, even though this is only a temporary copy.
+            await ensureDatabaseIntegrity(candidate);
+            await migrateDatabase(candidate);
             await readAndValidateDatabase(candidate);
         } finally {
             await candidate.closeAsync();
@@ -427,6 +450,7 @@ export async function importPreparedDatabase(preparedImport, mode) {
         if (!preparedImport || !['replace', 'keep'].includes(mode)) throw new Error('Invalid import request.');
 
         sourceDatabase = await openPreparedDatabase(preparedImport);
+        await migrateDatabase(sourceDatabase);
         const sourceData = await readAndValidateDatabase(sourceDatabase);
 
         try {

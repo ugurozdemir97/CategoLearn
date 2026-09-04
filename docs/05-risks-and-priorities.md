@@ -4,43 +4,6 @@ This list contains only important gaps confirmed in the current code. It is not 
 general improvement backlog. Fix data-loss and data-integrity risks first, then
 the small number of defects that can make normal actions fail or mislead the user.
 
-## Priority 1: protect stored data
-
-### Make multi-write data changes atomic
-
-The following user actions still consist of independent writes:
-
-- creating or editing a card together with its fields;
-- loading several saved fields into a card;
-- recursively copying a folder or card;
-- pasting or recoloring several selected items;
-- restoring several Trash items;
-- recursively or multiply deleting items permanently;
-- saving custom order values for a list.
-
-A constraint failure or interruption can therefore leave only part of the action
-applied. Wrap each logical operation in one transaction; a general repository or
-transaction framework is not required.
-
-### Enforce parent relationships and delete complete subtrees
-
-The schema declares cascading foreign keys, but the connection never enables
-`PRAGMA foreign_keys = ON`. The manual permanent-delete functions query only
-children whose `deleted_at` is `NULL`, so permanently deleting a folder or card can
-leave behind descendants that had already been soft-deleted separately.
-
-Enable foreign-key enforcement when opening every connection and verify it on an
-existing populated database. Permanent deletion must remove the complete subtree,
-regardless of each descendant's deletion state, and the whole operation should be
-transactional.
-
-### Add a migration step before changing the schema
-
-Startup only runs `CREATE TABLE IF NOT EXISTS` and creates indexes. Editing a table
-definition will not update an existing installation. Before the next schema
-change, add a small ordered migration based on `PRAGMA user_version` and test it
-against a copy of an older database.
-
 ## Priority 2: prevent broken everyday behavior
 
 ### Fix the selected-item edit crash
