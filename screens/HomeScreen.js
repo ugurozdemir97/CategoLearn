@@ -12,6 +12,7 @@ import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 import InformationModal from "../components/Modals/InformationModal.js";
 import HeaderBar from "../components/Navigation/HeaderBar.js";
 import FooterBar from "../components/Navigation/FooterBar.js";
+import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -30,7 +31,6 @@ import { handleEditSelected } from "../utils/handleFooterActions.js";
 
 // Database Queries and Storage
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
-import { loadSortMode } from "../storage/sortPreference.js";
 
 // Language
 import { useTranslation } from 'react-i18next';
@@ -38,6 +38,7 @@ import { useTranslation } from 'react-i18next';
 // HomeScreen: Displays all root folders (Subjects). Create or edit them.
 export default function HomeScreen({ navigation }) {
     const [subjects, setSubjects] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [footerHeight, setFooterHeight] = useState(70);
 
     // Custom hooks for state management
@@ -56,9 +57,13 @@ export default function HomeScreen({ navigation }) {
 
     // Load all root folders (subjects) from the database
     const loadSubjects = async () => {
-        const result = await getFolders(null);
-        const lastMode = await loadSortMode();
-        handleSort(result, setSubjects, lastMode);
+        setIsLoading(true);
+        try {
+            const result = await getFolders(null);
+            await handleSort(result, setSubjects, sortMode);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Custom sort functions for custom sort mode
@@ -117,7 +122,9 @@ export default function HomeScreen({ navigation }) {
             />
 
             {/* Subjects */}
-            {subjects.length === 0 ? (
+            {isLoading ? (
+                <ListLoadingIndicator />
+            ) : subjects.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
                         {t("screenMessages.subjects")}

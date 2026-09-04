@@ -16,6 +16,7 @@ import FooterBar from "../components/Navigation/FooterBar.js";
 import BreadCrumb from "../components/Navigation/BreadCrumb.js";
 import FieldSetActions from "../components/FieldSets/FieldSetActions.js";
 import CollapsibleActionTray from "../components/Buttons/CollapsibleActionTray.js";
+import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -44,6 +45,7 @@ import { useTranslation } from 'react-i18next';
 export default function CardDetailScreen({ route, navigation }) {
     const { card, path } = route.params;
     const [fields, setFields] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [fieldContext, setFieldContext] = useState("");
     const [expanded, setExpanded] = useState({});
     const [cardDate, setCardDate] = useState(null);
@@ -59,10 +61,15 @@ export default function CardDetailScreen({ route, navigation }) {
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
-        const result = await getFields(card.id);
-        handleSort(result, setFields, sortMode);
-        if (sortMode === "creationDate") setCardDate(card.created_at);
-        else setCardDate(card.updated_at);
+        setIsLoading(true);
+        try {
+            const result = await getFields(card.id);
+            await handleSort(result, setFields, sortMode);
+            if (sortMode === "creationDate") setCardDate(card.created_at);
+            else setCardDate(card.updated_at);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Custom sort functions for custom sort mode
@@ -172,7 +179,9 @@ export default function CardDetailScreen({ route, navigation }) {
             </View>
 
             {/* Fields */}
-            {fields.length === 0 ? (
+            {isLoading ? (
+                <ListLoadingIndicator />
+            ) : fields.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
                         {t("screenMessages.fields")}

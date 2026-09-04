@@ -12,6 +12,7 @@ import HeaderBar from "../components/Navigation/HeaderBar.js";
 import ListButton from "../components/Buttons/ListButton.js";
 import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
 import InformationModal from "../components/Modals/InformationModal.js";
+import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 
 // Database Queries
 import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permanentlyDeleteCard, permanentlyDeleteField } from "../database/queries.js";
@@ -19,12 +20,10 @@ import { getDeletedItems, restoreMultipleItems, permanentlyDeleteFolder, permane
 // Hooks
 import { useSelection } from "../hooks/useSelection.js";
 import { useModalStates } from "../hooks/useModalStates.js";
+import { useSortMode } from "../context/SortModeContext.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
-
-// Storage
-import { loadSortMode } from "../storage/sortPreference.js";
 
 // Language
 import { useTranslation } from 'react-i18next';
@@ -32,23 +31,29 @@ import { useTranslation } from 'react-i18next';
 export default function DeletedScreen({ navigation }) {
     const insets = useSafeAreaInsets();  // For placing elements
     const [deletedItems, setDeletedItems] = useState([]);  // All deleted Items
+    const [isLoading, setIsLoading] = useState(true);
     const [confirmAction, setConfirmAction] = useState(null);  // Confirm deletion or restore
 
     const modals = useModalStates();
     const { selectedItems, toggleSelection, clearSelection, selectAll, isSelected } = useSelection();
     const { colors } = useTheme();
+    const { deletedSortMode } = useSortMode();
     const { t } = useTranslation();
 
     // Bring all deleted items on mount
     useEffect(() => {
         const unsubscribe = navigation.addListener("focus", loadDeletedItems);
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, deletedSortMode]);
 
     const loadDeletedItems = async () => {
-        const items = await getDeletedItems();
-        const lastMode = await loadSortMode();
-        handleSort(items, setDeletedItems, lastMode, true);  // Pass true for "isDeletedScreen"
+        setIsLoading(true);
+        try {
+            const items = await getDeletedItems();
+            await handleSort(items, setDeletedItems, deletedSortMode, true);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Restore items
@@ -134,7 +139,9 @@ export default function DeletedScreen({ navigation }) {
                 <Text style={[styles.bigText, { color: colors.textPrimary }]}>{t("titles.deleted")}</Text>
             </View>
 
-            {deletedItems.length === 0 ? (
+            {isLoading ? (
+                <ListLoadingIndicator />
+            ) : deletedItems.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <FontAwesome name="trash-o" size={60} color={colors.textHalfOpacity} />
                     <Text style={[styles.midText, { color: colors.textSecondary, marginTop: 10 }]}>{t("screenMessages.deleted")}</Text>
