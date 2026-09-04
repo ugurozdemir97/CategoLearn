@@ -56,6 +56,7 @@
         "backup": "Yedekleme & Geri Yükleme",
         "selectColor": "Renk Seç",
         "confirm": "Onayla",
+        "discardChanges": "Değişiklikler Silinsin mi?",
         "confirmDelete": "Silme İşlemini Onayla",
         "none": "Yok",
         "items": "öğeler"
@@ -76,6 +77,7 @@
         "prefferedTheme": "Tercih ettiğiniz renk temasını seçin",
         "selected": "{{selectedCount}}/{{totalCount}} seçildi",
         "deleteField": "Bu alanı silmek istediğinizden emin misiniz?",
+        "discardChanges": "Alan başlıklarınız veya bağlamınız kaybolacak. İptal etmek istediğinizden emin misiniz?",
         "sureDeleteOne": "\"{{item}}\" öğesini silmek istediğinizden emin misiniz?",
         "sureDelete": "Bu {{length}} {{label}} öğesini silmek istediğinizden emin misiniz?"
     },
@@ -103,6 +105,7 @@
         "color": "Renk",
         "okay": "Tamam",
         "cancel": "İptal",
+        "discard": "Sil",
         "confirmAction": "İşlemi Onayla",
         "addField": "Alan Ekle",
         "create": "Oluştur",

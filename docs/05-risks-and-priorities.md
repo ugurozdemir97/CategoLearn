@@ -1,77 +1,157 @@
 # Risks and priorities
 
-This is a practical list for a personal app, not an enterprise backlog. Fix items
-when they threaten data, cause real crashes, or interfere with normal use. Cosmetic
-cleanup and hypothetical scaling work can wait.
+This list contains only important gaps confirmed in the current code. It is not a
+general improvement backlog. Fix data-loss and data-integrity risks first, then
+the small number of defects that can make normal actions fail or mislead the user.
 
-## Priority 1: protect personal data
+## Priority 1: protect stored data
 
-### Validate and safely replace imported databases
+### Make database import validated, reversible, and terminal
 
-Import overwrites the main database before checking that the selected file is a
-healthy, compatible CategoLearn database. If replacement fails, the code does not
-restore and reopen the previous database automatically.
+`importDatabase` closes the shared database connection and replaces `app.db`
+without first checking that the selected file is a healthy, compatible
+CategoLearn database. If copying fails after the close, the backup is not restored
+and the connection is not reopened. After a successful copy, the current screens
+also remain usable even though their database object has been closed.
 
-A proportionate fix is a small, explicit flow: copy to a temporary path, check
-SQLite integrity and required tables/columns, keep the existing backup, replace the
-main file only after validation, and restore the old file on failure.
+Validate a temporary copy with SQLite integrity checks and the required
+tables/columns before touching the active file. Replace the active database only
+after validation, restore the previous file on any failure, and either reopen and
+reinitialize the connection or prevent all database-backed interaction until a
+real app reload occurs.
 
-### Make destructive multi-step operations atomic
+### Export a consistent SQLite snapshot
 
-Deep copy, multi-item actions, card-and-field updates, restore, and recursive
-permanent deletion perform several independent writes. An error or app shutdown can
-leave partial results. Add transactions to these specific operations. There is no
-need to build a general transaction framework first.
+`exportDatabase` copies the live `app.db` file through the filesystem while the
+SQLite connection remains open. It does not use SQLite's backup/serialization API
+or otherwise establish a consistent snapshot, so journal or WAL state may not be
+represented in the exported file.
 
-### Enable and verify foreign keys
+Use the backup support provided by `expo-sqlite`, or another verified SQLite-safe
+snapshot procedure, and test the produced file by opening it and reading recent
+writes.
 
-The schema declares cascades but does not explicitly enable SQLite foreign-key
-enforcement. Enable it when opening the database and verify the expected behavior
-with one focused database check.
+### Make multi-write data changes atomic
 
-### Add migrations only when the schema changes
+The following user actions still consist of independent writes:
 
-There is no upgrade mechanism for existing databases. Before the next schema
-change, add a simple ordered migration using `PRAGMA user_version`. A large
-migration library is unnecessary.
+- creating or editing a card together with its fields;
+- loading several saved fields into a card;
+- recursively copying a folder or card;
+- pasting or recoloring several selected items;
+- restoring several Trash items;
+- recursively or multiply deleting items permanently;
+- saving custom order values for a list.
+
+A constraint failure or interruption can therefore leave only part of the action
+applied. Wrap each logical operation in one transaction; a general repository or
+transaction framework is not required.
+
+### Enforce parent relationships and delete complete subtrees
+
+The schema declares cascading foreign keys, but the connection never enables
+`PRAGMA foreign_keys = ON`. The manual permanent-delete functions query only
+children whose `deleted_at` is `NULL`, so permanently deleting a folder or card can
+leave behind descendants that had already been soft-deleted separately.
+
+Enable foreign-key enforcement when opening every connection and verify it on an
+existing populated database. Permanent deletion must remove the complete subtree,
+regardless of each descendant's deletion state, and the whole operation should be
+transactional.
+
+### Add a migration step before changing the schema
+
+Startup only runs `CREATE TABLE IF NOT EXISTS` and creates indexes. Editing a table
+definition will not update an existing installation. Before the next schema
+change, add a small ordered migration based on `PRAGMA user_version` and test it
+against a copy of an older database.
 
 ## Priority 2: prevent broken everyday behavior
 
-- Catch expected database failures around create/edit/import actions and keep the
-  UI usable instead of closing a modal as if the operation succeeded.
-- Ensure permanent deletion also handles descendants that were already separately
-  soft-deleted.
-- Exclude items whose parents are deleted from search results.
-- Prevent invalid operations on system restore items in the UI.
-- Reopen or deliberately stop database-backed interaction after an import until
-  restart; do not leave a closed connection behind active screens.
-- Fix misleading search navigation and sorting behavior when they get in the way of
-  actual use.
+### Fix the selected-item edit crash
 
-## Lower priority
+`handleEditSelected` returns an error array only when the selection is invalid. On
+a valid one-item selection it opens the edit modal and returns `undefined`, but all
+three calling screens immediately read `result.length`. Editing a folder, card, or
+field can therefore raise a `TypeError` during the normal edit path.
 
-The following are reasonable improvements only when a real problem appears:
+Return a consistent array from the helper, or test the result before reading its
+length, in Home, Folder, and Card Detail.
 
-- search optimization, FTS, pagination, and extra indexes;
-- reorganizing UI/database code into more architectural layers;
-- TypeScript conversion or a new state-management library;
-- broad accessibility and responsive-layout work beyond the devices in use;
-- CI pipelines, coverage targets, large UI test suites, or performance benchmarks;
-- analytics, crash-reporting services, and production-scale observability.
+### Keep create and edit forms open when a write fails
 
-Small bugs, unused imports, and awkward strings can be fixed while touching nearby
-code. They do not need their own roadmap.
+`CreateModal` calls the asynchronous `onCreate` callback without awaiting it and
+then closes unconditionally. A database constraint or I/O failure can therefore
+close the form as though the save succeeded and produce an unhandled rejection.
 
-## Sensible verification
+Await the write, disable duplicate submissions while it runs, close only on
+success, and show a useful error in the still-open form. Apply the same principle
+to destructive, restore, paste, color, and load actions where failures currently
+escape their event handlers.
 
-For data-safety changes, test a few high-value cases:
+### Protect the remaining system restore invariants
 
-- a valid backup imports and survives restart;
-- an invalid backup leaves the current database unchanged;
-- interrupted or failed multi-step writes roll back;
-- delete and restore preserve the expected hierarchy;
-- an old database upgrades without losing its contents.
+The query layer already blocks some creates and edits involving the restore
+folder/card, but the shared footer still offers normal actions for those rows and
+the move functions do not reject system items or system destinations. A user can
+attempt invalid edits/colors and can cut or move a system folder or card, breaking
+the location assumptions used by restore.
 
-For ordinary UI changes, manually exercise the changed flow on the device or
-emulator used for development. Add an automated test only when it is cheaper and
-more reliable than repeatedly checking a risky rule by hand.
+Hide or disable invalid actions in the UI and enforce the same rules in the move
+and write functions so stale UI state cannot bypass them.
+
+### Account for the entire ancestor chain in search and restore
+
+Search filters only each result row's own `deleted_at`. An active card or field
+behind a deleted folder, or an active field behind a deleted card, can still appear
+and navigate into content that the normal hierarchy hides.
+
+Restore checks only the immediate parent. If that parent is active but one of its
+ancestors is deleted, the operation can report success while the restored item
+remains invisible. Search and restore should require a fully active path to the
+root, otherwise restore into the system recovery location.
+
+### Make search results open the item they describe
+
+Search currently sends a root-folder result to Home and a card result to its
+containing folder. Only non-root folders and fields open the selected content.
+Make folder results open that folder and card results open that card, while still
+building a valid breadcrumb path.
+
+### Fix the confirmed sorting mismatches
+
+Trash reloads using `loadSortMode`, the preference for normal lists, while its
+header displays and saves `deletedSortMode`. The visible order can therefore
+disagree with the selected label until the user cycles the sort button.
+
+Home also reloads its preference from AsyncStorage instead of using the current
+`sortMode` context like Folder and Card Detail. A sort change can race the
+preference write or temporarily restore the previous order.
+
+Custom reorder also permits dragging a card across the folder boundary even
+though `handleSort` always regroups folders before cards after saving. Keep the
+drag interaction within the order that can actually be persisted, or make the
+saved order and normal rendering follow the same rule.
+
+### Include saved field sets in the backup contract
+
+Reusable field sets are stored in AsyncStorage, while export/import handles only
+`app.db`. A database backup therefore does not preserve those user-created sets.
+Either include them in backup/restore or clearly state in the UI that they are not
+part of a backup.
+
+## Focused verification
+
+The high-value checks for these changes are:
+
+- a valid backup contains the latest writes and imports successfully;
+- an invalid or interrupted import leaves the current database open and unchanged;
+- a forced failure in a multi-write action rolls back every write;
+- permanent deletion removes active and already-deleted descendants;
+- search and restore behave correctly when any ancestor is deleted;
+- system restore rows cannot be moved or used as ordinary destinations;
+- an older database migrates without losing its contents.
+
+Use manual device checks for the navigation and sorting fixes. Focused automated
+database tests are worthwhile for import, transactions, deletion, restore, and
+migrations.

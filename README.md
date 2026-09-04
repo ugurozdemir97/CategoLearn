@@ -1,56 +1,68 @@
 # CategoLearn
 
-I was trying flashcard apps for learning Russian and realized that I had no way to categorize my cards, and customizing the cards was not an option in most apps. Then I thought it would be amazing to have an app in which you can create folders to categorize the words you learn, and customize your cards to have the fields you want. It wasn’t a flashcard or reviewing app; it was just a simple way to store information in an organized way. My idea was to have Subjects (Russian, English, Math, Art, etc.) and subcategories inside them. For example, let’s say you are learning English. Inside the English subject you can have Objects, Verbs, Adjectives subfolders. They can have their own subfolders. Or for an advanced learner, you can have folders like Daily Phrasal Verbs, Academic Vocabulary, Phrases to Use in Emails, etc. Then inside those subfolders you can create your customized cards. Instead of just having front and back faces, you have optional fields. I'll give you an example below.
+I am personally obsessed with categorizing information. Whenever I am learning something—especially a subject I genuinely enjoy—I love keeping everything neatly organized so that I can easily understand how it all fits together.
+
+While trying different flashcard apps to learn Russian, I realized that most of them offered no easy way to categorize cards or customize their contents. I wanted a tool that matched the way I naturally learn and organize knowledge, so I created CategoLearn: a simple, flexible app for storing and organizing information.
+
+CategoLearn lets you organize content into subjects such as Russian, English, mathematics, or art, each with its own nested categories. For example, an English subject might contain folders for objects, verbs, and adjectives, along with more specialized folders such as Daily Phrasal Verbs, Academic Vocabulary, or Phrases for Emails.
+
+Within each folder, you can create custom cards with the fields you need. Rather than being limited to a front and back, every card can contain optional, customizable fields.
 
 ## Features
 
 ### Categorization
-- Create folders (subjects, categories, subcategories).
-- Nest folders as deeply as you want (e.g., English → Verbs → Daily Phrasal Verbs).
-- Use colors to visually organize and distinguish items.
-- Use custom sort to sort items however you want by clicking and dragging items.
+
+- Create folders for subjects, categories, and subcategories.
+- Nest folders to any depth (for example, English → Verbs → Daily Phrasal Verbs).
+- Use colors to organize and distinguish items visually.
+- Arrange items in any order by dragging and dropping them.
 
 ### Custom Cards
-- Cards can have custom fields instead of just front/back.
-- Example English card:
-  - Title: Unforeseen  
-  - Fields:
-    - English Description: Not expected and often unwanted
-    - Example Sentence(s): Due to unforeseen circumstances, I require additional time to complete the work.
-    - Translation (TR): Beklenmedik, öngörülemeyen
-    - Synonyms: Unexpected, unlooked-for
+
+- Create cards with custom fields instead of being limited to a front and back.
+- Save and manage reusable field sets for different types of cards.
+- Example English vocabulary card:
+  - **Title:** Unforeseen
+  - **English definition:** Not expected and often unwanted
+  - **Example sentence:** Due to unforeseen circumstances, I require additional time to complete the work.
+  - **Turkish translation:** Beklenmedik, öngörülemeyen
+  - **Synonyms:** Unexpected, unlooked-for
 
 ### Item Management
-- Sort, edit, delete items.
-- Restore deleted items unless permanently removed.
+
+- Sort, edit, and delete items.
+- Restore deleted items unless they have been permanently removed.
 - Search across folders, cards, and fields.
 
-### Language
-- Supports English and Turkish.
+### Back Up
+
+- Import and export your files whenever you need to move, share, or back up your information.
+
+### Languages
+
+- Available in English and Turkish.
 
 ### Themes
-- Has 8 built in themes.
+
+- Choose from ten built-in themes.
 
 ## Purpose
-CategoLearn is primarily built for my own learning needs, especially for Russian vocabulary.  
-But it can be used for any subject:
-- Languages
+
+CategoLearn was created primarily for my own learning needs, especially for studying Russian vocabulary. However, it can be used for almost any subject, for example:
+
+- Language learning
 - History notes
 - Art movements
-- Personal knowledge base
+- Personal knowledge management
 
-You can even use it to organise your thoughts, use it as a to do list etc.
-
----
+You can also use it to organize your thoughts, manage a to-do list, and much more.
 
 ## Status
-- Currently under development.
-- Core features (folders, cards, fields, colors, search, restore) are working.
-- Upcoming features (maybe, I didn't decide if I will add them yet): audio support, reminders, tree view, sync.
 
----
+- CategoLearn is currently under development.
+- Core features—including folders, cards, custom fields, colors, search, and item restoration—are working.
+- Possible future features include audio support, reminders, a tree view, and synchronization.
 
 ## Contributing
-This project is personal, but feel free to fork, suggest improvements, or adapt it for your own learning style.
 
----
+This is a personal project, but you are welcome to fork it, suggest improvements, or adapt it to suit your own learning style.
