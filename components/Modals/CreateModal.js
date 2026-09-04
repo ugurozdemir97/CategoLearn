@@ -14,6 +14,7 @@ import { useTheme } from "../../context/ThemeContext.js";
 
 // Utils
 import { validateName } from "../../utils/validation.js";
+import { hasRichTextContent } from "../../utils/richText.js";
 
 // Database Queries
 import { getFolders, getCards, getFields } from "../../database/queries.js";
@@ -28,6 +29,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const [localFields, setLocalFields] = useState(fields);             // Local state for fields (cards only)
     const [localContext, setLocalContext] = useState(context);          // Local state for context (fields only)
     const [confirmVisible, setConfirmVisible] = useState(false);        // For confirming field deletion
+    const [discardConfirmVisible, setDiscardConfirmVisible] = useState(false);
     const [colorModalVisible, setColorModalVisible] = useState(false);  // For selecting color
     const [colorTargetFieldIndex, setColorTargetFieldIndex] = useState(null);
     const [deleteIndex, setDeleteIndex] = useState(null);               // For deleting the fields in Create Card modal
@@ -48,6 +50,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             setLocalFields([...fields]);
             setLocalContext(context || "");
             setErrorMessage("");
+            setDiscardConfirmVisible(false);
             setSelectedColor(color);
             setColorTargetFieldIndex(null);
             focusedFieldIndex.current = null;
@@ -199,9 +202,39 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
         setConfirmVisible(false);
     };
 
+    // Card drafts are protected when any added field has a title or context.
+    // For a single-field draft, the modal title input is the field title.
+    const hasFieldDraftContent = () => {
+        if (isField) {
+            return String(localTitle || "").trim().length > 0 || hasRichTextContent(localContext);
+        }
+
+        if (isCard) {
+            return localFields.some((field) =>
+                String(field.name || "").trim().length > 0 || hasRichTextContent(field.context)
+            );
+        }
+
+        return false;
+    };
+
+    const requestClose = () => {
+        if (hasFieldDraftContent()) {
+            setDiscardConfirmVisible(true);
+            return;
+        }
+
+        onClose();
+    };
+
+    const discardAndClose = () => {
+        setDiscardConfirmVisible(false);
+        onClose();
+    };
+
     return (
         <>
-            <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
+            <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={requestClose}>
                 <KeyboardAvoidingView behavior={'padding'} style={{ flex: 1 }}>
                     <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }]}>
                         <View style={[styles.underShadow, styles.modalContent, { backgroundColor: colors.bgModal}]}>
@@ -333,7 +366,7 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
                             {/* Action Buttons */}
                             <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
-                                <TouchableOpacity onPress={onClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
+                                <TouchableOpacity onPress={requestClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.cancel")}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={handleAction} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
@@ -353,6 +386,17 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
                 title={t("titles.confirmDelete")}
                 message={t("infoMessages.deleteField")}
                 confirmText={t("buttons.delete")}
+                confirmColor={colors.danger}
+            />
+
+            {/* Keep typed field content unless the user explicitly chooses to discard it. */}
+            <ConfirmationModal
+                visible={discardConfirmVisible}
+                onCancel={() => setDiscardConfirmVisible(false)}
+                onConfirm={discardAndClose}
+                title={t("titles.discardChanges")}
+                message={t("infoMessages.discardChanges")}
+                confirmText={t("buttons.discard")}
                 confirmColor={colors.danger}
             />
 
