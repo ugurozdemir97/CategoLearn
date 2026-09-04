@@ -13,6 +13,7 @@ import { ThemeProvider } from "./context/ThemeContext.js";
 import StackNavigator from "./navigation/StackNavigator";
 import DbErrorScreen from   "./screens/ErrorScreens/DatabaseErrorScreen.js";
 import DbLoadingScreen from "./screens/ErrorScreens/DatabaseLoadingScreen.js";
+import WhatsNewModal from "./components/Modals/WhatsNewModal.js";
 
 // Database Setup
 import { setupDatabase } from "./database/schema.js";
@@ -59,6 +60,7 @@ export default function App() {
                                 <StackNavigator/>
                             </ClipboardProvider>
                         </SortModeProvider>
+                        <WhatsNewModal/>
                     </SafeAreaProvider>
                 </LanguageProvider>
             </ThemeProvider>

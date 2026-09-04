@@ -6,31 +6,6 @@ the small number of defects that can make normal actions fail or mislead the use
 
 ## Priority 1: protect stored data
 
-### Make database import validated, reversible, and terminal
-
-`importDatabase` closes the shared database connection and replaces `app.db`
-without first checking that the selected file is a healthy, compatible
-CategoLearn database. If copying fails after the close, the backup is not restored
-and the connection is not reopened. After a successful copy, the current screens
-also remain usable even though their database object has been closed.
-
-Validate a temporary copy with SQLite integrity checks and the required
-tables/columns before touching the active file. Replace the active database only
-after validation, restore the previous file on any failure, and either reopen and
-reinitialize the connection or prevent all database-backed interaction until a
-real app reload occurs.
-
-### Export a consistent SQLite snapshot
-
-`exportDatabase` copies the live `app.db` file through the filesystem while the
-SQLite connection remains open. It does not use SQLite's backup/serialization API
-or otherwise establish a consistent snapshot, so journal or WAL state may not be
-represented in the exported file.
-
-Use the backup support provided by `expo-sqlite`, or another verified SQLite-safe
-snapshot procedure, and test the produced file by opening it and reading recent
-writes.
-
 ### Make multi-write data changes atomic
 
 The following user actions still consist of independent writes:
@@ -144,8 +119,6 @@ part of a backup.
 
 The high-value checks for these changes are:
 
-- a valid backup contains the latest writes and imports successfully;
-- an invalid or interrupted import leaves the current database open and unchanged;
 - a forced failure in a multi-write action rolls back every write;
 - permanent deletion removes active and already-deleted descendants;
 - search and restore behave correctly when any ancestor is deleted;
@@ -153,5 +126,4 @@ The high-value checks for these changes are:
 - an older database migrates without losing its contents.
 
 Use manual device checks for the navigation and sorting fixes. Focused automated
-database tests are worthwhile for import, transactions, deletion, restore, and
-migrations.
+database tests are worthwhile for transactions, deletion, restore, and migrations.

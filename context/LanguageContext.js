@@ -21,6 +21,7 @@ export function LanguageProvider({ children }) {
     const defaultLanguage = availableLanguages.find(l => l.code === systemLanguage) ? systemLanguage : "en";
     
     const [currentLanguage, setCurrentLanguage] = useState(defaultLanguage);
+    const [isLanguageReady, setIsLanguageReady] = useState(false);
 
     // Load saved language on mount
     useEffect(() => {
@@ -33,6 +34,7 @@ export function LanguageProvider({ children }) {
                 await i18n.changeLanguage(defaultLanguage);
                 setCurrentLanguage(defaultLanguage);
             }
+            setIsLanguageReady(true);
         };
         loadSavedLanguage();
     }, []);
@@ -45,7 +47,7 @@ export function LanguageProvider({ children }) {
     };
 
     return (
-        <LanguageContext.Provider value={{ currentLanguage, changeLanguage, availableLanguages }}>
+        <LanguageContext.Provider value={{ currentLanguage, changeLanguage, availableLanguages, isLanguageReady }}>
             {children}
         </LanguageContext.Provider>
     );
