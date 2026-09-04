@@ -17,48 +17,40 @@ export async function addFolder(parentId, name, color = null) {
 
 // Get folders (excluding deleted folders)
 export async function getFolders(parentId) {
+    const parentCondition = parentId == null ? 'folder.parent_id IS NULL' : 'folder.parent_id = ?';
+    const params = parentId == null ? [] : [parentId];
 
-    // Bring all folders except deleted ones with a specific parent or no parent
-    let sql, params;
-    if (parentId == null) {sql = "SELECT * FROM folders WHERE parent_id IS NULL AND deleted_at IS NULL ORDER BY name"; params = []}
-    else                  {sql = "SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name"; params = [parentId]}
-    const folders = await db.getAllAsync(sql, params);  // folders that meet these conditions
-    
-    // Hide system folders if they are empty
-    const filtered = [];
-    for (const folder of folders) {
-
-        // If system folder, check if it has any item inside it. System card with no fields also doesn't count
-        if (folder.is_system_folder === 1) {
-
-            const childFolders = await db.getAllAsync("SELECT COUNT(*) as count FROM folders WHERE parent_id = ? AND deleted_at IS NULL AND is_system_folder = 0", [folder.id]);
-            const childCards =   await db.getAllAsync("SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL", [folder.id]);
-            
-            // Check if there are any cards inside the system folder, if it is a system card, check if it has fields
-            let hasNonEmptyCards = false;
-            for (const card of childCards) {
-                if (card.is_system_card === 0) {
-                    hasNonEmptyCards = true; 
-                    break;
-                } else {
-                    const fields = await db.getAllAsync("SELECT COUNT(*) as count FROM fields WHERE parent_id = ? AND deleted_at IS NULL", [card.id]);
-                    if (fields[0].count > 0) {
-                        hasNonEmptyCards = true; 
-                        break;
-                    }
-                }
-            }
-            
-            // Only include system folder if it has folders, cards or non-empty system card
-            if (childFolders[0].count > 0 || hasNonEmptyCards) filtered.push(folder);
-        
-        // If it is not a system folder, add it directly
-        } else {
-            filtered.push(folder);
-        }
-    }
-    
-    return filtered;
+    // Empty system recovery folders stay hidden without issuing follow-up queries for each row.
+    return db.getAllAsync(
+        `SELECT folder.*
+         FROM folders AS folder
+         WHERE ${parentCondition}
+           AND folder.deleted_at IS NULL
+           AND (
+               folder.is_system_folder = 0
+               OR EXISTS (
+                   SELECT 1 FROM folders AS child_folder
+                   WHERE child_folder.parent_id = folder.id
+                     AND child_folder.deleted_at IS NULL
+                     AND child_folder.is_system_folder = 0
+               )
+               OR EXISTS (
+                   SELECT 1 FROM cards AS child_card
+                   WHERE child_card.parent_id = folder.id
+                     AND child_card.deleted_at IS NULL
+                     AND (
+                         child_card.is_system_card = 0
+                         OR EXISTS (
+                             SELECT 1 FROM fields AS child_field
+                             WHERE child_field.parent_id = child_card.id
+                               AND child_field.deleted_at IS NULL
+                         )
+                     )
+               )
+           )
+         ORDER BY folder.name`,
+        params
+    );
 }
 
 // Edit folder
@@ -161,22 +153,23 @@ export async function addCard(folderId, name, color = null) {
 
 // Get cards (excluding deleted cards)
 export async function getCards(folderId) {
-
-    // Bring all cards except deleted ones
-    const cards = await db.getAllAsync("SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name", [folderId]);
-    
-    // If it is the system card, hide it if it is empty
-    const filtered = [];
-    for (const card of cards) {
-        if (card.is_system_card === 1) {
-            const fields = await db.getAllAsync("SELECT COUNT(*) as count FROM fields WHERE parent_id = ? AND deleted_at IS NULL", [card.id]);
-            if (fields[0].count > 0) filtered.push(card);
-        } else {
-            filtered.push(card);  // Add normal cards
-        }
-    }
-    
-    return filtered;
+    // Empty system recovery cards stay hidden without a separate field query.
+    return db.getAllAsync(
+        `SELECT card.*
+         FROM cards AS card
+         WHERE card.parent_id = ?
+           AND card.deleted_at IS NULL
+           AND (
+               card.is_system_card = 0
+               OR EXISTS (
+                   SELECT 1 FROM fields AS child_field
+                   WHERE child_field.parent_id = card.id
+                     AND child_field.deleted_at IS NULL
+               )
+           )
+         ORDER BY card.name`,
+        [folderId]
+    );
 }
 
 // Edit card

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { ActivityIndicator, Modal, View, Text, TouchableOpacity, ScrollView } from "react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -9,7 +9,7 @@ import SectionBlock from "../components/Blocks/SettingsTitle.js";
 import RadioButton from "../components/Buttons/RadioButton.js";
 import DraggableListButton from "../components/Buttons/DraggableListButton.js"
 import InformationModal from "../components/Modals/InformationModal.js";
-import ConfirmationModal from "../components/Modals/ConfirmationModal.js";
+import ImportDatabaseModal from "../components/Modals/ImportDatabaseModal.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -17,14 +17,19 @@ import { useTheme } from "../context/ThemeContext.js";
 
 // Database Queries and Storage
 import { saveColorOrder, loadColorOrder, saveColorSortPreference, loadColorSortPreference } from "../storage/sortPreference.js";
-import { exportDatabase, importDatabase } from "../database/exportDb.js";
+import {
+    discardPreparedImport,
+    exportDatabase,
+    importPreparedDatabase,
+    prepareDatabaseImport
+} from "../database/exportDb.js";
 
 // Language
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from "../context/LanguageContext.js";
 
 // Settings - Preferences and Synchronisation
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const { currentTheme, colors, changeTheme, availableThemes } = useTheme();
     const { currentLanguage, changeLanguage, availableLanguages } = useLanguage();
@@ -33,7 +38,10 @@ export default function SettingsScreen() {
     const [colorSortMode, setColorSortMode] = useState("alphabetical");
     const [infoVisible, setInfoVisible] = useState(false);
     const [infoMessage, setInfoMessage] = useState({ title: "", message: "" });
-    const [confirmVisible, setConfirmVisible] = useState(false);
+    const [importOptionsVisible, setImportOptionsVisible] = useState(false);
+    const [preparedImport, setPreparedImport] = useState(null);
+    const [busyMessage, setBusyMessage] = useState(null);
+    const [resetAfterInfo, setResetAfterInfo] = useState(false);
 
     // Load saved preferences on mount
     useEffect(() => {
@@ -82,38 +90,73 @@ export default function SettingsScreen() {
 
     // Handle export
     const handleExport = async () => {
+        if (busyMessage) return;
+        setBusyMessage(t("infoMessages.exporting"));
         const result = await exportDatabase();
+        setBusyMessage(null);
+
         if (result.success) {
             setInfoMessage({
-                title: t("titles.exportSuccess"),
-                message: t("infoMessages.exportSuccess")
+                title: result.saveUnconfirmed ? t("titles.exportReady") : t("titles.exportSuccess"),
+                message: result.saveUnconfirmed
+                    ? t("infoMessages.exportSaveUnconfirmed")
+                    : t("infoMessages.exportSuccess")
             });
             setInfoVisible(true);
-        } else {
+        } else if (!result.cancelled) {
             setInfoMessage({
                 title: t("titles.exportFail"),
-                message: result.error || t("infoMessages.exportFail")
+                message: t(`infoMessages.${result.errorCode || "exportFailed"}`)
             });
             setInfoVisible(true);
         }
     };
 
-    const handleImportConfirm = () => {setConfirmVisible(true)};
+    const handleImportStart = async () => {
+        if (busyMessage) return;
+        const result = await prepareDatabaseImport(() => {
+            setBusyMessage(t("infoMessages.validatingImport"));
+        });
+        setBusyMessage(null);
 
-    const handleImport = async () => {
-        setConfirmVisible(false);
-        
-        const result = await importDatabase();
+        if (result.success) {
+            setPreparedImport(result.preparedImport);
+            setImportOptionsVisible(true);
+        } else if (!result.cancelled) {
+            setInfoMessage({
+                title: t("titles.importFail"),
+                message: t(`infoMessages.${result.errorCode || "invalidDatabase"}`)
+            });
+            setInfoVisible(true);
+        }
+    };
+
+    const handleImportCancel = async () => {
+        const importToDiscard = preparedImport;
+        setImportOptionsVisible(false);
+        setPreparedImport(null);
+        if (importToDiscard) await discardPreparedImport(importToDiscard);
+    };
+
+    const handleImport = async (mode) => {
+        const importToApply = preparedImport;
+        setImportOptionsVisible(false);
+        setBusyMessage(t("infoMessages.importing"));
+        const result = await importPreparedDatabase(importToApply, mode);
+        setPreparedImport(null);
+        setBusyMessage(null);
+
         if (result.success) {
             setInfoMessage({
                 title: t("titles.importSuccess"),
-                message: t("infoMessages.importSuccess")
+                message: t(result.mode === "replace" ? "infoMessages.importReplaceSuccess" : "infoMessages.importKeepSuccess")
             });
+            setResetAfterInfo(true);
             setInfoVisible(true);
-        } else if (result.error !== 'Import cancelled') {
+        } else {
             setInfoMessage({
                 title: t("titles.importFail"),
-                message: result.error || t("infoMessages.importFail")
+                message: t(`infoMessages.${result.errorCode || "importFailed"}`)
             });
             setInfoVisible(true);
         }
@@ -122,6 +165,10 @@ export default function SettingsScreen() {
     const handleCloseInfo = () => {
         setInfoVisible(false);
         setInfoMessage({ title: "", message: "" });
+        if (resetAfterInfo) {
+            setResetAfterInfo(false);
+            navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+        }
     };
 
     // Dragging items will change the color order too.
@@ -224,13 +271,13 @@ export default function SettingsScreen() {
                 <View style={[styles.paddingHorizontal, { gap: 10, marginBottom: 20 }]}>
 
                     {/* Export Button */}
-                    <TouchableOpacity onPress={handleExport} style={[styles.underShadow, styles.normalButton,  styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
+                    <TouchableOpacity disabled={Boolean(busyMessage)} onPress={handleExport} style={[styles.underShadow, styles.normalButton,  styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="upload" size={18} color={colors.accentLight} />
                         <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.export")}</Text>
                     </TouchableOpacity>
 
                     {/* Import Button */}
-                    <TouchableOpacity onPress={handleImportConfirm} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
+                    <TouchableOpacity disabled={Boolean(busyMessage)} onPress={handleImportStart} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, {backgroundColor: colors.bgCard, gap: 10 }]}>
                         <FontAwesome name="download" size={18} color={colors.accentLight} />
                         <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.importDB")}</Text>
                     </TouchableOpacity>
@@ -246,16 +293,23 @@ export default function SettingsScreen() {
                 message={infoMessage.message}
             />
 
-            {/* Confirmation Modal for Import */}
-            <ConfirmationModal
-                visible={confirmVisible}
-                onCancel={() => setConfirmVisible(false)}
-                onConfirm={handleImport}
-                title={t("buttons.importDB")}
-                message={t("infoMessages.import")}
-                confirmText={t("buttons.import")}
-                confirmColor={colors.accent}
+            {/* Import is offered only after the selected database passes validation. */}
+            <ImportDatabaseModal
+                visible={importOptionsVisible}
+                onCancel={handleImportCancel}
+                onReplace={() => handleImport("replace")}
+                onKeep={() => handleImport("keep")}
             />
+
+            {/* This modal blocks every app interaction while a backup operation is active. */}
+            <Modal visible={Boolean(busyMessage)} transparent={true} animationType="fade" onRequestClose={() => {}}>
+                <View style={[styles.centered, { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }]}>
+                    <View style={[styles.underShadow, styles.modalContent, styles.centered, { backgroundColor: colors.bgModal, gap: 12 }]}>
+                        <ActivityIndicator size="large" color={colors.accentLight} />
+                        <Text style={[styles.midText, styles.centeredText, { color: colors.textPrimary }]}>{busyMessage}</Text>
+                    </View>
+                </View>
+            </Modal>
 
         </View>
     );

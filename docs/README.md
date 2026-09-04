@@ -22,8 +22,8 @@ to understand and pleasant to change.
 3. [Data model and lifecycle](./03-data-model-and-lifecycle.md)
 4. [Codebase map](./04-codebase-map.md)
 5. [Risks and priorities](./05-risks-and-priorities.md)
-6. [Development approach](./06-development-approach.md)
-7. [Developer and AI guide](./07-developer-and-ai-guide.md)
+6. [Developer and AI guide](./06-developer-and-ai-guide.md)
+7. [Updating the app](./07-updating-the-app.md)
 
 These notes describe the current code based mainly on static inspection. Runtime
 behavior should be confirmed on a device when it matters. When documentation and

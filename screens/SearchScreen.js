@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
 import ListButton from "../components/Buttons/ListButton.js";
+import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 
 // Database Queries
 import db from "../database/db.js";
@@ -21,7 +22,7 @@ export default function SearchScreen({ navigation }) {
     const insets = useSafeAreaInsets();            // For placing elements
     const [query, setQuery] = useState("");        // Searched text
     const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
-    const [results, setResults] = useState([]);    // Filtered items
+    const [isLoading, setIsLoading] = useState(true);
     const { colors } = useTheme();
     const { t } = useTranslation();
 
@@ -33,28 +34,31 @@ export default function SearchScreen({ navigation }) {
 
     // Bring all folders, cards, fields except deleted ones
     const loadAllData = async () => {
-        const folders = await db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL AND is_system_folder = 0");
-        const cards =   await db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL AND is_system_card = 0");
-        const fields =  await db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL");
-        setAllItems([...folders, ...cards, ...fields]);  // Combine and store in state
+        setIsLoading(true);
+        try {
+            const [folders, cards, fields] = await Promise.all([
+                db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL AND is_system_folder = 0"),
+                db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL AND is_system_card = 0"),
+                db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL"),
+            ]);
+            setAllItems([...folders, ...cards, ...fields]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    // Filter Items as you write something in the search input
-    const runSearch = (searchQuery) => {
-        const trimmed = searchQuery.trim();
-        if (!trimmed) { setResults([]); return; }
+    // Filter loaded items without keeping a second, temporarily stale result state.
+    const results = useMemo(() => {
+        const trimmed = query.trim();
+        if (!trimmed) return [];
 
         const searchTerm = trimmed.toLowerCase();
-
-        // Filter items that match the search term
-        const filtered = allItems.filter(item => {
+        return allItems.filter(item => {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
             const contextMatch = item.context && item.context.toLowerCase().includes(searchTerm);
             return nameMatch || contextMatch;
         });
-
-        setResults(filtered);
-    };
+    }, [allItems, query]);
 
     // Helper: Build folder ancestry path
     const buildFolderPath = async (folderId) => {
@@ -140,7 +144,7 @@ export default function SearchScreen({ navigation }) {
                 <FontAwesome name="search" size={20} color={colors.textSecondary}/>
                 <TextInput
                     value={query}
-                    onChangeText={(text) => {setQuery(text); runSearch(text)}}
+                    onChangeText={setQuery}
                     placeholder={t("titles.search")}
                     placeholderTextColor={colors.textSecondary}
                     style={[styles.input, styles.midText, { color: colors.textSecondary }]}
@@ -148,7 +152,7 @@ export default function SearchScreen({ navigation }) {
                     maxLength={100}
                 />
                 {query.length > 0 && (
-                    <TouchableOpacity onPress={() => { setQuery(""); setResults([]); }}>
+                    <TouchableOpacity onPress={() => setQuery("")}>
                         <FontAwesome name="times-circle" size={20} color={colors.textSecondary} />
                     </TouchableOpacity>
                 )}
@@ -156,7 +160,9 @@ export default function SearchScreen({ navigation }) {
 
             {/* Results */}
             {/* If something is typed and no result found */}
-            {query.trim().length > 0 && results.length === 0 ? (
+            {isLoading ? (
+                <ListLoadingIndicator />
+            ) : query.trim().length > 0 && results.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, {color: colors.textSecondary}]}>
                         {t("screenMessages.noResult", {query: `"${query}"`})}

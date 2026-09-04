@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, FlatList, BackHandler } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
@@ -15,6 +15,7 @@ import HeaderBar from "../components/Navigation/HeaderBar.js";
 import FooterBar from "../components/Navigation/FooterBar.js";
 import BreadCrumb from "../components/Navigation/BreadCrumb.js";
 import DateDisplay from "../components/Blocks/DateDisplay.js";
+import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 
 // Styles and Colors
 import styles from "../styles/styles.js";
@@ -42,6 +43,7 @@ import { useTranslation } from 'react-i18next';
 export default function FolderScreen({ route, navigation }) {
     const { folder, path } = route.params;
     const [items, setItems] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [createType, setCreateType] = useState(null);
     const [fields, setFields] = useState([]);
     const [folderDate, setFolderDate] = useState(null);
@@ -54,6 +56,8 @@ export default function FolderScreen({ route, navigation }) {
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const sortModeRef = React.useRef(sortMode);
+    sortModeRef.current = sortMode;
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -80,32 +84,28 @@ export default function FolderScreen({ route, navigation }) {
         }, [path, navigation])
     );
 
-    // Reload items when folder or path changes
-    useEffect(() => {
-        loadItems();
-    }, [folder.id]);
-
-    // Also reload on focus (when coming back from other screens)
-    useEffect(() => {
-        const unsubscribe = navigation.addListener("focus", () => {
-            const currentFolder = route.params?.folder;
-            if (currentFolder) {
-                loadItems(currentFolder.id);
-            }
-        });
-
-        return unsubscribe;
-    }, [navigation, route.params, sortMode]);
+    // Load once on focus, and reload when navigation changes the current folder.
+    useFocusEffect(
+        React.useCallback(() => {
+            loadItems(folder.id, sortModeRef.current);
+        }, [folder.id])
+    );
 
     // Load all subfolders and cards inside this folder from the database
-    const loadItems = async (folderId = folder.id) => {
-        const folders = await getFolders(folderId);
-        const cards = await getCards(folderId);
-        const result = [...folders, ...cards];
-        handleSort(result, setItems, sortMode);
-        const currentFolder = route.params?.folder || folder;
-        if (sortMode === "creationDate") setFolderDate(currentFolder.created_at);
-        else setFolderDate(currentFolder.updated_at);
+    const loadItems = async (folderId = folder.id, selectedSortMode = sortMode) => {
+        setIsLoading(true);
+        try {
+            const [folders, cards] = await Promise.all([
+                getFolders(folderId),
+                getCards(folderId),
+            ]);
+            await handleSort([...folders, ...cards], setItems, selectedSortMode);
+            const currentFolder = route.params?.folder || folder;
+            if (selectedSortMode === "creationDate") setFolderDate(currentFolder.created_at);
+            else setFolderDate(currentFolder.updated_at);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Custom sort functions for custom sort mode
@@ -236,7 +236,9 @@ export default function FolderScreen({ route, navigation }) {
             </View>
 
             {/* Items */}
-            {items.length === 0 ? (
+            {isLoading ? (
+                <ListLoadingIndicator />
+            ) : items.length === 0 ? (
                 <View style={[styles.container, styles.centered]}>
                     <Text style={[styles.midText, styles.centeredText, { color: colors.textSecondary }]}>
                         {t("screenMessages.items")}

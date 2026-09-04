@@ -9,10 +9,15 @@ function getColorIndex(color, savedOrder) {
 
 // Main sort function
 export async function handleSort(items, setItems, mode, isDeletedScreen = false) {
-
-    // These 2 are for color sort, I place these here because they need to be under an asynchrone function, you can't put it in the case
-    const savedOrder =    await loadColorOrder();
-    const savedSortPref = await loadColorSortPreference();
+    // Color preferences are only needed for color sorting. Avoid storage reads for every other mode.
+    let savedOrder = [];
+    let savedSortPref = "alphabetical";
+    if (mode === "color") {
+        [savedOrder, savedSortPref] = await Promise.all([
+            loadColorOrder(),
+            loadColorSortPreference(),
+        ]);
+    }
 
     const sortGroup = (group) => {
         let sorted = [...group];

@@ -1,157 +1,119 @@
 # Risks and priorities
 
-This list contains only important gaps confirmed in the current code. It is not a
-general improvement backlog. Fix data-loss and data-integrity risks first, then
-the small number of defects that can make normal actions fail or mislead the user.
+This is the remaining confirmed work, ordered from easiest to implement to most
+difficult. Database migrations are implemented. The existing deletion and recovery
+behavior is intentional and must remain unchanged.
 
-## Priority 1: protect stored data
+## 1. Fix the selected-item edit crash
 
-### Make database import validated, reversible, and terminal
+`handleEditSelected` returns an error array only when the selection is invalid.
+For one valid selected item it opens the edit modal and returns `undefined`, but
+Home, Folder, and Card Detail immediately read `result.length`.
 
-`importDatabase` closes the shared database connection and replaces `app.db`
-without first checking that the selected file is a healthy, compatible
-CategoLearn database. If copying fails after the close, the backup is not restored
-and the connection is not reopened. After a successful copy, the current screens
-also remain usable even though their database object has been closed.
+Return a consistent result from the helper or safely check the result in all
+three screens.
 
-Validate a temporary copy with SQLite integrity checks and the required
-tables/columns before touching the active file. Replace the active database only
-after validation, restore the previous file on any failure, and either reopen and
-reinitialize the connection or prevent all database-backed interaction until a
-real app reload occurs.
+## 2. Lock system recovery items in the UI and query layer
 
-### Export a consistent SQLite snapshot
+When any selected item is the `Restored Items` system folder or `Restored Fields`
+system card, disable Delete, Cut, and Copy immediately. Disabled buttons should
+look inactive and ignore presses.
 
-`exportDatabase` copies the live `app.db` file through the filesystem while the
-SQLite connection remains open. It does not use SQLite's backup/serialization API
-or otherwise establish a consistent snapshot, so journal or WAL state may not be
-represented in the exported file.
+Add matching checks inside delete, move, and copy functions so another caller or
+stale UI state cannot bypass the restriction. It must be impossible to move the
+real system item or copy it as an ordinary non-system item.
 
-Use the backup support provided by `expo-sqlite`, or another verified SQLite-safe
-snapshot procedure, and test the produced file by opening it and reading recent
-writes.
+## 3. Open the exact folder or card selected in search
 
-### Make multi-write data changes atomic
+Search navigation should follow these rules:
 
-The following user actions still consist of independent writes:
+- a root-folder result opens that folder;
+- a nested-folder result opens that folder;
+- a card result opens that card and displays its fields;
+- a field result opens its parent card because fields have no separate screen.
 
-- creating or editing a card together with its fields;
-- loading several saved fields into a card;
-- recursively copying a folder or card;
-- pasting or recoloring several selected items;
-- restoring several Trash items;
-- recursively or multiply deleting items permanently;
-- saving custom order values for a list.
+When opening a field result, pass its ID to Card Detail. After fields load, scroll
+the matching field into view. If it has context, expand that field so its context
+is visible. If reliable scrolling is temporarily unavailable, opening the parent
+card remains the required fallback.
 
-A constraint failure or interruption can therefore leave only part of the action
-applied. Wrap each logical operation in one transaction; a general repository or
-transaction framework is not required.
+## 4. Hide descendants of deleted ancestors from search
 
-### Enforce parent relationships and delete complete subtrees
+Search currently checks only a result row's own `deleted_at`. If folder A is
+deleted while one of its children remains active internally, that hidden child
+can still appear in search.
 
-The schema declares cascading foreign keys, but the connection never enables
-`PRAGMA foreign_keys = ON`. The manual permanent-delete functions query only
-children whose `deleted_at` is `NULL`, so permanently deleting a folder or card can
-leave behind descendants that had already been soft-deleted separately.
+Include a result only when the item and every folder or card in its path to the
+root are active. This changes search visibility only; it must not modify deletion
+or restoration data.
 
-Enable foreign-key enforcement when opening every connection and verify it on an
-existing populated database. Permanent deletion must remove the complete subtree,
-regardless of each descendant's deletion state, and the whole operation should be
-transactional.
+## 5. Check the complete ancestor path when restoring
 
-### Add a migration step before changing the schema
+Restore currently checks only the immediate parent. A deleted item can have an
+active immediate parent whose parent or higher ancestor is deleted. Restoring the
+item to that path reports success but leaves it invisible.
 
-Startup only runs `CREATE TABLE IF NOT EXISTS` and creates indexes. Editing a table
-definition will not update an existing installation. Before the next schema
-change, add a small ordered migration based on `PRAGMA user_version` and test it
-against a copy of an older database.
+Use the original location only when the complete path to the root is active.
+Otherwise restore the item into `Restored Items` or `Restored Fields`.
 
-## Priority 2: prevent broken everyday behavior
+## 6. Keep create and edit forms open when saving fails
 
-### Fix the selected-item edit crash
+`CreateModal` starts the asynchronous save without awaiting it and then closes
+unconditionally. If the database write fails, the form can disappear, discard
+the typed draft, and produce an unhandled rejection.
 
-`handleEditSelected` returns an error array only when the selection is invalid. On
-a valid one-item selection it opens the edit modal and returns `undefined`, but all
-three calling screens immediately read `result.length`. Editing a folder, card, or
-field can therefore raise a `TypeError` during the normal edit path.
+Await the save, prevent repeated submission while it is running, close only after
+success, and show the error while keeping the form and its content open.
 
-Return a consistent array from the helper, or test the result before reading its
-length, in Home, Folder, and Card Detail.
+## 7. Prevent cards from being dragged above folders
 
-### Keep create and edit forms open when a write fails
+The normal list design always keeps folders above cards, but custom sorting allows
+a card to be dragged into the folder section. Reloading then moves it below the
+folders again, so the displayed drag result cannot be preserved.
 
-`CreateModal` calls the asynchronous `onCreate` callback without awaiting it and
-then closes unconditionally. A database constraint or I/O failure can therefore
-close the form as though the save succeeded and produce an unhandled rejection.
+Keep folders and cards as separate drag groups. Folders may be reordered among
+folders and cards among cards, but neither type may cross the boundary. Apply the
+same restriction to drag gestures and arrow-based movement.
 
-Await the write, disable duplicate submissions while it runs, close only on
-success, and show a useful error in the still-open form. Apply the same principle
-to destructive, restore, paste, color, and load actions where failures currently
-escape their event handlers.
+## 8. Make import support the existing Trash behavior
 
-### Protect the remaining system restore invariants
+Keep the current behavior exactly as it is:
 
-The query layer already blocks some creates and edits involving the restore
-folder/card, but the shared footer still offers normal actions for those rows and
-the move functions do not reject system items or system destinations. A user can
-attempt invalid edits/colors and can cut or move a system folder or card, breaking
-the location assumptions used by restore.
+- deleting a folder soft-deletes the folder and hides its descendant tree;
+- permanently deleting that folder removes descendants that still belong to it;
+- a child separately deleted before its parent is permanently deleted remains
+  independently recoverable;
+- restoring that child after its parent is gone places it in `Restored Items` or
+  `Restored Fields`.
 
-Hide or disable invalid actions in the UI and enforce the same rules in the move
-and write functions so stale UI state cannot bypass them.
+The required change is only in import. That valid final state contains a deleted
+item whose parent no longer exists, but the importer currently rejects every
+missing parent. Accept recoverable deleted orphans while continuing to reject
+active orphans, invalid schemas, damaged files, and other broken relationships.
+Both Replace and Keep must preserve the recoverable item.
 
-### Account for the entire ancestor chain in search and restore
+## Accepted design decisions
 
-Search filters only each result row's own `deleted_at`. An active card or field
-behind a deleted folder, or an active field behind a deleted card, can still appear
-and navigate into content that the normal hierarchy hides.
-
-Restore checks only the immediate parent. If that parent is active but one of its
-ancestors is deleted, the operation can report success while the restored item
-remains invisible. Search and restore should require a fully active path to the
-root, otherwise restore into the system recovery location.
-
-### Make search results open the item they describe
-
-Search currently sends a root-folder result to Home and a card result to its
-containing folder. Only non-root folders and fields open the selected content.
-Make folder results open that folder and card results open that card, while still
-building a valid breadcrumb path.
-
-### Fix the confirmed sorting mismatches
-
-Trash reloads using `loadSortMode`, the preference for normal lists, while its
-header displays and saves `deletedSortMode`. The visible order can therefore
-disagree with the selected label until the user cycles the sort button.
-
-Home also reloads its preference from AsyncStorage instead of using the current
-`sortMode` context like Folder and Card Detail. A sort change can race the
-preference write or temporarily restore the previous order.
-
-Custom reorder also permits dragging a card across the folder boundary even
-though `handleSort` always regroups folders before cards after saving. Keep the
-drag interaction within the order that can actually be persisted, or make the
-saved order and normal rendering follow the same rule.
-
-### Include saved field sets in the backup contract
-
-Reusable field sets are stored in AsyncStorage, while export/import handles only
-`app.db`. A database backup therefore does not preserve those user-created sets.
-Either include them in backup/restore or clearly state in the UI that they are not
-part of a backup.
+- Do not change the current soft deletion, permanent deletion, or independently
+  deleted-child recovery behavior.
+- Do not add a broad transaction refactor to ordinary copy, move, delete, and
+  reorder actions solely because they contain several small writes.
+- Do not add saved field sets to database backup and import.
+- Imported system recovery rows are not harmful by themselves; they become normal
+  imported content in Keep mode and remain protected system rows in Replace mode.
 
 ## Focused verification
 
-The high-value checks for these changes are:
-
-- a valid backup contains the latest writes and imports successfully;
-- an invalid or interrupted import leaves the current database open and unchanged;
-- a forced failure in a multi-write action rolls back every write;
-- permanent deletion removes active and already-deleted descendants;
-- search and restore behave correctly when any ancestor is deleted;
-- system restore rows cannot be moved or used as ordinary destinations;
-- an older database migrates without losing its contents.
-
-Use manual device checks for the navigation and sorting fixes. Focused automated
-database tests are worthwhile for import, transactions, deletion, restore, and
-migrations.
+- Edit one folder, card, and field without a runtime error.
+- Select each system recovery item and verify Delete, Cut, and Copy are disabled;
+  also call the underlying operations directly and verify they are rejected.
+- Open root folders, nested folders, cards, and fields from search; for a field,
+  verify its parent card opens, the list scrolls to it, and its context expands.
+- Delete an ancestor and confirm all of its descendants disappear from search.
+- Restore an item whose higher ancestor is deleted and confirm it appears in the
+  correct system recovery location.
+- Force a create/edit save failure and confirm the modal and typed content remain.
+- Confirm cards cannot cross above folders through dragging or arrow controls.
+- Export and import a valid database containing an independently deleted orphan
+  with both Replace and Keep, then restore that item.
+- Confirm an active orphan and a damaged or unrelated database are still rejected.
