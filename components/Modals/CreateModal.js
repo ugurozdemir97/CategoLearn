@@ -424,8 +424,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             {/* Select Color Modal */}
             <ColorModal
                 visible={colorModalVisible}
-                onClose={() => { setColorModalVisible(false); setColorTargetFieldIndex(null); }}
-                onSelect={(c) => {
+                onCancel={() => { setColorModalVisible(false); setColorTargetFieldIndex(null); }}
+                onConfirm={(c) => {
                     if (colorTargetFieldIndex === null) setSelectedColor(c);
                     else updateField(colorTargetFieldIndex, "color", c);
                 }}

@@ -33,6 +33,7 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleEditSelected } from "../utils/handleFooterActions.js";
+import { getSharedItemColor } from "../utils/colorSelection.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
@@ -60,6 +61,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const isSystemContainer = card.is_system_card === 1;
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
@@ -285,9 +287,11 @@ export default function CardDetailScreen({ route, navigation }) {
                     <FieldSetActions
                         fields={fields}
                         onLoad={loadFieldSetIntoCard}
+                        canLoad={!isSystemContainer}
                     />
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                        disabled={selectedItems.length === 0 && isSystemContainer}
                         onPress={() => {
                             if (selectedItems.length === 1) handleEditSelectedWrapper();
                             else                            modals.openCreateModal();
@@ -339,9 +343,9 @@ export default function CardDetailScreen({ route, navigation }) {
             {/* Color Picker Modal */}
             <ColorModal
                 visible={modals.colorModalVisible}
-                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
-                onSelect={(c) => modals.setSelectedColor(c)}
-                selectedColor={modals.selectedColor}
+                onCancel={modals.closeColorModal}
+                onConfirm={applyColorToSelected}
+                selectedColor={getSharedItemColor(selectedItems)}
             />
 
             {/* Confirmation Modal */}

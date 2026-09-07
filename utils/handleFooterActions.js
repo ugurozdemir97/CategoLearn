@@ -18,6 +18,9 @@ export function handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, 
 export async function handleEditSelected(selectedItems, setEditTarget, setModalVisible, t, setCreateType, setFields, setFieldContext) {
     if (selectedItems.length === 1) {
         const item = selectedItems[0];
+        if (isSystemRecoveryItem(item)) {
+            return [{ type: t("errorTitles.notAllowed"), message: t("errorMessages.systemItemAction") }];
+        }
         setEditTarget(item);                                              // Store the item being edited  
         setCreateType?.(item.type);                                       // For folder screen, set the type (card or category) in the modal
         setFieldContext?.(item.context);                                  // Context of the field for the CardDetailScreen

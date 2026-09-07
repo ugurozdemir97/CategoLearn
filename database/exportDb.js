@@ -5,6 +5,7 @@ import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import db from './db.js';
+import { enforceDatabaseConnectionPolicy } from './connectionPolicy.js';
 import { setupDatabase } from './schema.js';
 import {
     CURRENT_DATABASE_VERSION,
@@ -60,6 +61,7 @@ async function createConsistentSnapshot(directory, fileName) {
 
     try {
         destination = await SQLite.openDatabaseAsync(fileName, { useNewConnection: true }, directory);
+        await enforceDatabaseConnectionPolicy(destination);
         await SQLite.backupDatabaseAsync({ sourceDatabase: db, destDatabase: destination });
 
         const check = await destination.getFirstAsync('PRAGMA quick_check');
@@ -78,10 +80,25 @@ async function createConsistentSnapshot(directory, fileName) {
     }
 }
 
-async function openPreparedDatabase(preparedImport) {
-    return SQLite.openDatabaseAsync(
-        preparedImport.stagedFileName,
+async function openDatabaseWithPolicy(fileName, directory) {
+    const database = await SQLite.openDatabaseAsync(
+        fileName,
         { useNewConnection: true },
+        directory
+    );
+
+    try {
+        await enforceDatabaseConnectionPolicy(database);
+        return database;
+    } catch (error) {
+        await database.closeAsync();
+        throw error;
+    }
+}
+
+async function openPreparedDatabase(preparedImport) {
+    return openDatabaseWithPolicy(
+        preparedImport.stagedFileName,
         FileSystem.cacheDirectory
     );
 }
@@ -292,9 +309,8 @@ async function replaceCurrentDatabase(sourceDatabase, backupName) {
         console.error('Replace import failed; restoring the pre-import backup:', error);
         let backupDatabase;
         try {
-            backupDatabase = await SQLite.openDatabaseAsync(
+            backupDatabase = await openDatabaseWithPolicy(
                 backupName,
-                { useNewConnection: true },
                 FileSystem.documentDirectory
             );
             await SQLite.backupDatabaseAsync({ sourceDatabase: backupDatabase, destDatabase: db });
@@ -465,9 +481,8 @@ export async function prepareDatabaseImport(onSelectionAccepted) {
         const stagedUri = `${directoryPath(FileSystem.cacheDirectory)}${stagedFileName}`;
         await FileSystem.copyAsync({ from: pickedFile.uri, to: stagedUri });
 
-        const candidate = await SQLite.openDatabaseAsync(
+        const candidate = await openDatabaseWithPolicy(
             stagedFileName,
-            { useNewConnection: true },
             FileSystem.cacheDirectory
         );
         try {

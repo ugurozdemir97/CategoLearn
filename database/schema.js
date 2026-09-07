@@ -1,7 +1,11 @@
 import db from "./db";
+import { enforceDatabaseConnectionPolicy } from "./connectionPolicy.js";
 import { ensureCurrentIndexes, migrateDatabase } from "./migrations.js";
 
 export async function setupDatabase() {
+    // Establish deletion behavior before migrations or ordinary queries can run.
+    await enforceDatabaseConnectionPolicy(db);
+
     // Existing unversioned databases are adopted as version 1 without changing their schema.
     await migrateDatabase(db, { allowFreshDatabase: true });
     await ensureCurrentIndexes(db);

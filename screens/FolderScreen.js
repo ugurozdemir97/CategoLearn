@@ -30,7 +30,8 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
-import { handleEditSelected } from "../utils/handleFooterActions.js";
+import { handleEditSelected, isSystemRecoveryItem } from "../utils/handleFooterActions.js";
+import { getSharedItemColor } from "../utils/colorSelection.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
@@ -60,6 +61,8 @@ export default function FolderScreen({ route, navigation }) {
     sortModeRef.current = sortMode;
     const folderItems = items.filter((item) => item.type === "Category");
     const cardItems = items.filter((item) => item.type === "Card");
+    const isSystemContainer = isSystemRecoveryItem(folder);
+    const hasSelectedSystemItem = selectedItems.some(isSystemRecoveryItem);
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -332,15 +335,15 @@ export default function FolderScreen({ route, navigation }) {
             {!customSort.customSortMode && (
                 <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     {selectedItems.length === 1 && selectedItems[0].type === "Category" ? (
-                        <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()} />
+                        <CircleButton icon="pencil" disabled={hasSelectedSystemItem} onPress={() => handleEditSelectedWrapper()} />
                     ) : (
-                        <CircleButton icon="folder" onPress={() => { setCreateType("Category"); modals.openCreateModal(); }} />
+                        <CircleButton icon="folder" disabled={isSystemContainer} onPress={() => { setCreateType("Category"); modals.openCreateModal(); }} />
                     )}
 
                     {selectedItems.length === 1 && selectedItems[0].type === "Card" ? (
-                        <CircleButton icon="pencil" onPress={() => handleEditSelectedWrapper()} />
+                        <CircleButton icon="pencil" disabled={hasSelectedSystemItem} onPress={() => handleEditSelectedWrapper()} />
                     ) : (
-                        <CircleButton icon="file" onPress={() => { setCreateType("Card"); modals.openCreateModal(); }} />
+                        <CircleButton icon="file" disabled={isSystemContainer} onPress={() => { setCreateType("Card"); modals.openCreateModal(); }} />
                     )}
                 </View>
             )}
@@ -388,9 +391,9 @@ export default function FolderScreen({ route, navigation }) {
             {/* Color Picker Modal */}
             <ColorModal
                 visible={modals.colorModalVisible}
-                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
-                onSelect={(c) => modals.setSelectedColor(c)}
-                selectedColor={modals.selectedColor}
+                onCancel={modals.closeColorModal}
+                onConfirm={applyColorToSelected}
+                selectedColor={getSharedItemColor(selectedItems)}
             />
 
             {/* Confirmation Modal */}

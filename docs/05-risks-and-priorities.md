@@ -1,9 +1,11 @@
 # Risks and priorities
 
-All confirmed priority work is complete. Database migrations are implemented,
-and the intentional deletion and recovery behavior remains unchanged.
+The original eight-item checklist is complete. A detailed code audit on
+2026-09-07 found the following additional work, ordered from highest to lowest
+risk. The Android production bundle builds successfully, both locale files have
+matching keys, and the emulator database passes `PRAGMA integrity_check`.
 
-## Progress tracker
+## Completed checklist
 
 1. Fix selected-item edit crash. ✓
 2. Lock system recovery items. ✓
@@ -14,43 +16,57 @@ and the intentional deletion and recovery behavior remains unchanged.
 7. Prevent cards from being dragged above folders. ✓
 8. Support valid orphaned Trash items during import. ✓
 
-Additional completed refinements:
+Additional completed audit work:
 
-- Reuse one hierarchy-path check for both search visibility and restoration. ✓
-- Allow recovered items to be copied or cut out of system recovery folders while
-  still preventing users from pasting items into them. ✓
+- Explicitly enforce and verify the non-cascading SQLite connection policy used
+  by CategoLearn's recoverable Trash behavior. ✓
+- Finish system-container UI locking and make color changes explicitly
+  cancellable and confirmable. ✓
 
-## Completed import behavior
+## 1. Prevent duplicate destructive actions and report database failures
 
-### Required behavior
+### Files involved
 
-- Deleting a folder continues to soft-delete the folder and hide its descendant
-  tree.
-- Permanently deleting that folder continues to delete descendants that still
-  belong to it.
-- A child separately deleted before its parent is permanently deleted remains
-  independently recoverable.
-- Restoring that child after its parent is gone continues to place it in
-  `Restored Items` or `Restored Fields`.
+- Add an async submitting state to `components/Modals/ConfirmationModal.js` or
+  guard the relevant handlers in each screen.
+- Update deletion handlers in `screens/HomeScreen.js`, `screens/FolderScreen.js`,
+  `screens/CardDetailScreen.js`, and `screens/DeletedScreen.js`.
+- Add translated failure messages to `language/locales/en.json` and
+  `language/locales/tr.json`.
 
-The importer accepts that valid deleted-orphan state while continuing to reject
-active orphans, invalid schemas, damaged files, and other broken relationships.
-Replace preserves the original recoverable rows. Keep attaches orphaned Trash
-roots to the appropriate system recovery container so they can be restored
-safely; descendants retain their relationship to that imported root.
+### Why
+
+Confirmation buttons remain active while asynchronous delete, permanent-delete,
+restore, and empty-Trash loops are running. Rapid presses can start the same work
+twice. Unexpected database failures are generally unhandled, so the user may see
+no explanation and the modal/selection state can become misleading. Disable the
+actions while running, await them, keep recoverable UI state on failure, and show
+a translated error.
+
+## 2. Fix custom-order save failure feedback
+
+### Files involved
+
+- Change `hooks/useCustomSort.js` to receive or return the actual error message
+  rather than separately setting state and immediately opening a modal.
+- Update `screens/HomeScreen.js`, `screens/FolderScreen.js`, and
+  `screens/CardDetailScreen.js` to pass a stable error callback.
+- Use translations from `language/locales/en.json` and
+  `language/locales/tr.json` instead of hard-coded English strings.
+
+### Why
+
+The hook sets `errorMessages` and then immediately invokes callbacks that read the
+previous React state. A failed reorder can therefore open an empty or stale error
+modal instead of the intended message. The reorder itself remains available for
+retry, but the failure feedback is unreliable.
 
 ## Accepted design decisions
 
-- Do not change the current soft deletion, permanent deletion, or independently
+- Preserve the current soft deletion, permanent deletion, and independently
   deleted-child recovery behavior.
-- Do not add a broad transaction refactor to ordinary copy, move, delete, and
+- Do not add broad transaction refactors to ordinary copy, move, delete, and
   reorder actions solely because they contain several small writes.
 - Do not add saved field sets to database backup and import.
-- Imported system recovery rows are not harmful by themselves; they become normal
-  imported content in Keep mode and remain protected system rows in Replace mode.
-
-## Focused verification
-
-- Export and import a valid database containing an independently deleted orphan
-  with both Replace and Keep, then restore that item.
-- Confirm an active orphan and a damaged or unrelated database are still rejected.
+- Imported system recovery rows are harmless: Keep converts them to ordinary
+  imported content, while Replace preserves them as protected system rows.

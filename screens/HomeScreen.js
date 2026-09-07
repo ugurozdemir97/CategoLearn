@@ -27,7 +27,8 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
-import { handleEditSelected } from "../utils/handleFooterActions.js";
+import { handleEditSelected, isSystemRecoveryItem } from "../utils/handleFooterActions.js";
+import { getSharedItemColor } from "../utils/colorSelection.js";
 
 // Database Queries and Storage
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
@@ -48,6 +49,7 @@ export default function HomeScreen({ navigation }) {
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const hasSelectedSystemItem = selectedItems.some(isSystemRecoveryItem);
 
     // Load subjects when screen is focused
     useEffect(() => {
@@ -191,6 +193,7 @@ export default function HomeScreen({ navigation }) {
                 <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                        disabled={hasSelectedSystemItem}
                         onPress={() => {
                             if (selectedItems.length === 1) handleEditSelectedWrapper();
                             else                            modals.openCreateModal();
@@ -250,9 +253,9 @@ export default function HomeScreen({ navigation }) {
             {/* Color Picker Modal */}
             <ColorModal
                 visible={modals.colorModalVisible}
-                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
-                onSelect={(c) => modals.setSelectedColor(c)}
-                selectedColor={modals.selectedColor}
+                onCancel={modals.closeColorModal}
+                onConfirm={applyColorToSelected}
+                selectedColor={getSharedItemColor(selectedItems)}
             />
 
             {/* Information Modal For Errors */}

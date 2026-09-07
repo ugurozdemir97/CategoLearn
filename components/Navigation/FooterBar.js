@@ -27,7 +27,7 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
     const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t)};
     const handleCutAction =  () => {handleCutSelected(selectedItems, cut, clearSelection)};
     const handleCopyAction = () => {handleCopySelected(selectedItems, copy, clearSelection)};
-    const handleColor =      () => {if (selectedItems.length === 0) return; openColorModal()};
+    const handleColor =      () => {if (selectedItems.length === 0 || hasSelectedSystemItem) return; openColorModal()};
     const handlePasteAction = async () => {
         const result = await handlePaste(clipboard, clipboardMode, parent, clearClipboard, reloadItems, t);
         if (result && result.length > 0) openInfoModal(result);
@@ -43,7 +43,7 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
                     <FooterButton name="trash" label={t("buttons.delete")} color={colors.danger} onPress={handleDelete} disabled={hasSelectedSystemItem}/>
                     <FooterButton name="scissors" label={t("buttons.cut")} onPress={handleCutAction} disabled={hasSelectedSystemItem}/>
                     <FooterButton name="copy" label={t("buttons.copy")} onPress={handleCopyAction} disabled={hasSelectedSystemItem}/>
-                    <FooterButton name="paint-brush" label={t("buttons.color")} onPress={handleColor}/>
+                    <FooterButton name="paint-brush" label={t("buttons.color")} onPress={handleColor} disabled={hasSelectedSystemItem}/>
                 </View>
             ) : (
                 
