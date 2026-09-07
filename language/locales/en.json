@@ -28,7 +28,8 @@
         "cantPasteDescendant": "You cannot paste a folder into its own descendant.",
         "folderInCard": "Folders cannot be pasted inside cards.",
         "cardInCard": "Cards can only be pasted inside folders.",
-        "fieldInFolder": "Fields can only be pasted inside cards."
+        "fieldInFolder": "Fields can only be pasted inside cards.",
+        "systemContainerPaste": "Items cannot be pasted inside system recovery folders or cards."
     },
     "screenMessages": {
         "dbLoading": "Initializing database...",

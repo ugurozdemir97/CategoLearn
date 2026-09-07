@@ -112,20 +112,28 @@ export default function SearchScreen({ navigation }) {
         // Create the path
         const path = await buildPath(item);
 
-        // If Category and parent is null, go to HomeScreen, if parent exist go to FolderScreen
+        // Open the selected folder itself, including folders stored at the root.
         if (item.type === "Category") {
-            if (item.parent_id === null) navigation.navigate("Home");
-            else navigation.navigate("Folder", {folder: item, path: [...path, { id: item.id, name: item.name, type: item.type }]});
+            navigation.navigate("Folder", {
+                folder: item,
+                path: [...path, { id: item.id, name: item.name, type: item.type }]
+            });
 
-        // If Card, navigate to parent folder of the card
+        // Open the selected card itself.
         } else if (item.type === "Card") {
-            const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [item.parent_id]);
-            navigation.navigate("Folder", {folder: folder, path: path});
+            navigation.navigate("CardDetail", {
+                card: item,
+                path: [...path, { id: item.id, name: item.name, type: item.type }]
+            });
         
-        // If Card, navigate to the parent card
+        // Fields have no separate screen, so open their card and focus the field.
         } else if (item.type === "Field") {
             const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [item.parent_id]);
-            navigation.navigate("CardDetail", {card: card, path: [...path, { id: card.id, name: card.name, type: card.type }]});
+            navigation.navigate("CardDetail", {
+                card,
+                path: [...path, { id: card.id, name: card.name, type: card.type }],
+                targetFieldId: item.id
+            });
         }
     };
 

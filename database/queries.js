@@ -1,5 +1,15 @@
 import db from "./db";
 
+async function preventSystemFolderAction(folderId, action) {
+    const folder = await db.getFirstAsync("SELECT is_system_folder FROM folders WHERE id = ?", [folderId]);
+    if (folder?.is_system_folder === 1) throw new Error(`Cannot ${action} system folders`);
+}
+
+async function preventSystemCardAction(cardId, action) {
+    const card = await db.getFirstAsync("SELECT is_system_card FROM cards WHERE id = ?", [cardId]);
+    if (card?.is_system_card === 1) throw new Error(`Cannot ${action} system cards`);
+}
+
 // ************************** FOLDERS (Categories) ************************** //
 
 // Create folder
@@ -66,19 +76,7 @@ export async function updateFolder(id, name, color = null) {
 
 // Soft delete folder
 export async function deleteFolder(folderId) {
-
-    // Prevent deleting system folder (Restored Items), if deleted, just delete its children
-    const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
-    if (folder && folder.is_system_folder === 1) {
-        const childFolders = await db.getAllAsync("SELECT * FROM folders WHERE parent_id = ? AND deleted_at IS NULL", [folderId]);
-        const childCards =   await db.getAllAsync("SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL", [folderId]);
-        
-        // Soft delete all children
-        for (const child of childFolders) await deleteFolder(child.id);
-        for (const child of childCards)   await deleteCard(child.id);
-        
-        return; // Don't delete the system folder itself
-    }
+    await preventSystemFolderAction(folderId, "delete");
 
     // Mark only this folder as deleted (children actually remain active but hidden)
     await db.runAsync("UPDATE folders SET deleted_at = datetime('now', 'localtime') WHERE id = ?", [folderId]);
@@ -86,6 +84,7 @@ export async function deleteFolder(folderId) {
 
 // Permanently delete folder (recursively deletes ALL non-deleted children)
 export async function permanentlyDeleteFolder(folderId) {
+    await preventSystemFolderAction(folderId, "permanently delete");
     
     // Get all child cards that are NOT already deleted and delete them permanently
     const childCards =             await db.getAllAsync("SELECT * FROM cards WHERE parent_id = ? AND deleted_at IS NULL", [folderId]);
@@ -116,7 +115,7 @@ export async function isDescendant(sourceId, nodeId) {
 
 // Copy folder recursively (with cards + fields)
 export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
-
+    await preventSystemFolderAction(itemId, "copy");
     const copiedItem =  await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [itemId]);
     const newFolderId = await addFolder(newParentId, copiedItem.name, copiedItem.color);
     idMap[copiedItem.id] = newFolderId;
@@ -134,6 +133,9 @@ export async function copyFolderRecursive(itemId, newParentId, idMap = {}) {
 
 // Move folder (cut/paste)
 export async function moveFolder(id, newParentId) {
+    await preventSystemFolderAction(id, "move");
+    if (newParentId !== null) await preventSystemFolderAction(newParentId, "move items into");
+
     if (newParentId === null) return db.runAsync(`UPDATE folders SET parent_id = NULL, updated_at = datetime('now', 'localtime') WHERE id = ?`, [id]);
     else                      return db.runAsync(`UPDATE folders SET parent_id = ?, updated_at = datetime('now', 'localtime') WHERE id = ?`, [newParentId, id]);
 }
@@ -185,14 +187,7 @@ export async function updateCard(id, name, color = null) {
 
 // Soft delete card
 export async function deleteCard(cardId) {
-    
-    // Prevent deleting system card (Restored Fields), if deleted just delete its fields
-    const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
-    if (card && card.is_system_card === 1) {
-        const fields =              await db.getAllAsync("SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL", [cardId]);
-        for (const field of fields) await deleteField(field.id);
-        return; // Don't delete the system card itself
-    }
+    await preventSystemCardAction(cardId, "delete");
 
     // Mark only card as deleted (fields remain active but hidden)
     await db.runAsync("UPDATE cards SET deleted_at = datetime('now', 'localtime') WHERE id = ?", [cardId]);
@@ -201,6 +196,7 @@ export async function deleteCard(cardId) {
 
 // Permanently delete card (recursively deletes ALL non-deleted fields)
 export async function permanentlyDeleteCard(cardId) {
+    await preventSystemCardAction(cardId, "permanently delete");
 
     // Get all fields that are NOT already deleted and delete them permanently
     const fields =              await db.getAllAsync("SELECT * FROM fields WHERE parent_id = ? AND deleted_at IS NULL", [cardId]);
@@ -212,11 +208,14 @@ export async function permanentlyDeleteCard(cardId) {
 
 // Move card (cut/paste)
 export async function moveCard(id, newFolderId) {
+    await preventSystemCardAction(id, "move");
+    await preventSystemFolderAction(newFolderId, "move items into");
     return db.runAsync(`UPDATE cards SET parent_id = ?, updated_at = datetime('now', 'localtime') WHERE id = ?`, [newFolderId, id]);
 }
 
 // Copy card recursively (with all its fields)
 export async function copyCardRecursive(copiedCard, newFolderId) {
+    await preventSystemCardAction(copiedCard, "copy");
     const card =            await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [copiedCard]);
     const newCardId =       await addCard(newFolderId, card.name, card.color);
     const fields =          await getFields(card.id);
@@ -261,6 +260,7 @@ export async function permanentlyDeleteField(id) {
 
 // Move field (cut/paste)
 export async function moveField(id, newCardId) {
+    await preventSystemCardAction(newCardId, "move items into");
     return db.runAsync(`UPDATE fields SET parent_id = ?, updated_at = datetime('now', 'localtime') WHERE id = ?`, [newCardId, id]);
 }
 

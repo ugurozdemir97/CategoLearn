@@ -9,7 +9,7 @@ import { useTheme } from "../../context/ThemeContext.js";
 import styles from "../../styles/styles.js";
 
 // Utils
-import { handleDeleteSelected, handleCutSelected, handleCopySelected, handlePaste } from "../../utils/handleFooterActions.js";
+import { handleDeleteSelected, handleCutSelected, handleCopySelected, handlePaste, isSystemRecoveryItem } from "../../utils/handleFooterActions.js";
 
 // Language
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,9 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
     const insets = useSafeAreaInsets();  // Safe area insets for preventing overlap with navigation buttons/status bar
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const hasSelectedSystemItem = selectedItems.some(isSystemRecoveryItem);
+    const isInsideSystemRecoveryContainer = isSystemRecoveryItem(parent);
+    const disableClipboardSelection = hasSelectedSystemItem || isInsideSystemRecoveryContainer;
 
     const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t)};
     const handleCutAction =  () => {handleCutSelected(selectedItems, cut, clearSelection)};
@@ -38,9 +41,9 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
             {/* Delete - Cut - Copy - Color */}
             {selectedItems.length > 0 ? (
                 <View style={[styles.rowCenter, styles.spaceAround, { flex: 1 }]}>
-                    <FooterButton name="trash" label={t("buttons.delete")} color={colors.danger} onPress={handleDelete}/>
-                    <FooterButton name="scissors" label={t("buttons.cut")} onPress={handleCutAction}/>
-                    <FooterButton name="copy" label={t("buttons.copy")} onPress={handleCopyAction}/>
+                    <FooterButton name="trash" label={t("buttons.delete")} color={colors.danger} onPress={handleDelete} disabled={hasSelectedSystemItem}/>
+                    <FooterButton name="scissors" label={t("buttons.cut")} onPress={handleCutAction} disabled={disableClipboardSelection}/>
+                    <FooterButton name="copy" label={t("buttons.copy")} onPress={handleCopyAction} disabled={disableClipboardSelection}/>
                     <FooterButton name="paint-brush" label={t("buttons.color")} onPress={handleColor}/>
                 </View>
             ) : (
@@ -53,7 +56,7 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
                     {clipboard.length > 0 && (
                         <>
                             <FooterButton name="times-circle" label={t("buttons.clear")} onPress={clearClipboard}/>
-                            <FooterButton name="clipboard" label={t("buttons.paste")} onPress={handlePasteAction}/>
+                            <FooterButton name="clipboard" label={t("buttons.paste")} onPress={handlePasteAction} disabled={isInsideSystemRecoveryContainer}/>
                         </>
                     )}
                 </View>

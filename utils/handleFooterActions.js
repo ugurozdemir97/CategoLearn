@@ -1,8 +1,12 @@
 import { isDescendant, moveFolder, moveCard, moveField, copyFolderRecursive, addField, getFields, copyCardRecursive, getFolders, getCards } from "../database/queries.js";
+
+export function isSystemRecoveryItem(item) {
+    return item?.is_system_folder === 1 || item?.is_system_card === 1;
+}
     
 // Delete selected items
 export function handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t) {
-    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 0 || selectedItems.some(isSystemRecoveryItem)) return;
     const message =
         selectedItems.length === 1
             ? t("infoMessages.sureDeleteOne", {item: selectedItems[0].name})
@@ -19,6 +23,7 @@ export async function handleEditSelected(selectedItems, setEditTarget, setModalV
         setFieldContext?.(item.context);                                  // Context of the field for the CardDetailScreen
         if (item.type === "Card") setFields?.(await getFields(item.id));  // Set fields of the card for card editing
         setModalVisible(true);
+        return [];
     } else {
         return [{ type: t("errorTitles.edit"), message: t("errorMessages.editOne")}];
     }
@@ -26,12 +31,14 @@ export async function handleEditSelected(selectedItems, setEditTarget, setModalV
 
 // Cut Selected
 export function handleCutSelected(selectedItems, cutFn, clearSelection) {
+    if (selectedItems.some(isSystemRecoveryItem)) return;
     cutFn(selectedItems.map((item) => ({ ...item, type: item.type })));
     clearSelection();
 }
 
 // Copy Selected
 export function handleCopySelected(selectedItems, copyFn, clearSelection) {
+    if (selectedItems.some(isSystemRecoveryItem)) return;
     copyFn(selectedItems.map((item) => ({ ...item, type: item.type })));
     clearSelection();
 }
@@ -39,6 +46,12 @@ export function handleCopySelected(selectedItems, copyFn, clearSelection) {
 // Paste Items
 export async function handlePaste(clipboard, clipboardMode, node, clearClipboard, loadFn, t) {
     if (clipboard.length === 0) return [];
+    if (isSystemRecoveryItem(node)) {
+        return [{
+            type: t("errorTitles.notAllowed"),
+            message: t("errorMessages.systemContainerPaste")
+        }];
+    }
 
     let errorMessages = new Map();  // Use this to show error messages with information modal in screens
 

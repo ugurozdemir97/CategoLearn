@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, Text, FlatList } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
@@ -43,13 +43,15 @@ import { useTranslation } from 'react-i18next';
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
-    const { card, path } = route.params;
+    const { card, path, targetFieldId = null } = route.params;
     const [fields, setFields] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [fieldContext, setFieldContext] = useState("");
     const [expanded, setExpanded] = useState({});
     const [cardDate, setCardDate] = useState(null);
     const [footerHeight, setFooterHeight] = useState(60);
+    const fieldListRef = useRef(null);
+    const targetScrollRetriesRef = useRef(0);
 
     // Custom hooks for state management
     const modals = useModalStates();
@@ -82,6 +84,47 @@ export default function CardDetailScreen({ route, navigation }) {
         });
         return unsubscribe;
     }, [navigation, sortMode]);
+
+    // Focus a field opened from search after the sorted field list is available.
+    useEffect(() => {
+        if (isLoading || targetFieldId === null) return;
+
+        const targetIndex = fields.findIndex((field) => String(field.id) === String(targetFieldId));
+        if (targetIndex === -1) return;
+
+        const targetField = fields[targetIndex];
+        targetScrollRetriesRef.current = 0;
+
+        if (targetField.context?.length > 0) {
+            setExpanded((current) => ({ ...current, [targetField.id]: true }));
+        }
+
+        requestAnimationFrame(() => {
+            fieldListRef.current?.scrollToIndex({
+                index: targetIndex,
+                animated: true,
+                viewPosition: 0.35
+            });
+        });
+
+        // Treat search focus as a one-time request so selecting the same field later works again.
+        navigation.setParams({ targetFieldId: null });
+    }, [fields, isLoading, navigation, targetFieldId]);
+
+    // FlatList cannot calculate every off-screen position until enough rows render.
+    const handleTargetScrollFailure = ({ index, averageItemLength }) => {
+        if (targetScrollRetriesRef.current >= 2) return;
+        targetScrollRetriesRef.current += 1;
+
+        fieldListRef.current?.scrollToOffset({
+            offset: Math.max(0, averageItemLength * index),
+            animated: true
+        });
+
+        setTimeout(() => {
+            fieldListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.35 });
+        }, 150);
+    };
 
     // Handle creating or editing a field
     const handleField = async (editedField, mode) => {
@@ -212,9 +255,11 @@ export default function CardDetailScreen({ route, navigation }) {
             ) : (
                 // Normal mode - regular list
                 <FlatList
+                    ref={fieldListRef}
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     style={{ marginTop: 8, paddingBottom: 15 }}
+                    onScrollToIndexFailed={handleTargetScrollFailure}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}
