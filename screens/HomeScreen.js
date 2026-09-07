@@ -74,8 +74,6 @@ export default function HomeScreen({ navigation }) {
         if (mode === "create")                         await addFolder(null, folderData.name, folderData.color);
         else if (mode === "edit" && modals.editTarget) await updateFolder(modals.editTarget.id, folderData.name, folderData.color);
 
-        modals.closeCreateModal();
-        clearSelection();
         await loadSubjects();
     };
 

@@ -29,7 +29,8 @@
         "folderInCard": "Folders cannot be pasted inside cards.",
         "cardInCard": "Cards can only be pasted inside folders.",
         "fieldInFolder": "Fields can only be pasted inside cards.",
-        "systemContainerPaste": "Items cannot be pasted inside system recovery folders or cards."
+        "systemContainerPaste": "Items cannot be pasted inside system recovery folders or cards.",
+        "saveFailed": "The item could not be saved. Please try again."
     },
     "screenMessages": {
         "dbLoading": "Initializing database...",

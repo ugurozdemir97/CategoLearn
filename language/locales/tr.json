@@ -29,7 +29,8 @@
         "folderInCard": "Klasörler kartların içine yapıştırılamaz.",
         "cardInCard": "Kartlar yalnızca klasörlerin içine yapıştırılabilir.",
         "fieldInFolder": "Alanlar yalnızca kartların içine yapıştırılabilir.",
-        "systemContainerPaste": "Öğeler sistem kurtarma klasörlerinin veya kartlarının içine yapıştırılamaz."
+        "systemContainerPaste": "Öğeler sistem kurtarma klasörlerinin veya kartlarının içine yapıştırılamaz.",
+        "saveFailed": "Öğe kaydedilemedi. Lütfen tekrar deneyin."
     },
     "screenMessages": {
         "dbLoading": "Veritabanı başlatılıyor...",

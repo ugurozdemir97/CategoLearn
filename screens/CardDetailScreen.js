@@ -131,9 +131,6 @@ export default function CardDetailScreen({ route, navigation }) {
         if (mode === "create") await addField(card.id, editedField.name, editedField.context, editedField.color);
         else                   await updateField(modals.editTarget?.id, editedField.name, editedField.context, editedField.color);
 
-        setFieldContext("");
-        modals.closeCreateModal();
-        clearSelection();
         await loadFields();
     };
 

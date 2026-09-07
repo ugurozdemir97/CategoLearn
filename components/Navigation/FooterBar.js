@@ -23,7 +23,6 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
     const { t } = useTranslation();
     const hasSelectedSystemItem = selectedItems.some(isSystemRecoveryItem);
     const isInsideSystemRecoveryContainer = isSystemRecoveryItem(parent);
-    const disableClipboardSelection = hasSelectedSystemItem || isInsideSystemRecoveryContainer;
 
     const handleDelete =     () => {handleDeleteSelected(selectedItems, openDeleteModal, itemLabel, t)};
     const handleCutAction =  () => {handleCutSelected(selectedItems, cut, clearSelection)};
@@ -42,8 +41,8 @@ export default function FooterBar({ selectedItems, clipboard, clipboardMode, cle
             {selectedItems.length > 0 ? (
                 <View style={[styles.rowCenter, styles.spaceAround, { flex: 1 }]}>
                     <FooterButton name="trash" label={t("buttons.delete")} color={colors.danger} onPress={handleDelete} disabled={hasSelectedSystemItem}/>
-                    <FooterButton name="scissors" label={t("buttons.cut")} onPress={handleCutAction} disabled={disableClipboardSelection}/>
-                    <FooterButton name="copy" label={t("buttons.copy")} onPress={handleCopyAction} disabled={disableClipboardSelection}/>
+                    <FooterButton name="scissors" label={t("buttons.cut")} onPress={handleCutAction} disabled={hasSelectedSystemItem}/>
+                    <FooterButton name="copy" label={t("buttons.copy")} onPress={handleCopyAction} disabled={hasSelectedSystemItem}/>
                     <FooterButton name="paint-brush" label={t("buttons.color")} onPress={handleColor}/>
                 </View>
             ) : (

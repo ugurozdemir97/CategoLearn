@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Modal, View, Text, TextInput, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
+import { ActivityIndicator, Modal, View, Text, TextInput, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 // Components
@@ -35,11 +35,13 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     const [deleteIndex, setDeleteIndex] = useState(null);               // For deleting the fields in Create Card modal
     const [errorMessage, setErrorMessage] = useState("");               // For displaying error messages
     const [selectedColor, setSelectedColor] = useState(color);          // Color of the item
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fieldsScrollRef = useRef(null);
     const fieldTitleRefs = useRef([]);
     const fieldLayoutYs = useRef([]);
     const focusedFieldIndex = useRef(null);
     const pendingFieldFocusIndex = useRef(null);
+    const submittingRef = useRef(false);
     const { colors } = useTheme();
     const { t } = useTranslation();
 
@@ -50,6 +52,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
             setLocalFields([...fields]);
             setLocalContext(context || "");
             setErrorMessage("");
+            setIsSubmitting(false);
+            submittingRef.current = false;
             setDiscardConfirmVisible(false);
             setSelectedColor(color);
             setColorTargetFieldIndex(null);
@@ -83,83 +87,94 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
     // Handle Create or Edit action
     const handleAction = async () => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        setErrorMessage("");
 
-        // Validate the title
-        const validation = validateName(localTitle, isCard ? "Card" : isField ? "Field" : title.split(" ").pop(), t);
-        if (!validation.valid) {setErrorMessage(validation.error); return}
+        try {
+            // Validate the title
+            const validation = validateName(localTitle, isCard ? "Card" : isField ? "Field" : title.split(" ").pop(), t);
+            if (!validation.valid) {setErrorMessage(validation.error); return}
 
-        // Add Or Edit Cards
-        if (isCard) {
-            
-            // Check duplicates in parent folder
-            const existingCards = await getCards(parentId);
-            if (existingCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
-                setErrorMessage(t("errorMessages.duplicateCard", {title: validation.trimmed}));
-                return;
-            }
+            // Add Or Edit Cards
+            if (isCard) {
 
-            // Validate field names
-            const fieldNames = localFields.map(f => f.name);
-            let duplicatePair = null;
-
-            for (const f of fieldNames) {
-                const fieldValidation = validateName(f, "Field", t);
-                if (!fieldValidation.valid) {
-                    setErrorMessage(fieldValidation.error);
+                // Check duplicates in parent folder
+                const existingCards = await getCards(parentId);
+                if (existingCards.some(c => c.name === validation.trimmed && c.id !== editTarget?.id)) {
+                    setErrorMessage(t("errorMessages.duplicateCard", {title: validation.trimmed}));
                     return;
                 }
-            }
 
-            // Find duplicate field names
-            for (let i = 0; i < fieldNames.length; i++) {
-                for (let j = i + 1; j < fieldNames.length; j++) {
-                    if (fieldNames[i] === fieldNames[j]) {
-                        duplicatePair = [fieldNames[i], fieldNames[j]];
-                        break;
+                // Validate field names
+                const fieldNames = localFields.map(f => f.name);
+                let duplicatePair = null;
+
+                for (const fieldName of fieldNames) {
+                    const fieldValidation = validateName(fieldName, "Field", t);
+                    if (!fieldValidation.valid) {
+                        setErrorMessage(fieldValidation.error);
+                        return;
                     }
                 }
-                if (duplicatePair) break;
+
+                // Find duplicate field names
+                for (let i = 0; i < fieldNames.length; i++) {
+                    for (let j = i + 1; j < fieldNames.length; j++) {
+                        if (fieldNames[i] === fieldNames[j]) {
+                            duplicatePair = [fieldNames[i], fieldNames[j]];
+                            break;
+                        }
+                    }
+                    if (duplicatePair) break;
+                }
+
+                if (duplicatePair) {
+                    setErrorMessage(t("errorMessages.duplicateFields", {fields: duplicatePair.join(", ")}));
+                    return;
+                }
+
+                const cardData = { type: "Card", name: validation.trimmed, fields: localFields, color: selectedColor };
+                await onCreate(cardData, mode);
             }
 
-            if (duplicatePair) {
-                setErrorMessage(t("errorMessages.duplicateFields", {fields: duplicatePair.join(", ")}));
-                return;
+            // Add Or Edit Fields
+            else if (isField) {
+
+                // Check duplicates in parent card
+                const existingFields = await getFields(parentId);
+                if (existingFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+                    setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
+                    return;
+                }
+
+                const fieldData = { type: "Field", name: validation.trimmed, context: localContext, color: selectedColor };
+                await onCreate(fieldData, mode);
             }
 
-            const cardData = { type: "Card", name: validation.trimmed, fields: localFields, color: selectedColor };
-            onCreate(cardData, mode);
+            // Add Or Edit Folders
+            else {
+
+                // Check duplicates in parent folder (or root if parentId is null)
+                const existingFolders = await getFolders(parentId);
+                if (existingFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
+                    setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
+                    return;
+                }
+
+                const folderData = { type: "Category", name: validation.trimmed, color: selectedColor };
+                await onCreate(folderData, mode);
+            }
+
+            onClose();
+        } catch (error) {
+            console.error("Create or edit save failed:", error);
+            setErrorMessage(t("errorMessages.saveFailed"));
+        } finally {
+            submittingRef.current = false;
+            setIsSubmitting(false);
         }
-
-        // Add Or Edit Fields 
-        else if (isField) {
-
-            // Check duplicates in parent card
-            const existingFields = await getFields(parentId);
-            if (existingFields.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
-                setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
-                return;
-            }
-
-            const fieldData = { type: "Field", name: validation.trimmed, context: localContext, color: selectedColor };
-            onCreate(fieldData, mode);
-        }
-
-        // Add Or Edit Folders
-        else {
-
-            // Check duplicates in parent folder (or root if parentId is null)
-            const existingFolders = await getFolders(parentId);
-            if (existingFolders.some(f => f.name === validation.trimmed && f.id !== editTarget?.id)) {
-               setErrorMessage(t("errorMessages.duplicateField", {title: validation.trimmed}));
-                return;
-            }
-
-            const folderData = { type: "Category", name: validation.trimmed, color: selectedColor };
-            onCreate(folderData, mode);
-        }
-
-        // Close Modal
-        onClose();
     };
 
     // Add field area
@@ -219,6 +234,8 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
     };
 
     const requestClose = () => {
+        if (isSubmitting) return;
+
         if (hasFieldDraftContent()) {
             setDiscardConfirmVisible(true);
             return;
@@ -366,11 +383,15 @@ export default function CreateModal({ visible, onClose, onCreate, title, placeho
 
                             {/* Action Buttons */}
                             <View style={[styles.rowCenter, styles.spaceBetween, { marginTop: 10, gap: 10 }]}>
-                                <TouchableOpacity onPress={requestClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1 }]}>
+                                <TouchableOpacity disabled={isSubmitting} onPress={requestClose} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.bgSecondary, flex: 1, opacity: isSubmitting ? 0.55 : 1 }]}>
                                     <Text style={[styles.midText, { color: colors.textPrimary }]}>{t("buttons.cancel")}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleAction} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1 }]}>
-                                    <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? t("buttons.create") : t("buttons.save")}</Text>
+                                <TouchableOpacity disabled={isSubmitting} onPress={handleAction} style={[styles.underShadow, styles.normalButton, { backgroundColor: colors.accent, flex: 1, opacity: isSubmitting ? 0.7 : 1 }]}>
+                                    {isSubmitting ? (
+                                        <ActivityIndicator size="small" color={colors.textPrimary}/>
+                                    ) : (
+                                        <Text style={[styles.midText, { color: colors.textPrimary }]}>{mode === "create" ? t("buttons.create") : t("buttons.save")}</Text>
+                                    )}
                                 </TouchableOpacity>
                             </View>
                         </View>

@@ -1,63 +1,77 @@
 # Risks and priorities
 
 This is the remaining confirmed work, ordered from easiest to implement to most
-difficult. Database migrations are implemented. The existing deletion and recovery
-behavior is intentional and must remain unchanged.
+difficult. Each item names the relevant files and explains why they are involved.
+Database migrations are implemented. Existing deletion and recovery behavior is
+intentional and must remain unchanged.
 
-## 1. Hide descendants of deleted ancestors from search
+## Progress tracker
 
-Search currently checks only a result row's own `deleted_at`. If folder A is
-deleted while one of its children remains active internally, that hidden child
-can still appear in search.
+1. Fix selected-item edit crash. ✓
+2. Lock system recovery items. ✓
+3. Open exact search results, including scrolling to and expanding fields. ✓
+4. Hide descendants of deleted ancestors from search. ✓
+5. Check the complete ancestor path during restoration. ✓
+6. Keep forms open when saving fails. ✓
+7. Prevent cards from being dragged above folders.
+8. Support valid orphaned Trash items during import.
 
-Include a result only when the item and every folder or card in its path to the
-root are active. This changes search visibility only; it must not modify deletion
-or restoration data.
+Additional completed refinements:
 
-## 2. Check the complete ancestor path when restoring
+- Reuse one hierarchy-path check for both search visibility and restoration. ✓
+- Allow recovered items to be copied or cut out of system recovery folders while
+  still preventing users from pasting items into them. ✓
 
-Restore currently checks only the immediate parent. A deleted item can have an
-active immediate parent whose parent or higher ancestor is deleted. Restoring the
-item to that path reports success but leaves it invisible.
+## 1. Prevent cards from being dragged above folders
 
-Use the original location only when the complete path to the root is active.
-Otherwise restore the item into `Restored Items` or `Restored Fields`.
+### Files to change
 
-## 3. Keep create and edit forms open when saving fails
+- Change `hooks/useCustomSort.js` so drag completion and arrow movement respect a
+  caller-provided type-group boundary.
+- Change `screens/FolderScreen.js` to enable the folders-first boundary for its
+  mixed folder/card list.
+- Change `components/Buttons/DraggableListButton.js` only if its arrow buttons
+  need disabled-state support at the top or bottom of a type group.
 
-`CreateModal` starts the asynchronous save without awaiting it and then closes
-unconditionally. If the database write fails, the form can disappear, discard
-the typed draft, and produce an unhandled rejection.
+Home contains only folders and Card Detail contains only fields, so their existing
+custom ordering should remain unchanged.
 
-Await the save, prevent repeated submission while it is running, close only after
-success, and show the error while keeping the form and its content open.
+### Why
 
-## 4. Prevent cards from being dragged above folders
+Normal rendering always groups folders above cards. Custom sorting currently lets
+a card cross into the folder section, saves the indexes, and then displays a
+different order after reload. Folders should move only among folders and cards
+only among cards.
 
-The normal list design always keeps folders above cards, but custom sorting allows
-a card to be dragged into the folder section. Reloading then moves it below the
-folders again, so the displayed drag result cannot be preserved.
+## 2. Make import support the existing Trash behavior
 
-Keep folders and cards as separate drag groups. Folders may be reordered among
-folders and cards among cards, but neither type may cross the boundary. Apply the
-same restriction to drag gestures and arrow-based movement.
+### Files to change
 
-## 5. Make import support the existing Trash behavior
+- Change `database/exportDb.js`, especially `validateHierarchy`, the
+  `PRAGMA foreign_key_check` handling, and `keepCurrentDatabase`.
+- Keep `database/migrations.js` responsible only for upgrading an older valid
+  schema before the current-version validation runs.
 
-Keep the current behavior exactly as it is:
+### Required behavior
 
-- deleting a folder soft-deletes the folder and hides its descendant tree;
-- permanently deleting that folder removes descendants that still belong to it;
-- a child separately deleted before its parent is permanently deleted remains
-  independently recoverable;
-- restoring that child after its parent is gone places it in `Restored Items` or
-  `Restored Fields`.
+- Deleting a folder continues to soft-delete the folder and hide its descendant
+  tree.
+- Permanently deleting that folder continues to delete descendants that still
+  belong to it.
+- A child separately deleted before its parent is permanently deleted remains
+  independently recoverable.
+- Restoring that child after its parent is gone continues to place it in
+  `Restored Items` or `Restored Fields`.
 
-The required change is only in import. That valid final state contains a deleted
-item whose parent no longer exists, but the importer currently rejects every
-missing parent. Accept recoverable deleted orphans while continuing to reject
-active orphans, invalid schemas, damaged files, and other broken relationships.
-Both Replace and Keep must preserve the recoverable item.
+The importer must accept that valid deleted-orphan state while continuing to
+reject active orphans, invalid schemas, damaged files, and other broken
+relationships. Both Replace and Keep must preserve the recoverable item.
+
+### Why
+
+A genuine CategoLearn backup can legally contain a deleted item whose parent no
+longer exists. Import currently treats every missing parent as corruption, and
+Keep assumes every imported parent can be mapped. This can reject a valid backup.
 
 ## Accepted design decisions
 
@@ -71,10 +85,6 @@ Both Replace and Keep must preserve the recoverable item.
 
 ## Focused verification
 
-- Delete an ancestor and confirm all of its descendants disappear from search.
-- Restore an item whose higher ancestor is deleted and confirm it appears in the
-  correct system recovery location.
-- Force a create/edit save failure and confirm the modal and typed content remain.
 - Confirm cards cannot cross above folders through dragging or arrow controls.
 - Export and import a valid database containing an independently deleted orphan
   with both Replace and Keep, then restore that item.

@@ -1,4 +1,5 @@
 import db from "./db";
+import { hasActiveFolderPath, hasActiveCardPath } from "../utils/hierarchyVisibility.js";
 
 async function preventSystemFolderAction(folderId, action) {
     const folder = await db.getFirstAsync("SELECT is_system_folder FROM folders WHERE id = ?", [folderId]);
@@ -266,6 +267,19 @@ export async function moveField(id, newCardId) {
 
 // ************************** RESTORE ITEMS ************************** //
 
+// Load one hierarchy snapshot that can be reused and updated across a multi-item restore.
+async function loadRestoreHierarchy() {
+    const [folders, cards] = await Promise.all([
+        db.getAllAsync("SELECT id, parent_id, deleted_at FROM folders"),
+        db.getAllAsync("SELECT id, parent_id, deleted_at FROM cards")
+    ]);
+
+    return {
+        foldersById: new Map(folders.map((folder) => [folder.id, folder])),
+        cardsById: new Map(cards.map((card) => [card.id, card]))
+    };
+}
+
 // Generate unique name if conflict exists while restoring
 // For example if you try to restore a folder called "A" and that folder already exist where you try to restore it
 async function generateUniqueName(baseName, parentId, tableName) {
@@ -319,54 +333,57 @@ export async function getDeletedItems() {
 }
 
 // Restore a folder (and all its children)
-export async function restoreFolder(folderId) {
+export async function restoreFolder(folderId, restoreHierarchy = null) {
 
-
+    const hierarchy = restoreHierarchy || await loadRestoreHierarchy();
     const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [folderId]);
     if (!folder) return false;
 
-    // Check if parent exists and is not deleted, if parent is also deleted, restore the item in Restored Items folder
+    // Use the original parent only when its complete path to the root is active.
     let targetParentId = folder.parent_id;
-    if (targetParentId !== null) {
-        const parent =                await db.getFirstAsync("SELECT * FROM folders WHERE id = ? AND deleted_at IS NULL", [targetParentId]);
-        if (!parent) targetParentId = await getOrCreateRestoredItemsFolder();
+    if (targetParentId !== null && !hasActiveFolderPath(targetParentId, hierarchy.foldersById)) {
+        targetParentId = await getOrCreateRestoredItemsFolder(hierarchy);
     }
 
     // Generate unique name if conflict exists while restoring. Then restore it
     const uniqueName = await generateUniqueName(folder.name, targetParentId, 'folders');
     await db.runAsync("UPDATE folders SET deleted_at = NULL, parent_id = ?, name = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?", [targetParentId, uniqueName, folderId]);
+    hierarchy.foldersById.set(folderId, { ...folder, parent_id: targetParentId, name: uniqueName, deleted_at: null });
     return uniqueName !== folder.name; // Return true if renamed
 }
 
 // Restore a card (and all its fields)
-export async function restoreCard(cardId) {
+export async function restoreCard(cardId, restoreHierarchy = null) {
 
+    const hierarchy = restoreHierarchy || await loadRestoreHierarchy();
     const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [cardId]);
     if (!card) return false;
 
-    // Check if parent folder exists and is not deleted, if parent is also deleted, restore the item in Restored Items folder
+    // Use the original folder only when its complete path to the root is active.
     let targetFolderId = card.parent_id;
-    const parentFolder =                await db.getFirstAsync("SELECT * FROM folders WHERE id = ? AND deleted_at IS NULL", [targetFolderId]);
-    if (!parentFolder) targetFolderId = await getOrCreateRestoredItemsFolder();
+    if (!hasActiveFolderPath(targetFolderId, hierarchy.foldersById)) {
+        targetFolderId = await getOrCreateRestoredItemsFolder(hierarchy);
+    }
 
     // Generate unique name if conflict exists while restoring. Then restore it
     const uniqueName = await generateUniqueName(card.name, targetFolderId, 'cards');
     await db.runAsync("UPDATE cards SET deleted_at = NULL, parent_id = ?, name = ?, updated_at = (datetime('now', 'localtime')) WHERE id = ?", [targetFolderId, uniqueName, cardId]);
+    hierarchy.cardsById.set(cardId, { ...card, parent_id: targetFolderId, name: uniqueName, deleted_at: null });
     return uniqueName !== card.name; // Return true if renamed
 }
 
 // Restore a field
-export async function restoreField(fieldId) {
+export async function restoreField(fieldId, restoreHierarchy = null) {
 
+    const hierarchy = restoreHierarchy || await loadRestoreHierarchy();
     const field = await db.getFirstAsync("SELECT * FROM fields WHERE id = ?", [fieldId]);
     if (!field) return false;
 
-    // Check if parent card exists and is not deleted, if parent is also deleted, restore the item in Restored Fields card
+    // Use the original card only when the card and its complete folder path are active.
     let targetCardId = field.parent_id;
-    const parentCard = await db.getFirstAsync("SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL",[targetCardId]);
-    if (!parentCard) {
-        const restoredFolder = await getOrCreateRestoredItemsFolder();
-        targetCardId = await getOrCreateRestoredFieldsCard(restoredFolder);
+    if (!hasActiveCardPath(targetCardId, hierarchy.cardsById, hierarchy.foldersById)) {
+        const restoredFolder = await getOrCreateRestoredItemsFolder(hierarchy);
+        targetCardId = await getOrCreateRestoredFieldsCard(restoredFolder, hierarchy);
     }
     
     // Generate unique name if conflict exists while restoring. Then restore it
@@ -376,20 +393,36 @@ export async function restoreField(fieldId) {
 }
 
 // Get or create "Restored Items" folder
-async function getOrCreateRestoredItemsFolder() {
+async function getOrCreateRestoredItemsFolder(restoreHierarchy = null) {
     const existing = await db.getFirstAsync("SELECT * FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL AND deleted_at IS NULL");
-    if (existing)    return existing.id;
+    if (existing) {
+        restoreHierarchy?.foldersById.set(existing.id, existing);
+        return existing.id;
+    }
 
     const result = await db.runAsync("INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', '#ff9800', 1)");
+    restoreHierarchy?.foldersById.set(result.lastInsertRowId, {
+        id: result.lastInsertRowId,
+        parent_id: null,
+        deleted_at: null
+    });
     return result.lastInsertRowId;
 }
 
 // Get or create "Restored Fields " card in Restored Items folder
-async function getOrCreateRestoredFieldsCard(folderId) {
+async function getOrCreateRestoredFieldsCard(folderId, restoreHierarchy = null) {
     const existing = await db.getFirstAsync("SELECT * FROM cards WHERE is_system_card = 1 AND parent_id = ? AND deleted_at IS NULL", [folderId]);
-    if (existing) return existing.id;
+    if (existing) {
+        restoreHierarchy?.cardsById.set(existing.id, existing);
+        return existing.id;
+    }
 
     const result = await db.runAsync("INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', '#ff9800', 1)", [folderId]);
+    restoreHierarchy?.cardsById.set(result.lastInsertRowId, {
+        id: result.lastInsertRowId,
+        parent_id: folderId,
+        deleted_at: null
+    });
     return result.lastInsertRowId;
 }
 
@@ -402,18 +435,19 @@ export async function restoreMultipleItems(items) {
     const fields =  items.filter(i => i.type === "Field");
 
     let anyRenamed = false;
+    const hierarchy = await loadRestoreHierarchy();
     
     // Restore in order and track if any were renamed
     for (const folder of folders) {
-        const wasRenamed = await restoreFolder(folder.id);
+        const wasRenamed = await restoreFolder(folder.id, hierarchy);
         if (wasRenamed) anyRenamed = true;
     }
     for (const card of cards) {
-        const wasRenamed = await restoreCard(card.id);
+        const wasRenamed = await restoreCard(card.id, hierarchy);
         if (wasRenamed) anyRenamed = true;
     }
     for (const field of fields) {
-        const wasRenamed = await restoreField(field.id);
+        const wasRenamed = await restoreField(field.id, hierarchy);
         if (wasRenamed) anyRenamed = true;
     }
     

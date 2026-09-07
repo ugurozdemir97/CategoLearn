@@ -158,9 +158,6 @@ export default function FolderScreen({ route, navigation }) {
             }
         }
 
-        setFields([]);
-        modals.closeCreateModal();
-        clearSelection();
         await loadItems();
     };
 
