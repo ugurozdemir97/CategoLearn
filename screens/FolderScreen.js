@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, FlatList, BackHandler } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from "react-native-draggable-flatlist";
 
 // Components
 import CircleButton from "../components/Buttons/CircleButton.js";
@@ -58,6 +58,8 @@ export default function FolderScreen({ route, navigation }) {
     const { t } = useTranslation();
     const sortModeRef = React.useRef(sortMode);
     sortModeRef.current = sortMode;
+    const folderItems = items.filter((item) => item.type === "Category");
+    const cardItems = items.filter((item) => item.type === "Card");
 
     // When go back arrow on the phone is clicked, prevent going back to HomeScreen and go to the parent
     useFocusEffect(
@@ -109,7 +111,14 @@ export default function FolderScreen({ route, navigation }) {
     };
 
     // Custom sort functions for custom sort mode
-    const customSort = useCustomSort( items, setItems, loadItems, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
+    const customSort = useCustomSort(
+        items,
+        setItems,
+        loadItems,
+        modals.setErrorMessages,
+        () => modals.openInfoModal(modals.errorMessages),
+        { groupBy: (item) => item.type }
+    );
 
     // Handle Create or Edit for both cards and folders
     const handleItem = async (itemData, mode) => {
@@ -242,27 +251,51 @@ export default function FolderScreen({ route, navigation }) {
                     </Text>
                 </View>
             ) : customSort.customSortMode ? (
-                // Custom sort mode - draggable list
-                <DraggableFlatList
-                    data={items}
-                    keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
-                    onDragEnd={customSort.handleDragEnd}
-                    activationDistance={8}
-                    style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
-                    renderItem={({ item, index, drag, isActive }) => (
-                        <ScaleDecorator activeScale={1.03}>
-                            <DraggableListButton
-                                item={item}
-                                index={index}
-                                totalItems={items.length}
-                                drag={drag}
-                                isActive={isActive}
-                                onMoveUp={() => customSort.moveItem(item, -1)}
-                                onMoveDown={() => customSort.moveItem(item, 1)}
-                            />
-                        </ScaleDecorator>
-                    )}
-                />
+                // Separate drag lists keep cards physically below folders
+                <NestableScrollContainer style={{ flex: 1, marginTop: 8 }} contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}>
+                    <NestableDraggableFlatList
+                        data={folderItems}
+                        keyExtractor={(item, index) => item.id ? `Category-${item.id}` : `folder-${index}`}
+                        onDragEnd={(params) => customSort.handleGroupDragEnd("Category", params)}
+                        activationDistance={8}
+                        renderItem={({ item, index, drag, isActive }) => (
+                            <ScaleDecorator activeScale={1.03}>
+                                <DraggableListButton
+                                    item={item}
+                                    index={index}
+                                    totalItems={folderItems.length}
+                                    drag={drag}
+                                    isActive={isActive}
+                                    canMoveUp={customSort.canMoveItem(item, -1)}
+                                    canMoveDown={customSort.canMoveItem(item, 1)}
+                                    onMoveUp={() => customSort.moveItem(item, -1)}
+                                    onMoveDown={() => customSort.moveItem(item, 1)}
+                                />
+                            </ScaleDecorator>
+                        )}
+                    />
+                    <NestableDraggableFlatList
+                        data={cardItems}
+                        keyExtractor={(item, index) => item.id ? `Card-${item.id}` : `card-${index}`}
+                        onDragEnd={(params) => customSort.handleGroupDragEnd("Card", params)}
+                        activationDistance={8}
+                        renderItem={({ item, index, drag, isActive }) => (
+                            <ScaleDecorator activeScale={1.03}>
+                                <DraggableListButton
+                                    item={item}
+                                    index={index}
+                                    totalItems={cardItems.length}
+                                    drag={drag}
+                                    isActive={isActive}
+                                    canMoveUp={customSort.canMoveItem(item, -1)}
+                                    canMoveDown={customSort.canMoveItem(item, 1)}
+                                    onMoveUp={() => customSort.moveItem(item, -1)}
+                                    onMoveDown={() => customSort.moveItem(item, 1)}
+                                />
+                            </ScaleDecorator>
+                        )}
+                    />
+                </NestableScrollContainer>
             ) : (
                 // Normal mode - regular list
                 <FlatList

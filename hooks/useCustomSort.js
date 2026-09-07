@@ -3,11 +3,38 @@ import db from "../database/db.js";
 
 // Custom sort functions repeat themselves across screens
 // This hook handles sorting related functions and save the last order of items
-export function useCustomSort(items, setItems, reloadItems, setErrorMessages, setInfoVisible) {
+export function useCustomSort(items, setItems, reloadItems, setErrorMessages, setInfoVisible, options = {}) {
     const [customSortMode, setCustomSortMode] = useState(false);  // If we are in custom sort mode or not
+    const groupBy = options.groupBy;
 
     // When dragging ends set items to keep the items in the same order
-    const handleDragEnd = useCallback(({ data }) => {setItems(data)}, [setItems]);
+    const handleDragEnd = useCallback(({ data, from, to }) => {
+        const crossedGroupBoundary = groupBy
+            && from !== to
+            && items[from]
+            && items[to]
+            && groupBy(items[from]) !== groupBy(items[to]);
+
+        if (crossedGroupBoundary) {
+            setItems([...items]);
+            return;
+        }
+
+        setItems(data);
+    }, [groupBy, items, setItems]);
+
+    // Update one independently draggable group without moving the other groups
+    const handleGroupDragEnd = useCallback((groupKey, { data }) => {
+        if (!groupBy) {
+            setItems(data);
+            return;
+        }
+
+        setItems((prev) => {
+            let groupIndex = 0;
+            return prev.map((item) => groupBy(item) === groupKey ? data[groupIndex++] : item);
+        });
+    }, [groupBy, setItems]);
 
     // Save custom to database
     const handleSaveCustomOrder = async () => {
@@ -45,6 +72,15 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
     // Enter custom sort mode
     const enterCustomSort = () => setCustomSortMode(true);
 
+    // Grouped lists can move items only within their own section
+    const canMoveItem = (item, direction) => {
+        const currentIndex = items.indexOf(item);
+        const targetIndex = currentIndex + direction;
+
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= items.length) return false;
+        return !groupBy || groupBy(item) === groupBy(items[targetIndex]);
+    };
+
     // Move items by pressing the arrow buttons
     const moveItem = (item, direction) => {
         setItems((prev) => {
@@ -55,6 +91,7 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
             // or it is the last item and we try to move it down
             // Just return the current color order
             if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+            if (groupBy && groupBy(item) !== groupBy(prev[targetIndex])) return prev;
 
             // Swap 2 elements, the item you move goes to target place and swap places with the item there
             const newOrder = [...prev];
@@ -64,6 +101,6 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
         });
     };
 
-    return { customSortMode, handleDragEnd, handleSaveCustomOrder, handleCancelCustomOrder, enterCustomSort, moveItem };
+    return { customSortMode, handleDragEnd, handleGroupDragEnd, handleSaveCustomOrder, handleCancelCustomOrder, enterCustomSort, canMoveItem, moveItem };
 
 }

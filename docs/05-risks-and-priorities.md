@@ -13,7 +13,7 @@ intentional and must remain unchanged.
 4. Hide descendants of deleted ancestors from search. ✓
 5. Check the complete ancestor path during restoration. ✓
 6. Keep forms open when saving fails. ✓
-7. Prevent cards from being dragged above folders.
+7. Prevent cards from being dragged above folders. ✓
 8. Support valid orphaned Trash items during import.
 
 Additional completed refinements:
@@ -22,28 +22,7 @@ Additional completed refinements:
 - Allow recovered items to be copied or cut out of system recovery folders while
   still preventing users from pasting items into them. ✓
 
-## 1. Prevent cards from being dragged above folders
-
-### Files to change
-
-- Change `hooks/useCustomSort.js` so drag completion and arrow movement respect a
-  caller-provided type-group boundary.
-- Change `screens/FolderScreen.js` to enable the folders-first boundary for its
-  mixed folder/card list.
-- Change `components/Buttons/DraggableListButton.js` only if its arrow buttons
-  need disabled-state support at the top or bottom of a type group.
-
-Home contains only folders and Card Detail contains only fields, so their existing
-custom ordering should remain unchanged.
-
-### Why
-
-Normal rendering always groups folders above cards. Custom sorting currently lets
-a card cross into the folder section, saves the indexes, and then displays a
-different order after reload. Folders should move only among folders and cards
-only among cards.
-
-## 2. Make import support the existing Trash behavior
+## 1. Make import support the existing Trash behavior
 
 ### Files to change
 
@@ -85,7 +64,6 @@ Keep assumes every imported parent can be mapped. This can reject a valid backup
 
 ## Focused verification
 
-- Confirm cards cannot cross above folders through dragging or arrow controls.
 - Export and import a valid database containing an independently deleted orphan
   with both Replace and Keep, then restore that item.
 - Confirm an active orphan and a damaged or unrelated database are still rejected.
