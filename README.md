@@ -1,10 +1,10 @@
 # CategoLearn
 
-I am personally obsessed with categorizing information. Whenever I am learning something—especially a subject I genuinely enjoy—I love keeping everything neatly organized so that I can easily understand how it all fits together.
+I am personally obsessed with categorizing information. Whenever I am learning something I love keeping everything neatly organized so that I can easily understand how it all fits together.
 
-While trying different flashcard apps to learn Russian, I realized that most of them offered no easy way to categorize cards or customize their contents. I wanted a tool that matched the way I naturally learn and organize knowledge, so I created CategoLearn: a simple, flexible app for storing and organizing information.
+While trying different flashcard apps to learn Russian, I realized that most of them offered no easy way to categorize cards or customize their contents. Most of them had basic fronf-back cards. I wanted a tool that matched the way I naturally learn and organize knowledge, so I created CategoLearn: a simple, flexible app for storing and organizing information.
 
-CategoLearn lets you organize content into subjects such as Russian, English, mathematics, or art, each with its own nested categories. For example, an English subject might contain folders for objects, verbs, and adjectives, along with more specialized folders such as Daily Phrasal Verbs, Academic Vocabulary, or Phrases for Emails.
+CategoLearn lets you organize content into subjects such as Russian, English, mathematics, or art, each with its own nested categories. For example, an English subject might contain folders for "Objects", "Verbs", and "Adjectives", along with more specialized folders such as "Daily Phrasal Verbs", "Academic Vocabulary", or "Phrases for Emails".
 
 Within each folder, you can create custom cards with the fields you need. Rather than being limited to a front and back, every card can contain optional, customizable fields.
 
@@ -13,7 +13,7 @@ Within each folder, you can create custom cards with the fields you need. Rather
 ### Categorization
 
 - Create folders for subjects, categories, and subcategories.
-- Nest folders to any depth (for example, English → Verbs → Daily Phrasal Verbs).
+- Nest folders to any depth (for example, English → Verbs → Daily Phrasal Verbs → Your information cards).
 - Use colors to organize and distinguish items visually.
 - Arrange items in any order by dragging and dropping them.
 
