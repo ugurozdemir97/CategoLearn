@@ -1,9 +1,7 @@
 # Risks and priorities
 
-This is the remaining confirmed work, ordered from easiest to implement to most
-difficult. Each item names the relevant files and explains why they are involved.
-Database migrations are implemented. Existing deletion and recovery behavior is
-intentional and must remain unchanged.
+All confirmed priority work is complete. Database migrations are implemented,
+and the intentional deletion and recovery behavior remains unchanged.
 
 ## Progress tracker
 
@@ -14,7 +12,7 @@ intentional and must remain unchanged.
 5. Check the complete ancestor path during restoration. ✓
 6. Keep forms open when saving fails. ✓
 7. Prevent cards from being dragged above folders. ✓
-8. Support valid orphaned Trash items during import.
+8. Support valid orphaned Trash items during import. ✓
 
 Additional completed refinements:
 
@@ -22,14 +20,7 @@ Additional completed refinements:
 - Allow recovered items to be copied or cut out of system recovery folders while
   still preventing users from pasting items into them. ✓
 
-## 1. Make import support the existing Trash behavior
-
-### Files to change
-
-- Change `database/exportDb.js`, especially `validateHierarchy`, the
-  `PRAGMA foreign_key_check` handling, and `keepCurrentDatabase`.
-- Keep `database/migrations.js` responsible only for upgrading an older valid
-  schema before the current-version validation runs.
+## Completed import behavior
 
 ### Required behavior
 
@@ -42,15 +33,11 @@ Additional completed refinements:
 - Restoring that child after its parent is gone continues to place it in
   `Restored Items` or `Restored Fields`.
 
-The importer must accept that valid deleted-orphan state while continuing to
-reject active orphans, invalid schemas, damaged files, and other broken
-relationships. Both Replace and Keep must preserve the recoverable item.
-
-### Why
-
-A genuine CategoLearn backup can legally contain a deleted item whose parent no
-longer exists. Import currently treats every missing parent as corruption, and
-Keep assumes every imported parent can be mapped. This can reject a valid backup.
+The importer accepts that valid deleted-orphan state while continuing to reject
+active orphans, invalid schemas, damaged files, and other broken relationships.
+Replace preserves the original recoverable rows. Keep attaches orphaned Trash
+roots to the appropriate system recovery container so they can be restored
+safely; descendants retain their relationship to that imported root.
 
 ## Accepted design decisions
 

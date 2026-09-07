@@ -104,7 +104,9 @@ function validateHierarchy(folders, cards, fields) {
 
     for (const folder of folders) {
         if (folder.type != null && folder.type !== 'Category') throw new Error('Unexpected folder type.');
-        if (folder.parent_id != null && !folderIds.has(folder.parent_id)) throw new Error('A folder parent is missing.');
+        if (folder.parent_id != null && !folderIds.has(folder.parent_id) && folder.deleted_at == null) {
+            throw new Error('An active folder parent is missing.');
+        }
         if (typeof folder.name !== 'string' || folder.name.length < 1 || folder.name.length > MAX_NAME_LENGTH) {
             throw new Error('A folder name is invalid.');
         }
@@ -125,7 +127,7 @@ function validateHierarchy(folders, cards, fields) {
 
     for (const card of cards) {
         if (card.type != null && card.type !== 'Card') throw new Error('Unexpected card type.');
-        if (!folderIds.has(card.parent_id)) throw new Error('A card parent is missing.');
+        if (!folderIds.has(card.parent_id) && card.deleted_at == null) throw new Error('An active card parent is missing.');
         if (typeof card.name !== 'string' || card.name.length < 1 || card.name.length > MAX_NAME_LENGTH) {
             throw new Error('A card name is invalid.');
         }
@@ -138,7 +140,7 @@ function validateHierarchy(folders, cards, fields) {
 
     for (const field of fields) {
         if (field.type != null && field.type !== 'Field') throw new Error('Unexpected field type.');
-        if (!cardIds.has(field.parent_id)) throw new Error('A field parent is missing.');
+        if (!cardIds.has(field.parent_id) && field.deleted_at == null) throw new Error('An active field parent is missing.');
         if (typeof field.name !== 'string' || field.name.length < 1 || field.name.length > MAX_NAME_LENGTH) {
             throw new Error('A field name is invalid.');
         }
@@ -146,6 +148,21 @@ function validateHierarchy(folders, cards, fields) {
             const nameKey = `${field.parent_id}\u0000${field.name}`;
             if (activeFieldNames.has(nameKey)) throw new Error('Duplicate active field names were found.');
             activeFieldNames.add(nameKey);
+        }
+    }
+}
+
+function validateForeignKeyProblems(problems, folders, cards, fields) {
+    const rowsByTable = {
+        folders: new Map(folders.map((row) => [row.id, row])),
+        cards: new Map(cards.map((row) => [row.id, row])),
+        fields: new Map(fields.map((row) => [row.id, row]))
+    };
+
+    for (const problem of problems) {
+        const childRow = rowsByTable[problem.table]?.get(problem.rowid);
+        if (!childRow || childRow.deleted_at == null) {
+            throw new Error('The database contains broken active relationships.');
         }
     }
 }
@@ -190,14 +207,13 @@ async function readAndValidateDatabase(candidate) {
         if (!hasExpectedParent) throw new Error(`Unexpected ${tableName} relationships.`);
     }
 
-    const foreignKeyProblems = await candidate.getAllAsync('PRAGMA foreign_key_check');
-    if (foreignKeyProblems.length > 0) throw new Error('The database contains broken relationships.');
-
     const [folders, cards, fields] = await Promise.all([
         candidate.getAllAsync('SELECT * FROM folders ORDER BY id'),
         candidate.getAllAsync('SELECT * FROM cards ORDER BY id'),
         candidate.getAllAsync('SELECT * FROM fields ORDER BY id')
     ]);
+    const foreignKeyProblems = await candidate.getAllAsync('PRAGMA foreign_key_check');
+    validateForeignKeyProblems(foreignKeyProblems, folders, cards, fields);
     validateHierarchy(folders, cards, fields);
 
     return { folders, cards, fields };
@@ -240,6 +256,33 @@ async function createPermanentPreImportBackup() {
     return backupName;
 }
 
+async function getRecoveryContainerIds(transaction) {
+    let restoredItems = await transaction.getFirstAsync(
+        'SELECT id FROM folders WHERE is_system_folder = 1 AND parent_id IS NULL AND deleted_at IS NULL'
+    );
+    if (!restoredItems) {
+        const result = await transaction.runAsync(
+            "INSERT INTO folders (parent_id, name, color, is_system_folder) VALUES (NULL, 'Restored Items ', ?, 1)",
+            [IMPORT_FOLDER_COLOR]
+        );
+        restoredItems = { id: result.lastInsertRowId };
+    }
+
+    let restoredFields = await transaction.getFirstAsync(
+        'SELECT id FROM cards WHERE is_system_card = 1 AND parent_id = ? AND deleted_at IS NULL',
+        [restoredItems.id]
+    );
+    if (!restoredFields) {
+        const result = await transaction.runAsync(
+            "INSERT INTO cards (parent_id, name, color, is_system_card) VALUES (?, 'Restored Fields ', ?, 1)",
+            [restoredItems.id, IMPORT_FOLDER_COLOR]
+        );
+        restoredFields = { id: result.lastInsertRowId };
+    }
+
+    return { restoredItemsId: restoredItems.id, restoredFieldsId: restoredFields.id };
+}
+
 async function replaceCurrentDatabase(sourceDatabase, backupName) {
     try {
         await SQLite.backupDatabaseAsync({ sourceDatabase, destDatabase: db });
@@ -277,16 +320,26 @@ async function keepCurrentDatabase(sourceData, displayName) {
 
         const folderIdMap = new Map();
         const pendingFolders = [...sourceData.folders];
+        const sourceFolderIds = new Set(sourceData.folders.map((folder) => folder.id));
+        const sourceCardIds = new Set(sourceData.cards.map((card) => card.id));
         const activeFolderNamesByParent = new Map();
+        let recoveryContainers;
+        const getRecoveryContainers = async () => {
+            if (!recoveryContainers) recoveryContainers = await getRecoveryContainerIds(transaction);
+            return recoveryContainers;
+        };
 
         while (pendingFolders.length > 0) {
             let insertedThisPass = 0;
 
             for (let index = pendingFolders.length - 1; index >= 0; index -= 1) {
                 const folder = pendingFolders[index];
-                if (folder.parent_id != null && !folderIdMap.has(folder.parent_id)) continue;
+                const hasMissingSourceParent = folder.parent_id != null && !sourceFolderIds.has(folder.parent_id);
+                if (folder.parent_id != null && !hasMissingSourceParent && !folderIdMap.has(folder.parent_id)) continue;
 
-                const newParentId = folder.parent_id == null ? containerId : folderIdMap.get(folder.parent_id);
+                const newParentId = hasMissingSourceParent
+                    ? (await getRecoveryContainers()).restoredItemsId
+                    : folder.parent_id == null ? containerId : folderIdMap.get(folder.parent_id);
                 let folderName = folder.name;
                 if (folder.deleted_at == null) {
                     const siblingNames = activeFolderNamesByParent.get(newParentId) || new Set();
@@ -312,7 +365,9 @@ async function keepCurrentDatabase(sourceData, displayName) {
         const cardIdMap = new Map();
         const activeCardNamesByParent = new Map();
         for (const card of sourceData.cards) {
-            const newParentId = folderIdMap.get(card.parent_id);
+            const newParentId = sourceFolderIds.has(card.parent_id)
+                ? folderIdMap.get(card.parent_id)
+                : (await getRecoveryContainers()).restoredItemsId;
             let cardName = card.name;
             if (card.deleted_at == null) {
                 const siblingNames = activeCardNamesByParent.get(newParentId) || new Set();
@@ -332,7 +387,9 @@ async function keepCurrentDatabase(sourceData, displayName) {
 
         for (const field of sourceData.fields) {
             await insertMigratedRow(transaction, 'fields', field, {
-                parent_id: cardIdMap.get(field.parent_id),
+                parent_id: sourceCardIds.has(field.parent_id)
+                    ? cardIdMap.get(field.parent_id)
+                    : (await getRecoveryContainers()).restoredFieldsId,
                 type: 'Field'
             });
         }
