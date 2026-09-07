@@ -13,7 +13,7 @@ const ACTIONS = [
     { mode: "load", icon: "folder-open-o", labelKey: "buttons.load" },
 ];
 
-export default function FieldSetActions({ fields = [], onLoad }) {
+export default function FieldSetActions({ fields = [], onLoad, canLoad = true }) {
     // Modal and locally saved field-set state
     const [mode, setMode] = useState(null);
     const [fieldSets, setFieldSets] = useState([]);
@@ -42,6 +42,7 @@ export default function FieldSetActions({ fields = [], onLoad }) {
         .filter((field) => field.name);
 
     const openMode = async (nextMode) => {
+        if (nextMode === "load" && !canLoad) return;
         setMessage("");
         setSetName("");
         await refreshFieldSets();
@@ -136,15 +137,15 @@ export default function FieldSetActions({ fields = [], onLoad }) {
                     <TouchableOpacity
                         key={action.mode}
                         onPress={() => openMode(action.mode)}
-                        disabled={action.mode === "save" && !canSave}
+                        disabled={(action.mode === "save" && !canSave) || (action.mode === "load" && !canLoad)}
                         style={[
                             styles.fieldSetActionButton,
                             { backgroundColor: colors.bgCard, borderColor: colors.textHalfOpacity },
-                            action.mode === "save" && !canSave ? { opacity: 0.35 } : null,
+                            (action.mode === "save" && !canSave) || (action.mode === "load" && !canLoad) ? { opacity: 0.35 } : null,
                         ]}
                         accessibilityRole="button"
                         accessibilityLabel={t(action.labelKey)}
-                        accessibilityState={{ disabled: action.mode === "save" && !canSave }}
+                        accessibilityState={{ disabled: (action.mode === "save" && !canSave) || (action.mode === "load" && !canLoad) }}
                     >
                         <FontAwesome
                             name={action.icon}

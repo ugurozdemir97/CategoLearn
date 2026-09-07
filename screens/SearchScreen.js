@@ -10,6 +10,9 @@ import ListLoadingIndicator from "../components/Blocks/ListLoadingIndicator.js";
 // Database Queries
 import db from "../database/db.js";
 
+// Utils
+import { getVisibleSearchItems } from "../utils/searchVisibility.js";
+
 // Styles and Colors
 import styles from "../styles/styles.js";
 import { useTheme } from "../context/ThemeContext.js";
@@ -21,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 export default function SearchScreen({ navigation }) {
     const insets = useSafeAreaInsets();            // For placing elements
     const [query, setQuery] = useState("");        // Searched text
-    const [allItems, setAllItems] = useState([]);  // All items we have in database, except deleted ones
+    const [allItems, setAllItems] = useState([]);  // Items whose complete hierarchy is active
     const [isLoading, setIsLoading] = useState(true);
     const { colors } = useTheme();
     const { t } = useTranslation();
@@ -33,15 +36,16 @@ export default function SearchScreen({ navigation }) {
     }, [navigation]);
 
     // Bring all folders, cards, fields except deleted ones
+    // Load parent metadata too so descendants of deleted ancestors can be excluded.
     const loadAllData = async () => {
         setIsLoading(true);
         try {
             const [folders, cards, fields] = await Promise.all([
-                db.getAllAsync("SELECT *, 'Category' as type FROM folders WHERE deleted_at IS NULL AND is_system_folder = 0"),
-                db.getAllAsync("SELECT *, 'Card' as type FROM cards WHERE deleted_at IS NULL AND is_system_card = 0"),
+                db.getAllAsync("SELECT *, 'Category' as type FROM folders"),
+                db.getAllAsync("SELECT *, 'Card' as type FROM cards"),
                 db.getAllAsync("SELECT *, 'Field' as type FROM fields WHERE deleted_at IS NULL"),
             ]);
-            setAllItems([...folders, ...cards, ...fields]);
+            setAllItems(getVisibleSearchItems(folders, cards, fields));
         } finally {
             setIsLoading(false);
         }
@@ -112,20 +116,28 @@ export default function SearchScreen({ navigation }) {
         // Create the path
         const path = await buildPath(item);
 
-        // If Category and parent is null, go to HomeScreen, if parent exist go to FolderScreen
+        // Open the selected folder itself, including folders stored at the root.
         if (item.type === "Category") {
-            if (item.parent_id === null) navigation.navigate("Home");
-            else navigation.navigate("Folder", {folder: item, path: [...path, { id: item.id, name: item.name, type: item.type }]});
+            navigation.navigate("Folder", {
+                folder: item,
+                path: [...path, { id: item.id, name: item.name, type: item.type }]
+            });
 
-        // If Card, navigate to parent folder of the card
+        // Open the selected card itself.
         } else if (item.type === "Card") {
-            const folder = await db.getFirstAsync("SELECT * FROM folders WHERE id = ?", [item.parent_id]);
-            navigation.navigate("Folder", {folder: folder, path: path});
+            navigation.navigate("CardDetail", {
+                card: item,
+                path: [...path, { id: item.id, name: item.name, type: item.type }]
+            });
         
-        // If Card, navigate to the parent card
+        // Fields have no separate screen, so open their card and focus the field.
         } else if (item.type === "Field") {
             const card = await db.getFirstAsync("SELECT * FROM cards WHERE id = ?", [item.parent_id]);
-            navigation.navigate("CardDetail", {card: card, path: [...path, { id: card.id, name: card.name, type: card.type }]});
+            navigation.navigate("CardDetail", {
+                card,
+                path: [...path, { id: card.id, name: card.name, type: card.type }],
+                targetFieldId: item.id
+            });
         }
     };
 

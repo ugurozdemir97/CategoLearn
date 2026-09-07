@@ -28,7 +28,12 @@
         "cantPasteDescendant": "You cannot paste a folder into its own descendant.",
         "folderInCard": "Folders cannot be pasted inside cards.",
         "cardInCard": "Cards can only be pasted inside folders.",
-        "fieldInFolder": "Fields can only be pasted inside cards."
+        "fieldInFolder": "Fields can only be pasted inside cards.",
+        "systemContainerPaste": "Items cannot be pasted inside system recovery folders or cards.",
+        "saveFailed": "The item could not be saved. Please try again.",
+        "customOrderSaveFailed": "The custom order could not be saved. Please try again.",
+        "actionFailed": "The database operation could not be completed. Please try again.",
+        "systemItemAction": "Protected system recovery folders and cards cannot be modified."
     },
     "screenMessages": {
         "dbLoading": "Initializing database...",

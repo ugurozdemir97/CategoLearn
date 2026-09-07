@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, Text, FlatList } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
@@ -33,6 +33,7 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 import { formatDate } from "../utils/formatTime.js";
 import { handleSort } from "../utils/handleSort.js";
 import { handleEditSelected } from "../utils/handleFooterActions.js";
+import { getSharedItemColor } from "../utils/colorSelection.js";
 
 // Database Queries and Storage
 import db from "../database/db.js";
@@ -43,13 +44,15 @@ import { useTranslation } from 'react-i18next';
 
 // CardDetailScreen: Displays contents of a card (fields). Create or edit them. 
 export default function CardDetailScreen({ route, navigation }) {
-    const { card, path } = route.params;
+    const { card, path, targetFieldId = null } = route.params;
     const [fields, setFields] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [fieldContext, setFieldContext] = useState("");
     const [expanded, setExpanded] = useState({});
     const [cardDate, setCardDate] = useState(null);
     const [footerHeight, setFooterHeight] = useState(60);
+    const fieldListRef = useRef(null);
+    const targetScrollRetriesRef = useRef(0);
 
     // Custom hooks for state management
     const modals = useModalStates();
@@ -58,6 +61,7 @@ export default function CardDetailScreen({ route, navigation }) {
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const isSystemContainer = card.is_system_card === 1;
 
     // Load all fields inside this card from the database
     const loadFields = async () => {
@@ -73,7 +77,9 @@ export default function CardDetailScreen({ route, navigation }) {
     };
 
     // Custom sort functions for custom sort mode
-    const customSort = useCustomSort(fields, setFields, loadFields, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
+    const customSort = useCustomSort(fields, setFields, loadFields, () => {
+        modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.customOrderSaveFailed") });
+    });
 
     // Load fields when screen is focused
     useEffect(() => {
@@ -83,28 +89,71 @@ export default function CardDetailScreen({ route, navigation }) {
         return unsubscribe;
     }, [navigation, sortMode]);
 
+    // Focus a field opened from search after the sorted field list is available.
+    useEffect(() => {
+        if (isLoading || targetFieldId === null) return;
+
+        const targetIndex = fields.findIndex((field) => String(field.id) === String(targetFieldId));
+        if (targetIndex === -1) return;
+
+        const targetField = fields[targetIndex];
+        targetScrollRetriesRef.current = 0;
+
+        if (targetField.context?.length > 0) {
+            setExpanded((current) => ({ ...current, [targetField.id]: true }));
+        }
+
+        requestAnimationFrame(() => {
+            fieldListRef.current?.scrollToIndex({
+                index: targetIndex,
+                animated: true,
+                viewPosition: 0.35
+            });
+        });
+
+        // Treat search focus as a one-time request so selecting the same field later works again.
+        navigation.setParams({ targetFieldId: null });
+    }, [fields, isLoading, navigation, targetFieldId]);
+
+    // FlatList cannot calculate every off-screen position until enough rows render.
+    const handleTargetScrollFailure = ({ index, averageItemLength }) => {
+        if (targetScrollRetriesRef.current >= 2) return;
+        targetScrollRetriesRef.current += 1;
+
+        fieldListRef.current?.scrollToOffset({
+            offset: Math.max(0, averageItemLength * index),
+            animated: true
+        });
+
+        setTimeout(() => {
+            fieldListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.35 });
+        }, 150);
+    };
+
     // Handle creating or editing a field
     const handleField = async (editedField, mode) => {
         if (mode === "create") await addField(card.id, editedField.name, editedField.context, editedField.color);
         else                   await updateField(modals.editTarget?.id, editedField.name, editedField.context, editedField.color);
 
-        setFieldContext("");
-        modals.closeCreateModal();
-        clearSelection();
         await loadFields();
     };
 
     // Delete selected field(s) after confirmation
     const confirmDelete = async () => {
-        if (modals.deleteTarget?.items) {
-            for (const item of modals.deleteTarget.items) {
-                if (item.id) await deleteField(item.id);
+        try {
+            if (modals.deleteTarget?.items) {
+                for (const item of modals.deleteTarget.items) {
+                    if (item.id) await deleteField(item.id);
+                }
             }
-            await loadFields();
-        }
 
-        modals.closeDeleteModal();
-        clearSelection();
+            await loadFields();
+            modals.closeDeleteModal();
+            clearSelection();
+        } catch (error) {
+            console.error("Failed to delete fields:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        }
     };
 
     // Toggle expand/collapse of field to show/hide context
@@ -194,7 +243,8 @@ export default function CardDetailScreen({ route, navigation }) {
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     onDragEnd={customSort.handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
+                    style={{ marginTop: 8 }}
+                    contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton
@@ -212,9 +262,11 @@ export default function CardDetailScreen({ route, navigation }) {
             ) : (
                 // Normal mode - regular list
                 <FlatList
+                    ref={fieldListRef}
                     data={fields}
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     style={{ marginTop: 8, paddingBottom: 15 }}
+                    onScrollToIndexFailed={handleTargetScrollFailure}
                     renderItem={({ item }) => (
                         <ListButton
                             label={item.name}
@@ -242,9 +294,11 @@ export default function CardDetailScreen({ route, navigation }) {
                     <FieldSetActions
                         fields={fields}
                         onLoad={loadFieldSetIntoCard}
+                        canLoad={!isSystemContainer}
                     />
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                        disabled={selectedItems.length === 0 && isSystemContainer}
                         onPress={() => {
                             if (selectedItems.length === 1) handleEditSelectedWrapper();
                             else                            modals.openCreateModal();
@@ -296,9 +350,9 @@ export default function CardDetailScreen({ route, navigation }) {
             {/* Color Picker Modal */}
             <ColorModal
                 visible={modals.colorModalVisible}
-                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
-                onSelect={(c) => modals.setSelectedColor(c)}
-                selectedColor={modals.selectedColor}
+                onCancel={modals.closeColorModal}
+                onConfirm={applyColorToSelected}
+                selectedColor={getSharedItemColor(selectedItems)}
             />
 
             {/* Confirmation Modal */}

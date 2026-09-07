@@ -13,7 +13,7 @@ import styles from "../../styles/styles.js";
 import { useTranslation } from 'react-i18next';
 
 // Draggable version of List Button used for ordering colors in settings screen and ordering items in custom mode
-export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, item, colorNames }) {
+export default function DraggableListButton({ drag, isActive, index, totalItems, onMoveUp, onMoveDown, canMoveUp, canMoveDown, item, colorNames }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
 
@@ -25,6 +25,8 @@ export default function DraggableListButton({ drag, isActive, index, totalItems,
 
     // Is it color drag list or item drag list
     const isColorMode = !!colorNames;
+    const moveUpDisabled = canMoveUp === undefined ? index === 0 : !canMoveUp;
+    const moveDownDisabled = canMoveDown === undefined ? index === totalItems - 1 : !canMoveDown;
 
     return (
         <View style={[styles.underShadow, styles.colorRow, styles.rowCenter, { backgroundColor: isActive ? colors.bgCardCopied : colors.bgCard, borderWidth: 1, borderColor: isActive ? colors.accentLight : "transparent" }]}>
@@ -64,24 +66,24 @@ export default function DraggableListButton({ drag, isActive, index, totalItems,
             <View style={[styles.rowCenter, { gap: 4 }]}>
                 <GHPressable
                     onPress={onMoveUp}
-                    disabled={index === 0}
+                    disabled={moveUpDisabled}
                     style={({ pressed }) => [
                         styles.arrowButton, styles.centered, 
                         {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}
                     ]}
                 >
-                    <FontAwesome name="arrow-up" size={15} color={index === 0 ? colors.textHalfOpacity : colors.textPrimary}/>
+                    <FontAwesome name="arrow-up" size={15} color={moveUpDisabled ? colors.textHalfOpacity : colors.textPrimary}/>
                 </GHPressable>
 
                 <GHPressable
                     onPress={onMoveDown}
-                    disabled={index === totalItems - 1}
+                    disabled={moveDownDisabled}
                     style={({ pressed }) => [
                         styles.arrowButton, styles.centered,
                         {backgroundColor: pressed ? colors.accent : colors.bgPrimary, borderColor: pressed ? colors.accentLight : colors.bgSecondary}
                     ]}
                 >
-                    <FontAwesome name="arrow-down" size={15} color={index === totalItems - 1 ? colors.textHalfOpacity : colors.textPrimary}/>
+                    <FontAwesome name="arrow-down" size={15} color={moveDownDisabled ? colors.textHalfOpacity : colors.textPrimary}/>
                 </GHPressable>
             </View>
         </View>

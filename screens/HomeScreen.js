@@ -27,7 +27,8 @@ import { useCustomSort } from "../hooks/useCustomSort.js";
 
 // Utils
 import { handleSort } from "../utils/handleSort.js";
-import { handleEditSelected } from "../utils/handleFooterActions.js";
+import { handleEditSelected, isSystemRecoveryItem } from "../utils/handleFooterActions.js";
+import { getSharedItemColor } from "../utils/colorSelection.js";
 
 // Database Queries and Storage
 import { addFolder, getFolders, updateFolder, deleteFolder } from "../database/queries.js";
@@ -48,6 +49,7 @@ export default function HomeScreen({ navigation }) {
     const { sortMode } = useSortMode();
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const hasSelectedSystemItem = selectedItems.some(isSystemRecoveryItem);
 
     // Load subjects when screen is focused
     useEffect(() => {
@@ -67,27 +69,32 @@ export default function HomeScreen({ navigation }) {
     };
 
     // Custom sort functions for custom sort mode
-    const customSort = useCustomSort(subjects, setSubjects, loadSubjects, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
+    const customSort = useCustomSort(subjects, setSubjects, loadSubjects, () => {
+        modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.customOrderSaveFailed") });
+    });
 
     // Handle Create or Edit
     const handleSubject = async (folderData, mode) => {
         if (mode === "create")                         await addFolder(null, folderData.name, folderData.color);
         else if (mode === "edit" && modals.editTarget) await updateFolder(modals.editTarget.id, folderData.name, folderData.color);
 
-        modals.closeCreateModal();
-        clearSelection();
         await loadSubjects();
     };
 
     // Delete selected subjects after confirmation
     const confirmDelete = async () => {
-        if (modals.deleteTarget?.items) {
-            for (const item of modals.deleteTarget.items) await deleteFolder(item.id);
-        }
+        try {
+            if (modals.deleteTarget?.items) {
+                for (const item of modals.deleteTarget.items) await deleteFolder(item.id);
+            }
 
-        modals.closeDeleteModal();
-        clearSelection();
-        await loadSubjects();
+            await loadSubjects();
+            modals.closeDeleteModal();
+            clearSelection();
+        } catch (error) {
+            console.error("Failed to delete subjects:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        }
     };
 
     // Edit handler 
@@ -145,7 +152,8 @@ export default function HomeScreen({ navigation }) {
                             keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                             onDragEnd={customSort.handleDragEnd}
                             activationDistance={8}
-                            style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
+                            style={{ marginTop: 8 }}
+                            contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}
                             renderItem={({ item, index, drag, isActive }) => (
                                 <ScaleDecorator activeScale={1.03}>
                                     <DraggableListButton
@@ -192,6 +200,7 @@ export default function HomeScreen({ navigation }) {
                 <View style={[styles.buttonContainer, { bottom: footerHeight + 10, paddingBottom: 15 }]}>
                     <CircleButton
                         icon={selectedItems.length === 1 ? "pencil" : "plus"}
+                        disabled={hasSelectedSystemItem}
                         onPress={() => {
                             if (selectedItems.length === 1) handleEditSelectedWrapper();
                             else                            modals.openCreateModal();
@@ -251,9 +260,9 @@ export default function HomeScreen({ navigation }) {
             {/* Color Picker Modal */}
             <ColorModal
                 visible={modals.colorModalVisible}
-                onClose={() => {applyColorToSelected(modals.selectedColor); modals.closeColorModal()}}
-                onSelect={(c) => modals.setSelectedColor(c)}
-                selectedColor={modals.selectedColor}
+                onCancel={modals.closeColorModal}
+                onConfirm={applyColorToSelected}
+                selectedColor={getSharedItemColor(selectedItems)}
             />
 
             {/* Information Modal For Errors */}

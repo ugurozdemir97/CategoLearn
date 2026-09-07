@@ -7,7 +7,6 @@ export function useModalStates() {
     const [editTarget, setEditTarget] = useState(null);                    // Edited item
     const [deleteTarget, setDeleteTarget] = useState(null);                // Deleted item or items
     const [errorMessages, setErrorMessages] = useState([]);                // Error messages if any
-    const [selectedColor, setSelectedColor] = useState(null);              // Selected color in the color modal
     const [modalVisible, setModalVisible] = useState(false);               // Modal visibility states
     const [confirmVisible, setConfirmVisible] = useState(false);
     const [infoVisible, setInfoVisible] = useState(false);
@@ -23,7 +22,7 @@ export function useModalStates() {
     // Close modals
     const closeCreateModal = () => {setEditTarget(null); setModalVisible(false)};
     const closeDeleteModal = () => {setDeleteTarget(null); setConfirmVisible(false)};
-    const closeColorModal =  () => {setSelectedColor(null); setColorModalVisible(false)};
+    const closeColorModal =  () => setColorModalVisible(false);
     const closeInfoModal =   () => {
         const remaining = [...errorMessages];
         remaining.shift();
@@ -36,7 +35,6 @@ export function useModalStates() {
         setEditTarget(null);
         setDeleteTarget(null);
         setErrorMessages([]);
-        setSelectedColor(null);
         setModalVisible(false);
         setConfirmVisible(false);
         setInfoVisible(false);
@@ -47,7 +45,6 @@ export function useModalStates() {
         editTarget,        // States
         deleteTarget,
         errorMessages,
-        selectedColor,
         modalVisible,
         confirmVisible,
         infoVisible,
@@ -55,7 +52,6 @@ export function useModalStates() {
         
         setEditTarget,     // Setters
         setDeleteTarget,
-        setSelectedColor,
         setErrorMessages,
 
         openCreateModal,   // Actions
