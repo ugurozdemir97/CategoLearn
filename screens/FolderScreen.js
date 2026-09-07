@@ -252,12 +252,13 @@ export default function FolderScreen({ route, navigation }) {
                 </View>
             ) : customSort.customSortMode ? (
                 // Separate drag lists keep cards physically below folders
-                <NestableScrollContainer style={{ flex: 1, marginTop: 8 }} contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}>
+                <NestableScrollContainer style={{ flex: 1, marginTop: 8 }} contentContainerStyle={{ paddingBottom: 15 }}>
                     <NestableDraggableFlatList
                         data={folderItems}
                         keyExtractor={(item, index) => item.id ? `Category-${item.id}` : `folder-${index}`}
                         onDragEnd={(params) => customSort.handleGroupDragEnd("Category", params)}
                         activationDistance={8}
+                        contentContainerStyle={{ paddingHorizontal: 15 }}
                         renderItem={({ item, index, drag, isActive }) => (
                             <ScaleDecorator activeScale={1.03}>
                                 <DraggableListButton
@@ -279,6 +280,7 @@ export default function FolderScreen({ route, navigation }) {
                         keyExtractor={(item, index) => item.id ? `Card-${item.id}` : `card-${index}`}
                         onDragEnd={(params) => customSort.handleGroupDragEnd("Card", params)}
                         activationDistance={8}
+                        contentContainerStyle={{ paddingHorizontal: 15 }}
                         renderItem={({ item, index, drag, isActive }) => (
                             <ScaleDecorator activeScale={1.03}>
                                 <DraggableListButton

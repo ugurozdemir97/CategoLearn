@@ -234,7 +234,8 @@ export default function CardDetailScreen({ route, navigation }) {
                     keyExtractor={(item, index) => item.id ? `Field-${item.id}-Card-${card.id}` : `temp-${index}`}
                     onDragEnd={customSort.handleDragEnd}
                     activationDistance={8}
-                    style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
+                    style={{ marginTop: 8 }}
+                    contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton

@@ -204,7 +204,7 @@ export default function SettingsScreen({ navigation }) {
                     onDragEnd={handleDragEnd}
                     activationDistance={8}
                     scrollEnabled={false}
-                    style={[styles.paddingHorizontal, {paddingBottom: 10}]}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}
                     renderItem={({ item, index, drag, isActive }) => (
                         <ScaleDecorator activeScale={1.03}>
                             <DraggableListButton

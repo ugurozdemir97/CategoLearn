@@ -143,7 +143,8 @@ export default function HomeScreen({ navigation }) {
                             keyExtractor={(item, index) => item.id ? `${item.type}-${item.id}` : `temp-${index}`}
                             onDragEnd={customSort.handleDragEnd}
                             activationDistance={8}
-                            style={{ marginTop: 8, paddingHorizontal: 15, paddingBottom: 15 }}
+                            style={{ marginTop: 8 }}
+                            contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}
                             renderItem={({ item, index, drag, isActive }) => (
                                 <ScaleDecorator activeScale={1.03}>
                                     <DraggableListButton
