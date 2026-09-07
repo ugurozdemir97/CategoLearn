@@ -22,28 +22,10 @@ Additional completed audit work:
   by CategoLearn's recoverable Trash behavior. ✓
 - Finish system-container UI locking and make color changes explicitly
   cancellable and confirmable. ✓
+- Prevent duplicate destructive actions and report database failures without
+  discarding the user's selection or confirmation state. ✓
 
-## 1. Prevent duplicate destructive actions and report database failures
-
-### Files involved
-
-- Add an async submitting state to `components/Modals/ConfirmationModal.js` or
-  guard the relevant handlers in each screen.
-- Update deletion handlers in `screens/HomeScreen.js`, `screens/FolderScreen.js`,
-  `screens/CardDetailScreen.js`, and `screens/DeletedScreen.js`.
-- Add translated failure messages to `language/locales/en.json` and
-  `language/locales/tr.json`.
-
-### Why
-
-Confirmation buttons remain active while asynchronous delete, permanent-delete,
-restore, and empty-Trash loops are running. Rapid presses can start the same work
-twice. Unexpected database failures are generally unhandled, so the user may see
-no explanation and the modal/selection state can become misleading. Disable the
-actions while running, await them, keep recoverable UI state on failure, and show
-a translated error.
-
-## 2. Fix custom-order save failure feedback
+## 1. Fix custom-order save failure feedback
 
 ### Files involved
 

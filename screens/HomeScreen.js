@@ -81,13 +81,18 @@ export default function HomeScreen({ navigation }) {
 
     // Delete selected subjects after confirmation
     const confirmDelete = async () => {
-        if (modals.deleteTarget?.items) {
-            for (const item of modals.deleteTarget.items) await deleteFolder(item.id);
-        }
+        try {
+            if (modals.deleteTarget?.items) {
+                for (const item of modals.deleteTarget.items) await deleteFolder(item.id);
+            }
 
-        modals.closeDeleteModal();
-        clearSelection();
-        await loadSubjects();
+            await loadSubjects();
+            modals.closeDeleteModal();
+            clearSelection();
+        } catch (error) {
+            console.error("Failed to delete subjects:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        }
     };
 
     // Edit handler 

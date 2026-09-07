@@ -175,16 +175,21 @@ export default function FolderScreen({ route, navigation }) {
 
     // Delete selected items after confirmation
     const confirmDelete = async () => {
-        if (modals.deleteTarget?.items) {
-            for (const item of modals.deleteTarget.items) {
-                if (item.type === "Category") await deleteFolder(item.id);
-                else await deleteCard(item.id);
+        try {
+            if (modals.deleteTarget?.items) {
+                for (const item of modals.deleteTarget.items) {
+                    if (item.type === "Category") await deleteFolder(item.id);
+                    else await deleteCard(item.id);
+                }
             }
-        }
 
-        modals.closeDeleteModal();
-        clearSelection();
-        await loadItems();
+            await loadItems();
+            modals.closeDeleteModal();
+            clearSelection();
+        } catch (error) {
+            console.error("Failed to delete folder items:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        }
     };
 
     // Edit handler

@@ -138,15 +138,20 @@ export default function CardDetailScreen({ route, navigation }) {
 
     // Delete selected field(s) after confirmation
     const confirmDelete = async () => {
-        if (modals.deleteTarget?.items) {
-            for (const item of modals.deleteTarget.items) {
-                if (item.id) await deleteField(item.id);
+        try {
+            if (modals.deleteTarget?.items) {
+                for (const item of modals.deleteTarget.items) {
+                    if (item.id) await deleteField(item.id);
+                }
             }
-            await loadFields();
-        }
 
-        modals.closeDeleteModal();
-        clearSelection();
+            await loadFields();
+            modals.closeDeleteModal();
+            clearSelection();
+        } catch (error) {
+            console.error("Failed to delete fields:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        }
     };
 
     // Toggle expand/collapse of field to show/hide context

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -32,6 +32,8 @@ export default function DeletedScreen({ navigation }) {
     const insets = useSafeAreaInsets();  // For placing elements
     const [deletedItems, setDeletedItems] = useState([]);  // All deleted Items
     const [isLoading, setIsLoading] = useState(true);
+    const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+    const actionSubmittingRef = useRef(false);
     const [confirmAction, setConfirmAction] = useState(null);  // Confirm deletion or restore
 
     const modals = useModalStates();
@@ -58,41 +60,72 @@ export default function DeletedScreen({ navigation }) {
 
     // Restore items
     const handleRestore = useCallback(async () => {
-        if (selectedItems.length === 0) return;
-        
-        const anyRenamed = await restoreMultipleItems(selectedItems);
-        
-        if (anyRenamed) modals.openInfoModal({type: t("titles.restored"), message: t("infoMessages.itemsRenamed")});
+        if (selectedItems.length === 0 || actionSubmittingRef.current) return;
 
-        clearSelection();
-        await loadDeletedItems();
+        actionSubmittingRef.current = true;
+        setIsActionSubmitting(true);
+        try {
+            const anyRenamed = await restoreMultipleItems(selectedItems);
+
+            await loadDeletedItems();
+            clearSelection();
+            if (anyRenamed) modals.openInfoModal({type: t("titles.restored"), message: t("infoMessages.itemsRenamed")});
+        } catch (error) {
+            console.error("Failed to restore items:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        } finally {
+            actionSubmittingRef.current = false;
+            setIsActionSubmitting(false);
+        }
     }, [selectedItems, clearSelection]);
 
     // Permanently delete selected items
     const handlePermanentDelete = useCallback(async () => {
-        if (selectedItems.length === 0) return;
-        
-        for (const item of selectedItems) {
-            if (item.type === "Category") await permanentlyDeleteFolder(item.id);
-            else if (item.type === "Card") await permanentlyDeleteCard(item.id);
-            else if (item.type === "Field") await permanentlyDeleteField(item.id);
-        }
+        if (selectedItems.length === 0 || actionSubmittingRef.current) return;
 
-        clearSelection();
-        modals.closeDeleteModal();
-        await loadDeletedItems();
+        actionSubmittingRef.current = true;
+        setIsActionSubmitting(true);
+        try {
+            for (const item of selectedItems) {
+                if (item.type === "Category") await permanentlyDeleteFolder(item.id);
+                else if (item.type === "Card") await permanentlyDeleteCard(item.id);
+                else if (item.type === "Field") await permanentlyDeleteField(item.id);
+            }
+
+            await loadDeletedItems();
+            clearSelection();
+            modals.closeDeleteModal();
+        } catch (error) {
+            console.error("Failed to permanently delete items:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        } finally {
+            actionSubmittingRef.current = false;
+            setIsActionSubmitting(false);
+        }
     }, [selectedItems, clearSelection]);
 
     // Permanently delete everything
     const handleEmptyTrash = useCallback(async () => {
-        for (const item of deletedItems) {
-            if (item.type === "Category") await permanentlyDeleteFolder(item.id);
-            else if (item.type === "Card") await permanentlyDeleteCard(item.id);
-            else if (item.type === "Field") await permanentlyDeleteField(item.id);
-        }
+        if (actionSubmittingRef.current) return;
 
-        modals.closeDeleteModal();
-        await loadDeletedItems();
+        actionSubmittingRef.current = true;
+        setIsActionSubmitting(true);
+        try {
+            for (const item of deletedItems) {
+                if (item.type === "Category") await permanentlyDeleteFolder(item.id);
+                else if (item.type === "Card") await permanentlyDeleteCard(item.id);
+                else if (item.type === "Field") await permanentlyDeleteField(item.id);
+            }
+
+            await loadDeletedItems();
+            modals.closeDeleteModal();
+        } catch (error) {
+            console.error("Failed to empty Trash:", error);
+            modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.actionFailed") });
+        } finally {
+            actionSubmittingRef.current = false;
+            setIsActionSubmitting(false);
+        }
     }, [deletedItems]);
 
     // Handle all actions
@@ -173,19 +206,19 @@ export default function DeletedScreen({ navigation }) {
             <View style={[styles.rowCenter, styles.paddingHorizontal, {backgroundColor: colors.bgSecondary, gap: 10, paddingBottom: insets.bottom + 15, paddingTop: 15}]}>
                 {selectedItems.length > 0 ? (
                     <>
-                        <TouchableOpacity onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 5, paddingHorizontal: 10 }]}>
+                        <TouchableOpacity disabled={isActionSubmitting} onPress={() => handleAction("restore")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.success, flex: 1, gap: 5, paddingHorizontal: 10, opacity: isActionSubmitting ? 0.55 : 1 }]}>
                             <FontAwesome name="undo" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{t("buttons.restore", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 5, paddingHorizontal: 10 }]}>
+                        <TouchableOpacity disabled={isActionSubmitting} onPress={() => handleAction("permanentDelete")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 5, paddingHorizontal: 10, opacity: isActionSubmitting ? 0.55 : 1 }]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.5}>{t("buttons.deleteForever", {length: `(${selectedItems.length})`})}</Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     deletedItems.length > 0 && (
-                        <TouchableOpacity onPress={() => handleAction("emptyTrash")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10}]}>
+                        <TouchableOpacity disabled={isActionSubmitting} onPress={() => handleAction("emptyTrash")} style={[styles.underShadow, styles.normalButton, styles.rowCenter, styles.centered, { backgroundColor: colors.danger, flex: 1, gap: 10, opacity: isActionSubmitting ? 0.55 : 1 }]}>
                             <FontAwesome name="trash" size={16} color={colors.textPrimary} />
                             <Text style={[styles.smallText, { color: colors.textPrimary }]}>{t("buttons.emptyTrash")}</Text>
                         </TouchableOpacity>
