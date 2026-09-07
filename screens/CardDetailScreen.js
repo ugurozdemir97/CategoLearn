@@ -77,7 +77,9 @@ export default function CardDetailScreen({ route, navigation }) {
     };
 
     // Custom sort functions for custom sort mode
-    const customSort = useCustomSort(fields, setFields, loadFields, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
+    const customSort = useCustomSort(fields, setFields, loadFields, () => {
+        modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.customOrderSaveFailed") });
+    });
 
     // Load fields when screen is focused
     useEffect(() => {

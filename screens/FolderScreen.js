@@ -118,8 +118,7 @@ export default function FolderScreen({ route, navigation }) {
         items,
         setItems,
         loadItems,
-        modals.setErrorMessages,
-        () => modals.openInfoModal(modals.errorMessages),
+        () => modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.customOrderSaveFailed") }),
         { groupBy: (item) => item.type }
     );
 

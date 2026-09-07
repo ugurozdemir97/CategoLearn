@@ -69,7 +69,9 @@ export default function HomeScreen({ navigation }) {
     };
 
     // Custom sort functions for custom sort mode
-    const customSort = useCustomSort(subjects, setSubjects, loadSubjects, modals.setErrorMessages, () => modals.openInfoModal(modals.errorMessages));
+    const customSort = useCustomSort(subjects, setSubjects, loadSubjects, () => {
+        modals.openInfoModal({ type: t("errorTitles.error"), message: t("errorMessages.customOrderSaveFailed") });
+    });
 
     // Handle Create or Edit
     const handleSubject = async (folderData, mode) => {

@@ -3,7 +3,7 @@ import db from "../database/db.js";
 
 // Custom sort functions repeat themselves across screens
 // This hook handles sorting related functions and save the last order of items
-export function useCustomSort(items, setItems, reloadItems, setErrorMessages, setInfoVisible, options = {}) {
+export function useCustomSort(items, setItems, reloadItems, onSaveError, options = {}) {
     const [customSortMode, setCustomSortMode] = useState(false);  // If we are in custom sort mode or not
     const groupBy = options.groupBy;
 
@@ -58,8 +58,7 @@ export function useCustomSort(items, setItems, reloadItems, setErrorMessages, se
 
         } catch (error) {
             console.error("Error saving custom:", error);
-            setErrorMessages([{type: "Save Failed", message: "Failed to save custom. Please try again."}]);
-            setInfoVisible(true);
+            onSaveError();
         }
     };
 
